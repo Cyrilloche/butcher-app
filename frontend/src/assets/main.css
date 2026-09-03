@@ -1,0 +1,26 @@
+@import url('https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;600;700&family=Work+Sans:wght@400;500;600&display=swap');
+
+/*
+ * Typographie du système de design "Kraft" (design/style-guide.html) :
+ * titres en serif (Zilla Slab), interface en sans-serif (Work Sans).
+ */
+:root {
+  --font-heading: 'Zilla Slab', serif;
+  --font-body: 'Work Sans', system-ui, sans-serif;
+}
+
+body,
+.v-application {
+  font-family: var(--font-body) !important;
+}
+
+.v-application .text-h1,
+.v-application .text-h2,
+.v-application .text-h3,
+.v-application .text-h4,
+.v-application .text-h5,
+.v-application .text-h6,
+.v-toolbar-title,
+.v-card-title {
+  font-family: var(--font-heading) !important;
+}

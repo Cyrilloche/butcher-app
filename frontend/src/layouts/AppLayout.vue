@@ -9,19 +9,19 @@ import { RouterView } from 'vue-router'
 
   <v-bottom-navigation grow color="primary">
     <v-btn to="/" value="stock">
-      <v-icon>mdi-package-variant</v-icon>
+      <v-icon>phosphor:package</v-icon>
       Stock
     </v-btn>
     <v-btn to="/sales" value="sales">
-      <v-icon>mdi-cash-register</v-icon>
+      <v-icon>phosphor:cash-register</v-icon>
       Ventes
     </v-btn>
     <v-btn to="/customers" value="customers">
-      <v-icon>mdi-account-group</v-icon>
+      <v-icon>phosphor:users</v-icon>
       Clients
     </v-btn>
     <v-btn to="/products" value="products">
-      <v-icon>mdi-food-drumstick</v-icon>
+      <v-icon>phosphor:cooking-pot</v-icon>
       Produits
     </v-btn>
   </v-bottom-navigation>

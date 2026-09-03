@@ -210,4 +210,48 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 
 ---
 
+## 12. Système de design (« Kraft »)
+
+Référence visuelle : `design/style-guide.html` (export Claude Design, format « Bundled Page » — le CSS utile est dans les balises `<style>`/attributs `style` du début du fichier, le reste est du bruit encodé en base64). Le thème est appliqué dans `frontend/src/plugins/vuetify.ts`, `frontend/src/plugins/phosphor-iconset.ts` et `frontend/src/assets/main.css`.
+
+**Thème clair uniquement pour l'instant** — le fichier de référence montre aussi une variante sombre, volontairement non implémentée (prévue pour plus tard).
+
+### Couleurs
+
+| Rôle | Couleur | Hex |
+|---|---|---|
+| Fond (`background`) | Kraft — fond | `#ECE2D0` |
+| Surface (cartes) | Surface — carte | `#FBF7EE` |
+| Texte principal | Texte principal | `#2B241E` |
+| `primary` | Terracotta — primaire | `#C4623C` |
+| `primary-darken-1` | Terracotta — survol | `#A54E2E` |
+| `secondary` | Bois — secondaire | `#6E5A45` |
+| `success` | Succès / Prête | `#4E7A4E` (fond `#DCE9D6`) |
+| `warning` | Attention / Bas | `#8A6A16` (fond `#F1E4C4`) |
+| `error` | Critique | `#B0362A` (fond `#F3D9D3`) |
+
+### Mapping statuts métier ↔ couleurs sémantiques
+
+Documenté en commentaire dans `vuetify.ts`, à respecter dans tous les composants d'affichage de statut :
+
+| Statut `stock_unit` | Couleur |
+|---|---|
+| `available` | succès |
+| `opened` | attention |
+| `sold` | neutre (`status-neutral`, `#6E5A45`) |
+| `personal` | neutre (`status-neutral`) |
+| `lost` | critique |
+
+### Typographie
+
+- Titres (`text-h*`, titres de carte/toolbar) : **Zilla Slab** (serif).
+- Interface (corps de texte, boutons, labels) : **Work Sans** (sans-serif).
+- Chargées via Google Fonts (`@import` en tête de `main.css`).
+
+### Icônes
+
+Iconset **Phosphor** (`@phosphor-icons/vue`), enregistré comme iconset Vuetify custom nommé `phosphor` dans `frontend/src/plugins/phosphor-iconset.ts` (utilisation : `<v-icon>phosphor:nom-icone</v-icon>`). Les icônes sont importées explicitement une à une (pas d'`import *`) pour rester tree-shakées. `mdi` reste le set par défaut (icônes internes Vuetify — pagination, cases à cocher, etc.) ; seules les icônes de navigation métier (`AppLayout.vue`) sont passées en Phosphor pour l'instant. Composants `base/` et `domain/` non encore migrés.
+
+---
+
 *Ce fichier est vivant : le tenir à jour à chaque décision ou évolution structurante. Il est le point d'entrée de toute session Claude Code sur ce projet.*
