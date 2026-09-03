@@ -1,0 +1,371 @@
+# Modèle de données — Mini-ERP Charcuterie
+
+| | |
+|---|---|
+| **Projet** | Mini-ERP Charcuterie (repo : `butcher-app`) |
+| **Document** | Modèle de données détaillé (V1) |
+| **Version** | 0.2 |
+| **Date** | 2 septembre 2026 |
+| **Statut** | Soumis à validation |
+| **Documents liés** | PRD v0.1, Journal ADR v0.1 |
+
+### Historique des révisions
+
+| Version | Date | Description |
+|---|---|---|
+| 0.1 | 2026-09-02 | Modèle initial (nommage français) |
+| 0.2 | 2026-09-02 | Passage du schéma en **anglais** ; ajout du champ `code` sur `product` ; définition du format de numéro de lot |
+
+### Objet du document
+
+Ce document décrit le **modèle de données de la V1** : entités, attributs, relations et règles. Il traduit les exigences du PRD (`RF-xx`) et les décisions de l'ADR (PostgreSQL, EF Core + Npgsql) en un schéma exploitable.
+
+**Convention de langue** (décision actée) : le **schéma et le code sont en anglais** ; la **documentation reste en français** ; l'**interface utilisateur est en français** (couche d'affichage découplée des noms techniques — voir la table de correspondance §4). Le schéma DBML figure en §7.
+
+---
+
+## 1. Conventions
+
+- **Langue du code** : identifiants en **anglais**, `snake_case` côté PostgreSQL (EF Core configuré en conséquence). Les classes C# reflètent ces entités en `PascalCase`.
+- **Table utilisateur** : nommée `app_user` et non `user`, ce dernier étant un mot réservé de PostgreSQL.
+- **Clés primaires** : entier auto-incrémenté (`id`) pour les entités métier ; `uuid` pour `app_user` (aligné sur ASP.NET Core Identity, cf. ADR-009).
+- **Horodatage** : `created_at` / `updated_at` (`timestamptz`) pour l'audit et le tri.
+- **Traçabilité auteur** : `created_by` (→ `app_user`) sur les tables clés (`production_batch`, `stock_movement`), conformément à RF-27.
+- **Types monétaires et poids** : `decimal` à précision fixe — `decimal(10,2)` pour les montants, `decimal(10,3)` pour les poids (précision au gramme).
+
+---
+
+## 2. Vue d'ensemble
+
+Chaîne centrale porteuse de la valeur métier (production → traçabilité) :
+
+```
+product → production_batch → stock_unit → stock_movement → customer
+```
+
+Un **product** est décliné en **production_batch** (fabrication datée, à un prix donné). Chaque lot est matérialisé par des **stock_unit** individuelles (un sachet, un jambon), suivies une à une. Toute sortie de stock — vente, usage personnel, perte — est un **stock_movement** rattaché à une unité précise ; une vente peut pointer vers un **customer**. On remonte ainsi, pour toute vente, jusqu'au lot d'origine et au client.
+
+Deux référentiels complètent l'ensemble : `unit_of_measure` (unités personnalisables) et `app_user` (authentification).
+
+---
+
+## 3. Description des entités
+
+### 3.1 `app_user`
+
+Compte d'accès. V1 : compte simple partagé (RF-26). Colonnes d'authentification gérées par **ASP.NET Core Identity** ; cette table en est la vue logique référencée par `created_by`.
+
+| Attribut | Type | Contraintes | Rôle |
+|---|---|---|---|
+| `id` | uuid | PK | Identifiant (fourni par Identity) |
+| `email` | varchar | unique, non nul | Identifiant de connexion |
+| `created_at` | timestamptz | défaut `now()` | Date de création |
+
+### 3.2 `unit_of_measure`
+
+Référentiel des unités, **créées et gérées par l'utilisateur** sans développement (RF-04, RF-05). Déclaratif, sans conversion en V1.
+
+| Attribut | Type | Contraintes | Rôle |
+|---|---|---|---|
+| `id` | integer | PK | Identifiant |
+| `label` | varchar | non nul | Nom complet (ex. « kilogramme ») |
+| `abbreviation` | varchar | non nul | Forme courte (ex. « kg ») |
+| `is_active` | boolean | non nul, défaut `true` | Retrait de l'usage sans suppression |
+
+### 3.3 `product`
+
+Un produit fabriqué. Le **mode de vente** est la propriété structurante (RG-01). Le **`code`** (nouveau) est un identifiant court saisi par l'utilisateur, utilisé pour composer le numéro de lot (§4).
+
+| Attribut | Type | Contraintes | Rôle |
+|---|---|---|---|
+| `id` | integer | PK | Identifiant |
+| `code` | varchar | unique, non nul | Code court (ex. `SC`), brique du numéro de lot |
+| `name` | varchar | non nul | Désignation |
+| `sale_mode` | enum | non nul | `by_weight` ou `by_piece` (RF-02) |
+| `sale_unit_id` | integer | FK → `unit_of_measure`, non nul | Unité d'expression du prix (RF-03) |
+| `is_active` | boolean | non nul, défaut `true` | Désactivation sans suppression (RF-01) |
+| `created_at` / `updated_at` | timestamptz | | Audit |
+
+### 3.4 `production_batch`
+
+Une fabrication d'un produit, à une date, avec un **prix propre au lot** (RG-02), identifiée par un **numéro de lot** lisible (§4).
+
+| Attribut | Type | Contraintes | Rôle |
+|---|---|---|---|
+| `id` | integer | PK | Identifiant |
+| `batch_number` | varchar | unique, non nul | Référence humaine (étiquette, traçabilité), auto-générée (§4) |
+| `product_id` | integer | FK → `product`, non nul | Produit fabriqué |
+| `production_date` | date | non nul | Date de fabrication |
+| `sale_price` | decimal(10,2) | non nul | Prix **par kg** (`by_weight`) ou **par pièce** (`by_piece`) (RF-07) |
+| `raw_material_ref` | varchar | nullable | Texte libre en V1 (RF-08) |
+| `expiry_date` | date | nullable | DLC éventuelle (RF-09) |
+| `notes` | text | nullable | Observations |
+| `created_by` | uuid | FK → `app_user`, nullable | Auteur (RF-27) |
+| `created_at` / `updated_at` | timestamptz | | Audit |
+
+### 3.5 `stock_unit`
+
+Cœur du suivi de stock : **un objet physique distinct**, suivi individuellement (RF-11 à RF-14). Stock disponible = nombre d'unités `available` (ou `opened`).
+
+| Attribut | Type | Contraintes | Rôle |
+|---|---|---|---|
+| `id` | integer | PK | Identifiant |
+| `batch_id` | integer | FK → `production_batch`, non nul | Lot d'origine |
+| `weight` | decimal(10,3) | nullable | Poids pesé (si `by_weight`, sinon `null`) (RF-12) |
+| `status` | enum | non nul, défaut `available` | `available`, `opened`, `sold`, `personal`, `lost` (RF-13) |
+| `created_at` / `updated_at` | timestamptz | | Audit |
+
+### 3.6 `customer`
+
+Fiche client pour la vente informelle et la traçabilité (RF-22 à RF-24).
+
+| Attribut | Type | Contraintes | Rôle |
+|---|---|---|---|
+| `id` | integer | PK | Identifiant |
+| `last_name` | varchar | non nul | Nom |
+| `first_name` | varchar | nullable | Prénom |
+| `phone` | varchar | nullable | Contact |
+| `notes` | text | nullable | Observations |
+| `created_at` | timestamptz | | Audit |
+
+### 3.7 `stock_movement`
+
+Toute sortie de stock, rattachée à une **stock_unit précise** (RF-15). Journal qui portera, en V2, la valorisation (rentabilité, autoconsommation).
+
+| Attribut | Type | Contraintes | Rôle |
+|---|---|---|---|
+| `id` | integer | PK | Identifiant |
+| `stock_unit_id` | integer | FK → `stock_unit`, non nul | Unité concernée |
+| `type` | enum | non nul | `sale`, `personal`, `loss` (RF-16) |
+| `date` | timestamptz | non nul, défaut `now()` | Date de la sortie |
+| `sold_weight` | decimal(10,3) | nullable | Poids concerné (`by_weight`) ; `null` pour `by_piece` |
+| `amount` | decimal(10,2) | nullable | Encaissé — **uniquement** pour `type = sale` |
+| `customer_id` | integer | FK → `customer`, nullable | **Uniquement** pour `type = sale` (RF-17) |
+| `notes` | text | nullable | Observations |
+| `created_by` | uuid | FK → `app_user`, nullable | Auteur (RF-27) |
+| `created_at` | timestamptz | | Audit |
+
+---
+
+## 4. Numéro de lot & correspondance des libellés
+
+### 4.1 Format du numéro de lot (`batch_number`)
+
+Le numéro est **auto-généré** puis **recopié à la main** sur l'étiquette : la contrainte de conception est donc la **lisibilité et la brièveté**.
+
+**Format retenu :** `{CODE}-{YYMMDD}-{N}`
+
+| Segment | Description | Exemple |
+|---|---|---|
+| `CODE` | Code du produit (`product.code`), saisi par l'utilisateur, en majuscules | `SC` |
+| `YYMMDD` | Date de production, 6 chiffres | `250831` |
+| `N` | Séquence, réinitialisée par produit et par jour, démarre à 1, sans zéro initial | `1` |
+
+**Exemple complet :** `SC-250831-1` — saucisse curry, produite le 31/08/2025, 1ᵉʳ lot de ce produit ce jour-là.
+
+**Règles de génération :**
+- À la création d'un lot, l'application calcule `N = (séquence max existante pour ce produit à cette date) + 1`.
+- L'unicité globale de `batch_number` est garantie par construction et renforcée par la contrainte d'unicité en base.
+- `product.code` est normalisé en majuscules et ne doit pas contenir le séparateur `-`.
+
+> *Le format encode volontairement le produit et la date : cela aide à identifier un lot « à l'œil » sur un sachet sous vide, sans ouvrir l'application, tout en restant recopiable à la main.*
+
+### 4.2 Correspondance code (anglais) ↔ affichage interface (français)
+
+Les valeurs techniques sont en anglais ; l'interface les affiche en français. Cette table fait foi pour la couche de présentation.
+
+| Concept | Valeur technique (code) | Affichage interface (FR) |
+|---|---|---|
+| Mode de vente — au poids | `by_weight` | Au poids |
+| Mode de vente — à la pièce | `by_piece` | À la pièce |
+| Statut unité — disponible | `available` | Disponible |
+| Statut unité — entamé | `opened` | Entamé |
+| Statut unité — vendu | `sold` | Vendu |
+| Statut unité — usage perso | `personal` | Perso |
+| Statut unité — perdu/cassé | `lost` | Perdu |
+| Mouvement — vente | `sale` | Vente |
+| Mouvement — usage perso | `personal` | Perso |
+| Mouvement — perte/casse | `loss` | Perte |
+
+---
+
+## 5. Règles et contraintes clés
+
+Certaines règles sont **garanties par la logique applicative** et, si pertinent, par des contraintes `CHECK`.
+
+| Réf. | Règle |
+|---|---|
+| C-01 | `amount` et `customer_id` ne sont renseignés que si `type = sale`. Pour `personal`/`loss`, ils restent `null`. |
+| C-02 | `weight` (sur `stock_unit`) et `sold_weight` (sur `stock_movement`) sont renseignés pour les produits `by_weight`, et `null` pour `by_piece`. |
+| C-03 | **Vente en une fois** (sachet, jambon entier) : un unique `stock_movement` de type `sale` ; l'unité passe à `sold` (RG-04). |
+| C-04 | **Vente partielle** (jambon à la tranche) : plusieurs `stock_movement` de type `sale` sur une même `stock_unit`, qui reste au statut `opened` jusqu'à clôture manuelle en `sold` (RF-19, RF-20). Le poids restant n'est pas suivi (RG-05). |
+| C-05 | `batch_number` et `product.code` sont uniques. |
+| C-06 | Les statuts de sortie (`sold`/`personal`/`lost`) sont exclusifs, posés à l'échelle de l'unité individuelle (RG-06). |
+
+### Note d'architecture — le statut de l'unité physique
+
+Le champ `status` est une **dénormalisation assumée** : l'état pourrait, pour une vente en une fois, se déduire des mouvements. Mais il est **indispensable** pour le jambon `opened` → `sold`, dont le passage à « terminé » est une **décision manuelle** non déductible (poids restant non suivi). Le `status` est donc la source de vérité de l'état de stock ; le backend garantit sa cohérence avec les mouvements.
+
+### Note d'architecture — le montant est stocké, pas recalculé
+
+`amount` est **enregistré** (et non recalculé depuis `sold_weight × sale_price`) : la vente est informelle et en espèces, le montant réellement encaissé peut différer du théorique. On pré-remplit avec la valeur calculée, mais on conserve la valeur réelle.
+
+---
+
+## 6. Index recommandés
+
+| Table | Index | Justification |
+|---|---|---|
+| `product` | `code` (unique) | Unicité, génération du numéro de lot |
+| `production_batch` | `batch_number` (unique) | Recherche, unicité |
+| `production_batch` | `product_id` | Lister les lots d'un produit |
+| `stock_unit` | `batch_id` | Lister les unités d'un lot |
+| `stock_unit` | `status` | Calcul du stock disponible (fréquent) |
+| `stock_movement` | `stock_unit_id` | Historique d'une unité (jambon entamé) |
+| `stock_movement` | `customer_id` | Historique d'un client (RF-23) |
+| `stock_movement` | `date` | Vues chronologiques, futurs rapports |
+
+---
+
+## 7. Schéma DBML
+
+> À coller dans [dbdiagram.io](https://dbdiagram.io) pour le diagramme entité-relation.
+
+```dbml
+// ===== Mini-ERP Charcuterie — Model V1 =====
+
+Enum sale_mode {
+  by_weight
+  by_piece
+}
+
+Enum stock_unit_status {
+  available
+  opened
+  sold
+  personal
+  lost
+}
+
+Enum movement_type {
+  sale
+  personal
+  loss
+}
+
+Table app_user {
+  id uuid [pk]
+  email varchar [unique, not null]
+  created_at timestamptz [default: `now()`]
+  Note: 'Authentication handled by ASP.NET Core Identity'
+}
+
+Table unit_of_measure {
+  id integer [pk, increment]
+  label varchar [not null]
+  abbreviation varchar [not null]
+  is_active boolean [not null, default: true]
+}
+
+Table product {
+  id integer [pk, increment]
+  code varchar [unique, not null, note: 'short code, e.g. SC — used in batch_number']
+  name varchar [not null]
+  sale_mode sale_mode [not null]
+  sale_unit_id integer [not null, ref: > unit_of_measure.id]
+  is_active boolean [not null, default: true]
+  created_at timestamptz [default: `now()`]
+  updated_at timestamptz
+}
+
+Table production_batch {
+  id integer [pk, increment]
+  batch_number varchar [unique, not null, note: 'format CODE-YYMMDD-N, auto-generated']
+  product_id integer [not null, ref: > product.id]
+  production_date date [not null]
+  sale_price "decimal(10,2)" [not null, note: 'per kg (by_weight) or per piece (by_piece)']
+  raw_material_ref varchar [note: 'free text in V1']
+  expiry_date date
+  notes text
+  created_by uuid [ref: > app_user.id]
+  created_at timestamptz [default: `now()`]
+  updated_at timestamptz
+}
+
+Table stock_unit {
+  id integer [pk, increment]
+  batch_id integer [not null, ref: > production_batch.id]
+  weight "decimal(10,3)" [note: 'weighed if by_weight, otherwise null']
+  status stock_unit_status [not null, default: 'available']
+  created_at timestamptz [default: `now()`]
+  updated_at timestamptz
+
+  Indexes {
+    batch_id
+    status
+  }
+}
+
+Table customer {
+  id integer [pk, increment]
+  last_name varchar [not null]
+  first_name varchar
+  phone varchar
+  notes text
+  created_at timestamptz [default: `now()`]
+}
+
+Table stock_movement {
+  id integer [pk, increment]
+  stock_unit_id integer [not null, ref: > stock_unit.id]
+  type movement_type [not null]
+  date timestamptz [not null, default: `now()`]
+  sold_weight "decimal(10,3)" [note: 'concerned weight (by_weight); null for by_piece']
+  amount "decimal(10,2)" [note: 'received, only for type = sale']
+  customer_id integer [ref: > customer.id, note: 'only for type = sale']
+  notes text
+  created_by uuid [ref: > app_user.id]
+  created_at timestamptz [default: `now()`]
+
+  Indexes {
+    stock_unit_id
+    customer_id
+    date
+  }
+}
+```
+
+---
+
+## 8. Points d'extension prévus (V2+)
+
+Évolutions anticipées, greffables **par ajout** sans refonte du noyau :
+
+**Coût de revient et matières premières**
+- Tables `supplier` et `raw_material_purchase` (date, quantité, coût total, fournisseur).
+- Table de liaison `raw_material_purchase` ↔ `production_batch`, remplaçant progressivement le champ texte `raw_material_ref`.
+- Champ calculé `material_cost` sur `production_batch`, base du calcul de marge (encaissé − coût).
+
+**Recettes versionnées**
+- Tables `recipe` et `recipe_version`.
+- FK `recipe_version_id` sur `production_batch`, matérialisant `batch → recipe_version → product`.
+
+**Gestion fine des utilisateurs**
+- Enrichissement de `app_user` (rôles/permissions) et exploitation de `created_by` pour une journalisation « qui a fait quoi ».
+
+**Alertes**
+- Seuils de stock bas et exploitation de `expiry_date` pour des alertes DLC.
+
+---
+
+## 9. Questions ouvertes sur le modèle
+
+| Réf. | Question | Statut |
+|---|---|---|
+| QM-01 | **Modélisation des produits `by_piece`** : conserver le mécanisme uniforme (une ligne `stock_unit` par pièce, sans poids) ou un simple compteur sur le lot ? Recommandation : rester uniforme (cohérence, traçabilité), lignes générées automatiquement. | À valider |
+| QM-02 | Format du numéro de lot | ✅ Résolu (§4.1) |
+| QM-03 | Comptage des tranches de jambon | ✅ Résolu — poids seul, pas de comptage |
+
+---
+
+*Fin du document — version 0.2. Le schéma physique définitif sera matérialisé par les migrations Entity Framework Core.*
