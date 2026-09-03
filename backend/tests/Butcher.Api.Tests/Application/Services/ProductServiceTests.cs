@@ -47,6 +47,24 @@ public class ProductServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifeti
     }
 
     [Fact]
+    public async Task CreateAsync_WithLowercaseCode_NormalizesToUppercase()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var unit = await SeedUnitOfMeasureAsync(dbContext);
+        var service = new ProductService(dbContext);
+
+        var result = await service.CreateAsync(new CreateProductRequest
+        {
+            Code = "sc",
+            Name = "Saucisse curry",
+            SaleMode = SaleMode.ByWeight,
+            SaleUnitId = unit.Id,
+        });
+
+        Assert.Equal("SC", result.Code);
+    }
+
+    [Fact]
     public async Task CreateAsync_WithDuplicateCode_ThrowsConflictException()
     {
         await using var dbContext = fixture.CreateDbContext();

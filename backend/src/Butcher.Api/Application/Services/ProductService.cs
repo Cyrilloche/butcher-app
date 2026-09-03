@@ -28,12 +28,13 @@ public class ProductService(AppDbContext dbContext) : IProductService
 
     public async Task<ProductDto> CreateAsync(CreateProductRequest request)
     {
-        await EnsureCodeIsUniqueAsync(request.Code, excludingId: null);
+        var code = request.Code.ToUpperInvariant();
+        await EnsureCodeIsUniqueAsync(code, excludingId: null);
         var saleUnit = await FindActiveSaleUnitOrThrowAsync(request.SaleUnitId);
 
         var product = new Product
         {
-            Code = request.Code,
+            Code = code,
             Name = request.Name,
             SaleMode = request.SaleMode,
             SaleUnitId = request.SaleUnitId,
