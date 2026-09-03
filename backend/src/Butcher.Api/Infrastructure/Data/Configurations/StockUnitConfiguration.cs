@@ -1,4 +1,6 @@
+using Butcher.Api.Common;
 using Butcher.Api.Domain.Entities;
+using Butcher.Api.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -14,7 +16,9 @@ public class StockUnitConfiguration : IEntityTypeConfiguration<StockUnit>
 
         builder.Property(u => u.Weight).HasPrecision(10, 3);
 
-        builder.Property(u => u.Status).HasConversion<string>();
+        builder.Property(u => u.Status).HasConversion(
+            v => EnumSnakeCaseConverter.ToSnakeCase(v),
+            v => EnumSnakeCaseConverter.FromSnakeCase<StockUnitStatus>(v));
         builder.HasIndex(u => u.Status);
 
         builder

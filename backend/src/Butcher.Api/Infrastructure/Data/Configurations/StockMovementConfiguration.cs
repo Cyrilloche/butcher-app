@@ -1,4 +1,6 @@
+using Butcher.Api.Common;
 using Butcher.Api.Domain.Entities;
+using Butcher.Api.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -12,7 +14,9 @@ public class StockMovementConfiguration : IEntityTypeConfiguration<StockMovement
 
         builder.HasKey(m => m.Id);
 
-        builder.Property(m => m.Type).HasConversion<string>();
+        builder.Property(m => m.Type).HasConversion(
+            v => EnumSnakeCaseConverter.ToSnakeCase(v),
+            v => EnumSnakeCaseConverter.FromSnakeCase<MovementType>(v));
 
         builder.Property(m => m.SoldWeight).HasPrecision(10, 3);
         builder.Property(m => m.Amount).HasPrecision(10, 2);

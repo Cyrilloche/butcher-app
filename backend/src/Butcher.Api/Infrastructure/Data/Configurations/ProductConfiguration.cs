@@ -1,4 +1,6 @@
+using Butcher.Api.Common;
 using Butcher.Api.Domain.Entities;
+using Butcher.Api.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -17,7 +19,9 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
 
         builder.Property(p => p.Name).IsRequired();
 
-        builder.Property(p => p.SaleMode).HasConversion<string>();
+        builder.Property(p => p.SaleMode).HasConversion(
+            v => EnumSnakeCaseConverter.ToSnakeCase(v),
+            v => EnumSnakeCaseConverter.FromSnakeCase<SaleMode>(v));
 
         builder
             .HasOne(p => p.SaleUnit)
