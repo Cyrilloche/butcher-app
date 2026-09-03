@@ -155,9 +155,9 @@
     "semantic_hash": "1c404c1d6965829507256717f149ff10"
   },
   "backend/src/Butcher.Api/Butcher.Api.csproj": {
-    "mtime": 1788440204.0271382,
-    "ast_hash": "a8199ae567fbc74eff92c4607f17c435",
-    "semantic_hash": "a8199ae567fbc74eff92c4607f17c435"
+    "mtime": 1788465500.5465634,
+    "ast_hash": "6d60c40cdfae9524bca322229d1eba8d",
+    "semantic_hash": "6d60c40cdfae9524bca322229d1eba8d"
   },
   "backend/src/Butcher.Api/Common/EnumSnakeCaseConverter.cs": {
     "mtime": 1788462539.3857443,
@@ -165,9 +165,9 @@
     "semantic_hash": "950a3f3e37f894abe049c52962722d39"
   },
   "backend/src/Butcher.Api/Common/ExceptionHandlingMiddleware.cs": {
-    "mtime": 1788444204.6881053,
-    "ast_hash": "dd153a0118f0883ac36f130adfb15931",
-    "semantic_hash": "dd153a0118f0883ac36f130adfb15931"
+    "mtime": 1788465929.5384684,
+    "ast_hash": "f3f56ef400192b3fd488963f592ba05c",
+    "semantic_hash": "f3f56ef400192b3fd488963f592ba05c"
   },
   "backend/src/Butcher.Api/Common/Exceptions/BadRequestException.cs": {
     "mtime": 1788444195.658431,
@@ -215,9 +215,9 @@
     "semantic_hash": "9727aaaeb81e6fdd26253d96adcfa511"
   },
   "backend/src/Butcher.Api/Domain/Entities/AppUser.cs": {
-    "mtime": 1788440204.0296607,
-    "ast_hash": "f52c754b40908d91b1bae8e30df4177c",
-    "semantic_hash": "f52c754b40908d91b1bae8e30df4177c"
+    "mtime": 1788465510.0592828,
+    "ast_hash": "36e4d95e0e75c733dba8aae3d7e2f4f0",
+    "semantic_hash": "36e4d95e0e75c733dba8aae3d7e2f4f0"
   },
   "backend/src/Butcher.Api/Domain/Entities/Customer.cs": {
     "mtime": 1788440204.0296607,
@@ -265,14 +265,14 @@
     "semantic_hash": "a6fac0dc4a7896ee0b740389a148f481"
   },
   "backend/src/Butcher.Api/Infrastructure/Data/AppDbContext.cs": {
-    "mtime": 1788440204.0368035,
-    "ast_hash": "bdec76814b18df0d42797d4594bd7ca4",
-    "semantic_hash": "bdec76814b18df0d42797d4594bd7ca4"
+    "mtime": 1788465778.2115731,
+    "ast_hash": "a6da996d6ebd5acc593d46bf817fa5b2",
+    "semantic_hash": "a6da996d6ebd5acc593d46bf817fa5b2"
   },
   "backend/src/Butcher.Api/Infrastructure/Data/Configurations/AppUserConfiguration.cs": {
-    "mtime": 1788440204.0379972,
-    "ast_hash": "9842a20da33842d049f745b16413ac36",
-    "semantic_hash": "9842a20da33842d049f745b16413ac36"
+    "mtime": 1788465533.804281,
+    "ast_hash": "c6553746df86160c8d61606a43fe5d8d",
+    "semantic_hash": "c6553746df86160c8d61606a43fe5d8d"
   },
   "backend/src/Butcher.Api/Infrastructure/Data/Configurations/CustomerConfiguration.cs": {
     "mtime": 1788440204.0379972,
@@ -325,14 +325,14 @@
     "semantic_hash": "4e0040fc46c72d34e4c26de51d6ea9ed"
   },
   "backend/src/Butcher.Api/Infrastructure/Data/Migrations/AppDbContextModelSnapshot.cs": {
-    "mtime": 1788440225.308272,
-    "ast_hash": "7b5640d85fc24954dc42a8481c0d8334",
-    "semantic_hash": "7b5640d85fc24954dc42a8481c0d8334"
+    "mtime": 1788465798.0471046,
+    "ast_hash": "597c4c829475afe3b1d77d20f7a21257",
+    "semantic_hash": "597c4c829475afe3b1d77d20f7a21257"
   },
   "backend/src/Butcher.Api/Program.cs": {
-    "mtime": 1788462632.190282,
-    "ast_hash": "fd4ef6ff9fbb06157bc746f7da4c1fe5",
-    "semantic_hash": "fd4ef6ff9fbb06157bc746f7da4c1fe5"
+    "mtime": 1788466306.614169,
+    "ast_hash": "33e1cd0f9ae787afc0dcb9d5763f8300",
+    "semantic_hash": "33e1cd0f9ae787afc0dcb9d5763f8300"
   },
   "backend/src/Butcher.Api/Properties/launchSettings.json": {
     "mtime": 1788440204.0456953,
@@ -350,29 +350,29 @@
     "semantic_hash": "732f4d75514e890746f0170256ed9654"
   },
   "backend/src/Butcher.Api/obj/Butcher.Api.csproj.nuget.dgspec.json": {
-    "mtime": 1788462775.8733933,
-    "ast_hash": "485ce4e9318e94e8bc945c702580676b",
-    "semantic_hash": "485ce4e9318e94e8bc945c702580676b"
+    "mtime": 1788467225.244146,
+    "ast_hash": "77b9c5b55ae82afaf61ae66030044539",
+    "semantic_hash": "77b9c5b55ae82afaf61ae66030044539"
   },
   "backend/src/Butcher.Api/obj/Debug/net10.0/.NETCoreApp,Version=v10.0.AssemblyAttributes.cs": {
-    "mtime": 1788462773.8629339,
+    "mtime": 1788467222.8126738,
     "ast_hash": "8479efdf06e2d26e053d27ffa6964185",
     "semantic_hash": "8479efdf06e2d26e053d27ffa6964185"
   },
   "backend/src/Butcher.Api/obj/Debug/net10.0/Butcher.Api.AssemblyInfo.cs": {
-    "mtime": 1788462773.8730106,
-    "ast_hash": "a2625ed3de3636c70b0fb5ad03c6d1de",
-    "semantic_hash": "a2625ed3de3636c70b0fb5ad03c6d1de"
+    "mtime": 1788467222.8225176,
+    "ast_hash": "b0181c2f8c3af2c31c5b0725b732db7f",
+    "semantic_hash": "b0181c2f8c3af2c31c5b0725b732db7f"
   },
   "backend/src/Butcher.Api/obj/Debug/net10.0/Butcher.Api.GlobalUsings.g.cs": {
-    "mtime": 1788462773.8123937,
+    "mtime": 1788467222.7782452,
     "ast_hash": "5b3fdaae7b59d230d7d136eab049a98a",
     "semantic_hash": "5b3fdaae7b59d230d7d136eab049a98a"
   },
   "backend/src/Butcher.Api/obj/project.assets.json": {
-    "mtime": 1788462775.8682082,
-    "ast_hash": "3eda5aeea9c3fb6f0b2c1d2d7af234ee",
-    "semantic_hash": "3eda5aeea9c3fb6f0b2c1d2d7af234ee"
+    "mtime": 1788467225.2206573,
+    "ast_hash": "56fff62c8103fd0600f045345d095c45",
+    "semantic_hash": "56fff62c8103fd0600f045345d095c45"
   },
   "backend/tests/Butcher.Api.Tests/Application/Services/CustomerServiceTests.cs": {
     "mtime": 1788447813.9149852,
@@ -405,9 +405,9 @@
     "semantic_hash": "a8691052e6150fe9a74162e399b6d867"
   },
   "backend/tests/Butcher.Api.Tests/Butcher.Api.Tests.csproj": {
-    "mtime": 1788440512.7624755,
-    "ast_hash": "84ada2bde494cce8dff3c4996680e744",
-    "semantic_hash": "84ada2bde494cce8dff3c4996680e744"
+    "mtime": 1788466126.9646263,
+    "ast_hash": "b8ea2afbee71c834e20a3869bf4edd06",
+    "semantic_hash": "b8ea2afbee71c834e20a3869bf4edd06"
   },
   "backend/tests/Butcher.Api.Tests/Support/DatabaseCollection.cs": {
     "mtime": 1788440379.766384,
@@ -415,34 +415,34 @@
     "semantic_hash": "cb4894f425fa15cfe902f235f1f860f8"
   },
   "backend/tests/Butcher.Api.Tests/Support/PostgresDatabaseFixture.cs": {
-    "mtime": 1788440517.9231834,
-    "ast_hash": "59b5be346eb9247eb8f5a63bcf1014db",
-    "semantic_hash": "59b5be346eb9247eb8f5a63bcf1014db"
+    "mtime": 1788466076.4701962,
+    "ast_hash": "e3089e7d791e744b24ea1457f24ff63e",
+    "semantic_hash": "e3089e7d791e744b24ea1457f24ff63e"
   },
   "backend/tests/Butcher.Api.Tests/obj/Butcher.Api.Tests.csproj.nuget.dgspec.json": {
-    "mtime": 1788462775.8682082,
-    "ast_hash": "04fd6aabca99d9628af920ab13098248",
-    "semantic_hash": "04fd6aabca99d9628af920ab13098248"
+    "mtime": 1788467225.2452598,
+    "ast_hash": "0b99d11da918cbef7fc4b8992f3cfc41",
+    "semantic_hash": "0b99d11da918cbef7fc4b8992f3cfc41"
   },
   "backend/tests/Butcher.Api.Tests/obj/Debug/net10.0/.NETCoreApp,Version=v10.0.AssemblyAttributes.cs": {
-    "mtime": 1788462773.6565719,
+    "mtime": 1788467222.592949,
     "ast_hash": "8479efdf06e2d26e053d27ffa6964185",
     "semantic_hash": "8479efdf06e2d26e053d27ffa6964185"
   },
   "backend/tests/Butcher.Api.Tests/obj/Debug/net10.0/Butcher.Api.Tests.AssemblyInfo.cs": {
-    "mtime": 1788462773.664074,
-    "ast_hash": "527eccf77f62694b0be7e888bf75558f",
-    "semantic_hash": "527eccf77f62694b0be7e888bf75558f"
+    "mtime": 1788467222.603854,
+    "ast_hash": "b4ee5091db0e320b0cdef41b1d7b1a8e",
+    "semantic_hash": "b4ee5091db0e320b0cdef41b1d7b1a8e"
   },
   "backend/tests/Butcher.Api.Tests/obj/Debug/net10.0/Butcher.Api.Tests.GlobalUsings.g.cs": {
-    "mtime": 1788462773.6004376,
+    "mtime": 1788467222.5217316,
     "ast_hash": "535736b170e2841ba51152623818eddd",
     "semantic_hash": "535736b170e2841ba51152623818eddd"
   },
   "backend/tests/Butcher.Api.Tests/obj/project.assets.json": {
-    "mtime": 1788462775.8501978,
-    "ast_hash": "99a00fec1476765e76362f9f4e02b23c",
-    "semantic_hash": "99a00fec1476765e76362f9f4e02b23c"
+    "mtime": 1788467225.2136314,
+    "ast_hash": "4c7e1a39949107f66dbc5b8f74db7050",
+    "semantic_hash": "4c7e1a39949107f66dbc5b8f74db7050"
   },
   "CLAUDE.md": {
     "mtime": 1788463069.4374578,
@@ -468,5 +468,80 @@
     "mtime": 1788463018.5206337,
     "ast_hash": "8989dc1349d5b21d3cd4994f2d475437",
     "semantic_hash": "8989dc1349d5b21d3cd4994f2d475437"
+  },
+  "backend/src/Butcher.Api/Application/Dtos/AuthResponseDto.cs": {
+    "mtime": 1788466260.013252,
+    "ast_hash": "137ab3cb0b32f48f5ddfcbd3b33c9da9",
+    "semantic_hash": "137ab3cb0b32f48f5ddfcbd3b33c9da9"
+  },
+  "backend/src/Butcher.Api/Application/Dtos/LoginRequest.cs": {
+    "mtime": 1788466252.7697423,
+    "ast_hash": "73c8ad7da9eb581828b1cd2144c62b36",
+    "semantic_hash": "73c8ad7da9eb581828b1cd2144c62b36"
+  },
+  "backend/src/Butcher.Api/Application/Services/AccessTokenResult.cs": {
+    "mtime": 1788465885.353863,
+    "ast_hash": "7a09caadffabf283a6c38327af23651c",
+    "semantic_hash": "7a09caadffabf283a6c38327af23651c"
+  },
+  "backend/src/Butcher.Api/Application/Services/AuthResult.cs": {
+    "mtime": 1788465936.3861375,
+    "ast_hash": "b73e40404e18b1de687361a1d4d78c3a",
+    "semantic_hash": "b73e40404e18b1de687361a1d4d78c3a"
+  },
+  "backend/src/Butcher.Api/Application/Services/AuthService.cs": {
+    "mtime": 1788465957.6238174,
+    "ast_hash": "1cf52a2a3841a9465c6311e9d0147b91",
+    "semantic_hash": "1cf52a2a3841a9465c6311e9d0147b91"
+  },
+  "backend/src/Butcher.Api/Application/Services/IAuthService.cs": {
+    "mtime": 1788465942.9549253,
+    "ast_hash": "79ede204773662148af3ccd696a2356a",
+    "semantic_hash": "79ede204773662148af3ccd696a2356a"
+  },
+  "backend/src/Butcher.Api/Application/Services/ITokenService.cs": {
+    "mtime": 1788465890.4907475,
+    "ast_hash": "8498165e10fda63f0fd967e998153306",
+    "semantic_hash": "8498165e10fda63f0fd967e998153306"
+  },
+  "backend/src/Butcher.Api/Application/Services/TokenService.cs": {
+    "mtime": 1788465900.5124252,
+    "ast_hash": "362c44dd608604ef03018b2e96e6b791",
+    "semantic_hash": "362c44dd608604ef03018b2e96e6b791"
+  },
+  "backend/src/Butcher.Api/Common/Exceptions/UnauthorizedException.cs": {
+    "mtime": 1788465911.6343572,
+    "ast_hash": "fc85cc8c70e94e1c726d0149d1a3f072",
+    "semantic_hash": "fc85cc8c70e94e1c726d0149d1a3f072"
+  },
+  "backend/src/Butcher.Api/Controllers/AuthController.cs": {
+    "mtime": 1788466271.0538213,
+    "ast_hash": "8eb3bcf7dfb7d432323c018034fdfa93",
+    "semantic_hash": "8eb3bcf7dfb7d432323c018034fdfa93"
+  },
+  "backend/src/Butcher.Api/Domain/Entities/RefreshToken.cs": {
+    "mtime": 1788465515.3718662,
+    "ast_hash": "97ba36ce0ffef3842ed7f159cfc45b56",
+    "semantic_hash": "97ba36ce0ffef3842ed7f159cfc45b56"
+  },
+  "backend/src/Butcher.Api/Infrastructure/Data/Configurations/RefreshTokenConfiguration.cs": {
+    "mtime": 1788465547.9867616,
+    "ast_hash": "7b8ee3adacbb7a9f934f921fa724276f",
+    "semantic_hash": "7b8ee3adacbb7a9f934f921fa724276f"
+  },
+  "backend/src/Butcher.Api/Infrastructure/Data/Migrations/20260903200317_AddIdentityAndRefreshTokens.Designer.cs": {
+    "mtime": 1788465798.0385346,
+    "ast_hash": "c3d128d083dd5b58bcbf2b94dcb54621",
+    "semantic_hash": "c3d128d083dd5b58bcbf2b94dcb54621"
+  },
+  "backend/src/Butcher.Api/Infrastructure/Data/Migrations/20260903200317_AddIdentityAndRefreshTokens.cs": {
+    "mtime": 1788465798.03177,
+    "ast_hash": "2bede9a228ff535cd2a43d0ac12660fb",
+    "semantic_hash": "2bede9a228ff535cd2a43d0ac12660fb"
+  },
+  "backend/tests/Butcher.Api.Tests/Application/Services/AuthServiceTests.cs": {
+    "mtime": 1788466108.3380415,
+    "ast_hash": "2a1916765dd816eca27db2436367e6e9",
+    "semantic_hash": "2a1916765dd816eca27db2436367e6e9"
   }
 }
