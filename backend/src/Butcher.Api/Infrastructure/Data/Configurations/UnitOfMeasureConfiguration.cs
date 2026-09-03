@@ -13,7 +13,9 @@ public class UnitOfMeasureConfiguration : IEntityTypeConfiguration<UnitOfMeasure
         builder.HasKey(u => u.Id);
 
         builder.Property(u => u.Label).IsRequired();
+        builder.HasIndex(u => u.Label).IsUnique();
 
         builder.Property(u => u.Abbreviation).IsRequired();
+        builder.HasIndex(u => u.Abbreviation).IsUnique();
     }
 }

@@ -1,3 +1,5 @@
+using Butcher.Api.Application.Services;
+using Butcher.Api.Common;
 using Butcher.Api.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,6 +16,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         .UseNpgsql(builder.Configuration.GetConnectionString("Default"))
         .UseSnakeCaseNamingConvention());
 
+builder.Services.AddScoped<IUnitOfMeasureService, UnitOfMeasureService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -21,6 +25,8 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseHttpsRedirection();
 

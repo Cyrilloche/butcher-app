@@ -1,4 +1,4 @@
-.PHONY: db-up db-down db-logs db-psql build run migration migrate
+.PHONY: db-up db-down db-logs db-psql build run migration migrate test
 
 COMPOSE := docker compose -f development/database-dev.yml --env-file development/.env
 API_PROJECT := backend/src/Butcher.Api
@@ -18,6 +18,9 @@ db-psql:
 
 build:
 	dotnet build backend
+
+test:
+	dotnet test backend
 
 run:
 	@set -a; . ./development/.env; set +a; \
