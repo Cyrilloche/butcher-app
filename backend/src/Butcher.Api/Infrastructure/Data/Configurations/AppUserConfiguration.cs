@@ -10,10 +10,10 @@ public class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
     {
         builder.ToTable("app_user");
 
-        builder.HasKey(u => u.Id);
+        builder.Property(u => u.CreatedAt).IsRequired();
 
-        builder.Property(u => u.Email).IsRequired();
-
-        builder.HasIndex(u => u.Email).IsUnique();
+        // Identity utilise NormalizedEmail (pas Email) pour ses recherches/comparaisons ;
+        // c'est donc lui, pas Email, qui porte la contrainte d'unicité en base.
+        builder.HasIndex(u => u.NormalizedEmail).IsUnique();
     }
 }

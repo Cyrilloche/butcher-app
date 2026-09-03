@@ -1,4 +1,8 @@
+using Butcher.Api.Domain.Entities;
 using Butcher.Api.Infrastructure.Data;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using Testcontainers.PostgreSql;
 
@@ -47,8 +51,30 @@ public class PostgresDatabaseFixture : IAsyncLifetime
                 product,
                 unit_of_measure,
                 customer,
+                refresh_token,
                 app_user
             RESTART IDENTITY CASCADE
             """);
     }
+
+    public static UserManager<AppUser> CreateUserManager(AppDbContext dbContext)
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton(dbContext);
+        services.AddIdentityCore<AppUser>().AddEntityFrameworkStores<AppDbContext>();
+        return services.BuildServiceProvider().GetRequiredService<UserManager<AppUser>>();
+    }
+
+    public static IConfiguration CreateJwtConfiguration() =>
+        new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Jwt:SigningKey"] = "test-signing-key-for-unit-tests-at-least-32-chars",
+                ["Jwt:Issuer"] = "butcher-api-tests",
+                ["Jwt:Audience"] = "butcher-app-tests",
+                ["Jwt:AccessTokenLifetimeMinutes"] = "15",
+                ["Jwt:RefreshTokenLifetimeDays"] = "30",
+            })
+            .Build();
 }
