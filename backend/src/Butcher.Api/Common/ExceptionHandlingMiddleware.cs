@@ -17,6 +17,7 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
             {
                 NotFoundException => (StatusCodes.Status404NotFound, "Ressource introuvable"),
                 ConflictException => (StatusCodes.Status409Conflict, "Conflit"),
+                BadRequestException => (StatusCodes.Status400BadRequest, "Requête invalide"),
                 _ => (StatusCodes.Status500InternalServerError, "Erreur interne"),
             };
 

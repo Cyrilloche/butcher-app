@@ -21,6 +21,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<IUnitOfMeasureService, UnitOfMeasureService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IProductionBatchService, ProductionBatchService>();
+builder.Services.AddScoped<IStockUnitService, StockUnitService>();
 
 var app = builder.Build();
 
