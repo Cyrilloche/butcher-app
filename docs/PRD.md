@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | **Nom de projet** | Mini-ERP Charcuterie (nom de code : *à définir*) |
-| **Version du document** | 0.1 — Brouillon |
-| **Date** | 2 septembre 2026 |
-| **Statut** | En cours de cadrage — soumis à validation |
+| **Version du document** | 0.2 |
+| **Date** | 3 septembre 2026 |
+| **Statut** | Cadrage validé, en cours d'implémentation (backend) |
 | **Auteur** | Cyril, avec assistance à l'architecture |
 | **Destinataires** | Utilisateurs finaux (exploitants), équipe de développement |
 
@@ -14,6 +14,7 @@
 | Version | Date | Auteur | Description |
 |---|---|---|---|
 | 0.1 | 2026-09-02 | Cyril | Rédaction initiale à partir des ateliers de cadrage métier |
+| 0.2 | 2026-09-03 | Cyril, avec assistance à l'implémentation | Ajout des règles de gestion RG-08 à RG-12, apparues pendant l'implémentation du backend (cœur métier V1 entièrement exposé en API à cette date) ; précision sur RF-10 |
 
 ---
 
@@ -146,6 +147,8 @@ Les exigences sont identifiées `RF-xx`. Les règles de gestion associées sont 
 | RF-09 | Un lot peut porter une **date de péremption (DLC)**. |
 | RF-10 | La création d'un lot génère les **unités physiques de stock** correspondantes (§6.4). |
 
+> **Note d'implémentation** — Au niveau de l'API, la création du lot et la génération des unités physiques sont **deux actions distinctes** (deux appels), pas une seule opération atomique : ça permet d'ajouter des unités en plusieurs fois (pesée étalée sur plusieurs jours pour un même lot). Le frontend peut tout à fait enchaîner les deux appels pour donner l'impression d'un flux unique à l'utilisateur ; ça reste un choix d'implémentation, pas un changement du besoin exprimé par RF-10.
+
 > **Note d'architecture** — La notion de « session de production » regroupant plusieurs lots d'un même week-end est **écartée en V1** : chaque lot est autonome. La référence matière première reste un simple texte, mais le modèle est conçu pour qu'une future table « Achats de matière première » puisse être reliée aux lots par simple ajout (nouvelle table + clé étrangère), sans refonte.
 
 ### 6.4 Stock — unités physiques
@@ -200,6 +203,11 @@ Le stock n'est pas un compteur abstrait : il représente des **objets physiques 
 | RG-05 | Le poids restant d'une unité `entamé` n'est **pas** suivi : seule la somme des ventes rattachées est significative (chiffre d'affaires généré par l'unité). |
 | RG-06 | Les statuts de sortie (`vendu`, `perso`, `perdu`) sont exclusifs et s'appliquent à l'échelle de l'unité physique individuelle. |
 | RG-07 | Un mouvement de vente sans client rattaché reste valide (vente anonyme). |
+| RG-08 | Une **unité de mesure** ne peut pas être désactivée tant qu'elle est utilisée comme unité de vente par un **produit actif** (évite qu'un produit en cours de vente référence une unité qu'on retire de l'usage). |
+| RG-09 | La **désactivation d'un produit** n'est jamais bloquée, y compris s'il a déjà des lots de production. Elle n'empêche que la création de **nouveaux** lots pour ce produit à l'avenir ; l'historique (lots, stock, ventes) reste consultable normalement. |
+| RG-10 | Un **lot de production** reste partiellement modifiable après création (prix de vente, référence matière première, DLC, notes), pour corriger une erreur de saisie. Le produit, la date de production et le numéro de lot sont **définitifs** dès la création : ils sont indissociables du numéro de lot lui-même (§4.1 du modèle de données) et de l'identité du lot. Aucune suppression de lot n'est possible. |
+| RG-11 | Contrairement au lot de production, un **mouvement de stock** (vente, perso, perte) reste **modifiable et supprimable** après création — choix assumé pour une activité amateur sans contrainte comptable formelle, plutôt qu'un principe strict d'immuabilité de l'historique. Supprimer le dernier mouvement rattaché à une unité physique la remet au statut `disponible` ; dans les autres cas (ex. une vente parmi plusieurs sur un jambon entamé), le statut de l'unité n'est pas recalculé automatiquement. |
+| RG-12 | Une unité physique peut être marquée `perso` ou `perdu` aussi bien depuis le statut `disponible` que depuis `entamé` (ex. un jambon entamé qui tourne peut être déclaré perdu sans repasser par une vente complète). |
 
 ---
 
@@ -296,4 +304,4 @@ Le stock n'est pas un compteur abstrait : il représente des **objets physiques 
 
 ---
 
-*Fin du document — version 0.1. Ce PRD est un document vivant, appelé à évoluer au fil des vagues de développement.*
+*Fin du document — version 0.2. Ce PRD est un document vivant, appelé à évoluer au fil des vagues de développement.*

@@ -4,10 +4,10 @@
 |---|---|
 | **Projet** | Mini-ERP Charcuterie (repo : `butcher-app`) |
 | **Document** | Modèle de données détaillé (V1) |
-| **Version** | 0.2 |
-| **Date** | 2 septembre 2026 |
-| **Statut** | Soumis à validation |
-| **Documents liés** | PRD v0.1, Journal ADR v0.1 |
+| **Version** | 0.3 |
+| **Date** | 3 septembre 2026 |
+| **Statut** | Implémenté (backend, cœur métier V1 complet) |
+| **Documents liés** | PRD v0.2, Journal ADR v0.1 |
 
 ### Historique des révisions
 
@@ -15,6 +15,7 @@
 |---|---|---|
 | 0.1 | 2026-09-02 | Modèle initial (nommage français) |
 | 0.2 | 2026-09-02 | Passage du schéma en **anglais** ; ajout du champ `code` sur `product` ; définition du format de numéro de lot |
+| 0.3 | 2026-09-03 | Documentation des règles apparues pendant l'implémentation du backend : contraintes d'unicité supplémentaires, politiques de mutabilité/suppression par entité, convention de casse des enums dans l'API. QM-01 résolu. |
 
 ### Objet du document
 
@@ -72,6 +73,8 @@ Référentiel des unités, **créées et gérées par l'utilisateur** sans déve
 | `abbreviation` | varchar | non nul | Forme courte (ex. « kg ») |
 | `is_active` | boolean | non nul, défaut `true` | Retrait de l'usage sans suppression |
 
+**Règles complémentaires (implémentation)** : `label` et `abbreviation` sont chacun **uniques** (évite les doublons accidentels, ex. deux fois « kilogramme »/« kg »). La désactivation (`is_active = false`) est **bloquée** si l'unité est référencée comme unité de vente par un `product` actif (RG-08).
+
 ### 3.3 `product`
 
 Un produit fabriqué. Le **mode de vente** est la propriété structurante (RG-01). Le **`code`** (nouveau) est un identifiant court saisi par l'utilisateur, utilisé pour composer le numéro de lot (§4).
@@ -85,6 +88,8 @@ Un produit fabriqué. Le **mode de vente** est la propriété structurante (RG-0
 | `sale_unit_id` | integer | FK → `unit_of_measure`, non nul | Unité d'expression du prix (RF-03) |
 | `is_active` | boolean | non nul, défaut `true` | Désactivation sans suppression (RF-01) |
 | `created_at` / `updated_at` | timestamptz | | Audit |
+
+**Règles complémentaires (implémentation)** : `code` et `sale_mode` sont **définitifs** après création (RG-01 pour `sale_mode` ; `code` porte le numéro de lot, §4.1, donc figé pour la même raison) — `name` et `sale_unit_id` restent modifiables. `sale_unit_id` doit référencer une `unit_of_measure` **active** (vérifié à la création et à la modification). La **désactivation d'un produit n'est jamais bloquée** (RG-09), même s'il a déjà des lots — asymétrie assumée avec `unit_of_measure` (§3.2), qui elle bloque.
 
 ### 3.4 `production_batch`
 
@@ -103,6 +108,8 @@ Une fabrication d'un produit, à une date, avec un **prix propre au lot** (RG-02
 | `created_by` | uuid | FK → `app_user`, nullable | Auteur (RF-27) |
 | `created_at` / `updated_at` | timestamptz | | Audit |
 
+**Règles complémentaires (implémentation, RG-10)** : `product_id`, `production_date` et `batch_number` sont **définitifs** après création. `sale_price`, `raw_material_ref`, `expiry_date`, `notes` restent modifiables (correction d'erreur de saisie). **Aucune suppression** de lot n'est possible. La création d'un lot est **bloquée** si le produit référencé est inactif ou inexistant.
+
 ### 3.5 `stock_unit`
 
 Cœur du suivi de stock : **un objet physique distinct**, suivi individuellement (RF-11 à RF-14). Stock disponible = nombre d'unités `available` (ou `opened`).
@@ -114,6 +121,8 @@ Cœur du suivi de stock : **un objet physique distinct**, suivi individuellement
 | `weight` | decimal(10,3) | nullable | Poids pesé (si `by_weight`, sinon `null`) (RF-12) |
 | `status` | enum | non nul, défaut `available` | `available`, `opened`, `sold`, `personal`, `lost` (RF-13) |
 | `created_at` / `updated_at` | timestamptz | | Audit |
+
+**Règles complémentaires (implémentation)** : les unités d'un lot sont générées via un appel **distinct** de la création du lot (§ note RF-10 du PRD), pour permettre une pesée étalée dans le temps. Une unité au statut `available` peut être **supprimée** (correction d'une erreur de pesée) uniquement si aucun `stock_movement` n'y est rattaché. Le statut `opened` n'est atteignable que via une vente partielle (`stock_movement` de type `sale`) : il n'existe pas de moyen de créer directement une unité `opened`.
 
 ### 3.6 `customer`
 
@@ -127,6 +136,8 @@ Fiche client pour la vente informelle et la traçabilité (RF-22 à RF-24).
 | `phone` | varchar | nullable | Contact |
 | `notes` | text | nullable | Observations |
 | `created_at` | timestamptz | | Audit |
+
+**Règle complémentaire (implémentation)** : la suppression d'un client est autorisée (pas de champ `is_active`) ; la FK depuis `stock_movement` est en `SetNull`, donc supprimer un client anonymise ses ventes passées plutôt que de les bloquer ou de les supprimer.
 
 ### 3.7 `stock_movement`
 
@@ -144,6 +155,12 @@ Toute sortie de stock, rattachée à une **stock_unit précise** (RF-15). Journa
 | `notes` | text | nullable | Observations |
 | `created_by` | uuid | FK → `app_user`, nullable | Auteur (RF-27) |
 | `created_at` | timestamptz | | Audit |
+
+**Règles complémentaires (implémentation)** :
+- La distinction vente « en une fois » vs vente « partielle » (RF-18/RF-19) se pilote côté API par un indicateur fourni à la création du mouvement (`isFullSale`) : à `true` (défaut) sur une unité `available`, l'unité passe directement à `sold` ; à `false`, elle passe à `opened` et démarre une séquence de ventes partielles. Une fois `opened`, cet indicateur n'a plus d'effet — la clôture manuelle (RF-20) est une action séparée, qui ne crée pas de mouvement.
+- Un mouvement peut être marqué `personal` ou `loss` aussi bien depuis `available` que depuis `opened` (RG-12).
+- Aucun mouvement n'est possible sur une unité déjà `sold`, `personal` ou `lost` (statuts terminaux, RG-06).
+- Contrairement à `production_batch`, un `stock_movement` reste **modifiable et supprimable** après création (RG-11). La suppression du dernier mouvement d'une unité la remet `available` ; dans les autres cas, le statut n'est pas recalculé (pas de machine à états inverse complète).
 
 ---
 
@@ -164,9 +181,9 @@ Le numéro est **auto-généré** puis **recopié à la main** sur l'étiquette 
 **Exemple complet :** `SC-250831-1` — saucisse curry, produite le 31/08/2025, 1ᵉʳ lot de ce produit ce jour-là.
 
 **Règles de génération :**
-- À la création d'un lot, l'application calcule `N = (séquence max existante pour ce produit à cette date) + 1`.
-- L'unicité globale de `batch_number` est garantie par construction et renforcée par la contrainte d'unicité en base.
-- `product.code` est normalisé en majuscules et ne doit pas contenir le séparateur `-`.
+- À la création d'un lot, l'application calcule `N = (nombre de lots déjà existants pour ce produit à cette date) + 1` (simple comptage, pas de parsing des numéros existants — possible car aucun lot n'est jamais supprimé, §5 C-09).
+- L'unicité globale de `batch_number` est garantie par construction et renforcée par la contrainte d'unicité en base. En cas de création concurrente sur le même produit/jour (RNF-05), l'application retente le calcul + l'insertion jusqu'à 3 fois si la contrainte d'unicité est violée.
+- `product.code` est normalisé en majuscules **à la création du produit** (pas seulement au moment de composer le numéro de lot) et ne doit pas contenir le séparateur `-`.
 
 > *Le format encode volontairement le produit et la date : cela aide à identifier un lot « à l'œil » sur un sachet sous vide, sans ouvrir l'application, tout en restant recopiable à la main.*
 
@@ -201,6 +218,11 @@ Certaines règles sont **garanties par la logique applicative** et, si pertinent
 | C-04 | **Vente partielle** (jambon à la tranche) : plusieurs `stock_movement` de type `sale` sur une même `stock_unit`, qui reste au statut `opened` jusqu'à clôture manuelle en `sold` (RF-19, RF-20). Le poids restant n'est pas suivi (RG-05). |
 | C-05 | `batch_number` et `product.code` sont uniques. |
 | C-06 | Les statuts de sortie (`sold`/`personal`/`lost`) sont exclusifs, posés à l'échelle de l'unité individuelle (RG-06). |
+| C-07 | `unit_of_measure.label` et `unit_of_measure.abbreviation` sont uniques. |
+| C-08 | `product.sale_unit_id` doit référencer une `unit_of_measure` active ; une unité utilisée par un `product` actif ne peut pas être désactivée (RG-08). |
+| C-09 | `product.code` et `product.sale_mode` sont définitifs après création ; `production_batch.product_id`, `production_date` et `batch_number` sont définitifs après création (RG-10). Aucune suppression n'est possible sur `product` ni `production_batch`. |
+| C-10 | Une `stock_unit` n'est supprimable que si `status = available` et qu'aucun `stock_movement` ne lui est rattaché. |
+| C-11 | Les enums (`sale_mode`, `status`, `type`) sont sérialisés et stockés en **snake_case** (`by_weight`, `available`, `sale`...), jamais en `PascalCase` — cohérent avec la table de correspondance FR (§4.2) et le reste du schéma. |
 
 ### Note d'architecture — le statut de l'unité physique
 
@@ -216,6 +238,8 @@ Le champ `status` est une **dénormalisation assumée** : l'état pourrait, pour
 
 | Table | Index | Justification |
 |---|---|---|
+| `unit_of_measure` | `label` (unique) | Évite les doublons de libellé (C-07) |
+| `unit_of_measure` | `abbreviation` (unique) | Évite les doublons d'abréviation (C-07) |
 | `product` | `code` (unique) | Unicité, génération du numéro de lot |
 | `production_batch` | `batch_number` (unique) | Recherche, unicité |
 | `production_batch` | `product_id` | Lister les lots d'un produit |
@@ -362,10 +386,10 @@ Table stock_movement {
 
 | Réf. | Question | Statut |
 |---|---|---|
-| QM-01 | **Modélisation des produits `by_piece`** : conserver le mécanisme uniforme (une ligne `stock_unit` par pièce, sans poids) ou un simple compteur sur le lot ? Recommandation : rester uniforme (cohérence, traçabilité), lignes générées automatiquement. | À valider |
+| QM-01 | **Modélisation des produits `by_piece`** : conserver le mécanisme uniforme (une ligne `stock_unit` par pièce, sans poids) ou un simple compteur sur le lot ? | ✅ Résolu — mécanisme uniforme implémenté : `POST /api/production-batches/{id}/stock-units` génère une `stock_unit` par pièce (`weight = null`) à partir d'une `quantity`, symétrique au cas `by_weight` (une par poids fourni). |
 | QM-02 | Format du numéro de lot | ✅ Résolu (§4.1) |
 | QM-03 | Comptage des tranches de jambon | ✅ Résolu — poids seul, pas de comptage |
 
 ---
 
-*Fin du document — version 0.2. Le schéma physique définitif sera matérialisé par les migrations Entity Framework Core.*
+*Fin du document — version 0.3. Le schéma physique est matérialisé par les migrations Entity Framework Core (`backend/src/Butcher.Api/Infrastructure/Data/Migrations/`), déjà appliquées pour l'ensemble du cœur métier V1.*

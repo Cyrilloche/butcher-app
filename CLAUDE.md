@@ -14,17 +14,17 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 
 ## 2. État d'avancement & feuille de route
 
-**Phase actuelle : fin de conception, avant développement.**
+**Phase actuelle : cœur métier backend exposé, spike authentification à venir immédiatement.**
 
 | Étape | Statut |
 |---|---|
 | Cadrage métier (discovery) | ✅ Terminé |
-| PRD | ✅ Rédigé (v0.1) |
-| Décisions d'architecture (ADR) | ✅ Rédigées (v0.1) |
-| Modèle de données | ✅ Rédigé (v0.2) |
+| PRD | ✅ Rédigé (v0.2) |
+| Décisions d'architecture (ADR) | ✅ Rédigées (ADR-006 tranché : Vuetify) |
+| Modèle de données | ✅ Rédigé (v0.3, aligné sur l'implémentation) |
 | Maquettes (Claude Design) | ✅ Direction visuelle validée (écran Stock) ; arrêtées volontairement au profit de l'itération en code (voir §10) |
-| Backend — contrôleurs & logique métier | 🔄 En cours (branche `backend-init`) |
-| Spike authentification (JWT) | ⏳ À venir, dès l'API prête |
+| Backend — cœur métier (6 entités, CRUD + logique métier) | ✅ Exposé en API, 63 tests (branche `backend-init`) |
+| Spike authentification (JWT) | 🔄 Prochaine étape immédiate — ADR-009 |
 | Frontend — scaffold | 🔄 En cours (branche `frontend-init`, worktree séparé) |
 | Développement Vague 1 | 🔄 Démarré |
 
@@ -163,7 +163,7 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 
 1. **Stock à l'unité physique.** Le stock n'est pas un compteur abstrait : chaque sachet / jambon est une ligne `stock_unit` distincte, avec son poids pesé individuellement (`by_weight`). Le stock disponible = nombre d'unités au statut `available` (ou `opened`).
 
-2. **Mécanisme uniforme, y compris `by_piece`.** *(Hypothèse de travail retenue — QM-01, à confirmer par le porteur de projet.)* Même les produits à la pièce (futures terrines) génèrent une ligne `stock_unit` par pièce (sans poids), plutôt qu'un compteur. Objectif : une seule logique de stock, pas deux.
+2. **Mécanisme uniforme, y compris `by_piece`.** *(QM-01, résolu et implémenté.)* Même les produits à la pièce (futures terrines) génèrent une ligne `stock_unit` par pièce (sans poids), plutôt qu'un compteur. Objectif : une seule logique de stock, pas deux.
 
 3. **Vente en une fois vs vente partielle.**
    - *En une fois* (sachet, jambon entier) : un `stock_movement` de type `sale` ; l'unité passe à `sold`.
@@ -188,6 +188,7 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 - ❌ Modéliser le stock `by_piece` avec un compteur parallèle → garder le mécanisme uniforme.
 - ❌ Coupler frontend et backend autrement que par le contrat d'API REST.
 - ❌ Traiter l'authentification à la légère (service exposé) → suivre le spike auth avant tout.
+- ❌ Sérialiser/stocker les enums en `PascalCase` (`ByWeight`) → toujours `snake_case` (`by_weight`), cohérent avec la table de correspondance FR et le reste du schéma (bug réel rencontré et corrigé, cf. `data-model.md` C-11).
 
 ---
 
@@ -204,8 +205,8 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 
 | Réf. | Question | Statut |
 |---|---|---|
-| ADR-009 | Stratégie d'authentification (JWT + refresh + stockage) | À valider par le spike auth, dès l'API prête |
-| QM-01 | Modélisation `by_piece` (mécanisme uniforme recommandé) | À confirmer |
+| ADR-009 | Stratégie d'authentification (JWT + refresh + stockage) | 🔄 Spike démarre maintenant — l'API métier est prête |
+| — | CORS : aucune politique configurée côté backend | À ajouter dès que le frontend appelle réellement l'API |
 | — | Choix du VPS, stratégie de sauvegarde PostgreSQL | Phase de mise en place |
 
 ---
