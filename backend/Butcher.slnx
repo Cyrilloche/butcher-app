@@ -1,0 +1,5 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Butcher.Api/Butcher.Api.csproj" />
+  </Folder>
+</Solution>
