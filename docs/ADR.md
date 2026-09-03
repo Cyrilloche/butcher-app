@@ -24,7 +24,7 @@ Chaque décision porte un **statut** : `Proposé` (en débat), `Accepté` (valid
 | ADR-003 | Séparation frontend / backend via un contrat d'API REST | Accepté |
 | ADR-004 | Backend en ASP.NET Core (C#) | Accepté |
 | ADR-005 | Frontend en Vue 3 + TypeScript, packagé en PWA | Accepté |
-| ADR-006 | Bibliothèque de composants UI (Vuetify ou PrimeVue) | Proposé |
+| ADR-006 | Bibliothèque de composants UI (Vuetify ou PrimeVue) | Accepté |
 | ADR-007 | PostgreSQL comme système de gestion de base de données | Accepté |
 | ADR-008 | Entity Framework Core + Npgsql comme couche d'accès aux données | Accepté |
 | ADR-009 | Authentification par jetons JWT, adossée à ASP.NET Core Identity | Proposé |
@@ -183,22 +183,30 @@ Le frontend est développé avec **Vue 3** et **TypeScript**, et packagé en **P
 
 ## ADR-006 — Bibliothèque de composants UI (Vuetify ou PrimeVue)
 
-**Statut :** Proposé — à trancher
+**Statut :** Accepté
 
 ### Contexte
 
-Pour obtenir une interface soignée sans repartir d'une page blanche, l'usage d'une bibliothèque de composants prêts à l'emploi (boutons, formulaires, tableaux, navigation, dialogues) est nécessaire. Deux candidats principaux se dégagent dans l'écosystème Vue 3.
+Pour obtenir une interface soignée sans repartir d'une page blanche, l'usage d'une bibliothèque de composants prêts à l'emploi (boutons, formulaires, tableaux, navigation, dialogues) est nécessaire. Deux candidats principaux se dégageaient dans l'écosystème Vue 3 : Vuetify et PrimeVue.
 
 ### Décision
 
-**À trancher.** Deux options crédibles :
-
-- **Vuetify** — implémentation Material Design, très complète, forte cohérence visuelle « prête à l'emploi », idéale pour une UI mobile propre sans effort de design.
-- **PrimeVue** — catalogue de composants très riche, thèmes variés (dont non-Material), grande flexibilité.
+**Vuetify** est retenu.
 
 ### Conséquences
 
-Le choix sera arbitré selon l'esthétique recherchée (Material assumé vs identité plus libre) et l'ergonomie mobile des composants clés (notamment les écrans de saisie rapide, point de vigilance UX du projet). Décision à formaliser avant le démarrage du frontend.
+**Positives**
+- Implémentation Material Design cohérente « prête à l'emploi » : peu de décisions esthétiques à prendre soi-même, ce qui convient à un auteur non-designer.
+- Documentation excellente, écosystème mature, forte adéquation avec une UI mobile propre et lisible (composants `v-bottom-navigation`, `v-card`, etc. déjà alignés avec la direction visuelle validée en maquette).
+- Bon support de l'accessibilité et des grandes zones tactiles, pertinent pour des utilisateurs âgés (RNF-02).
+
+**Négatives / à surveiller**
+- Signature visuelle Material assez reconnaissable ; écarté au profit de la cohérence et de la rapidité de mise en œuvre plutôt qu'une identité graphique sur mesure.
+
+### Alternatives écartées
+
+- **PrimeVue** — catalogue plus riche et plus flexible, mais davantage de décisions de design à la charge de l'auteur ; écarté au profit de la simplicité d'usage de Vuetify.
+- **UI entièrement sur mesure (sans bibliothèque)** : rejeté — coût de développement disproportionné pour le besoin.
 
 ### Alternatives écartées
 
