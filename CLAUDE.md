@@ -22,9 +22,11 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 | PRD | ✅ Rédigé (v0.1) |
 | Décisions d'architecture (ADR) | ✅ Rédigées (v0.1) |
 | Modèle de données | ✅ Rédigé (v0.2) |
-| Maquettes (Claude Design) | 🔄 En cours |
-| Spikes techniques de dé-risquage | ⏳ À venir |
-| Développement Vague 1 | ⏳ À venir |
+| Maquettes (Claude Design) | ✅ Direction visuelle validée (écran Stock) ; arrêtées volontairement au profit de l'itération en code (voir §10) |
+| Backend — contrôleurs & logique métier | 🔄 En cours (branche `backend-init`) |
+| Spike authentification (JWT) | ⏳ À venir, dès l'API prête |
+| Frontend — scaffold | 🔄 En cours (branche `frontend-init`, worktree séparé) |
+| Développement Vague 1 | 🔄 Démarré |
 
 **Méthode : dé-risquage avant développement.** On valide les points techniques risqués par des *spikes* isolés **avant** de construire les fonctionnalités. Spikes prévus, dans l'ordre :
 
@@ -62,7 +64,7 @@ La documentation de référence vit dans `docs/`. **En cas de doute, ces documen
 
 | Couche | Technologie |
 |---|---|
-| **Frontend** | Vue 3 + TypeScript, packagé en **PWA**, mobile-first + vue PC. Bibliothèque de composants : Vuetify **ou** PrimeVue (*à trancher — ADR-006*). |
+| **Frontend** | Vue 3 + TypeScript, packagé en **PWA**, mobile-first + vue PC. Bibliothèque de composants : **Vuetify** (ADR-006, tranché). Nom d'application (manifest PWA) : **Saloir**. |
 | **Backend** | ASP.NET Core Web API (**C#**). |
 | **Contrat** | API **REST**, documentée via OpenAPI/Swagger. |
 | **Accès données** | Entity Framework Core + **Npgsql**. |
@@ -88,12 +90,23 @@ butcher-app/
 ├── backend/               # ASP.NET Core Web API (C#)
 │   └── Dockerfile
 ├── frontend/              # Vue 3 + TS (PWA)
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── base/      # wrappers Vuetify (AppButton, AppCard...)
+│   │   │   └── domain/    # composants métier (StockUnitCard, WeighInput...)
+│   │   ├── composables/   # logique réutilisable (useAuth, useStock...)
+│   │   ├── api/           # client généré depuis le Swagger backend
+│   │   ├── layouts/       # AppLayout.vue (navigation bas d'écran)
+│   │   ├── views/         # StockView, SalesView, CustomersView, ProductsView, LoginView
+│   │   └── router/
 │   └── Dockerfile
 ├── docker-compose.yml
 └── README.md
 ```
 
 Monorepo, deux applications indépendantes avec chacune son cycle de vie et son conteneur, orchestrées par Docker Compose.
+
+**Organisation de développement** : backend et frontend sont développés dans deux **worktrees Git séparés** du même dépôt (`backend-init` et `frontend-init`), permettant de travailler sur les deux en parallèle sans interférence, avant fusion sur `main`.
 
 ---
 
@@ -191,8 +204,7 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 
 | Réf. | Question | Statut |
 |---|---|---|
-| ADR-006 | Vuetify vs PrimeVue | À trancher avant démarrage frontend |
-| ADR-009 | Stratégie d'authentification (JWT + refresh + stockage) | À valider par le spike auth |
+| ADR-009 | Stratégie d'authentification (JWT + refresh + stockage) | À valider par le spike auth, dès l'API prête |
 | QM-01 | Modélisation `by_piece` (mécanisme uniforme recommandé) | À confirmer |
 | — | Choix du VPS, stratégie de sauvegarde PostgreSQL | Phase de mise en place |
 
