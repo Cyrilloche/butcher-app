@@ -27,7 +27,7 @@ Chaque décision porte un **statut** : `Proposé` (en débat), `Accepté` (valid
 | ADR-006 | Bibliothèque de composants UI (Vuetify ou PrimeVue) | Accepté |
 | ADR-007 | PostgreSQL comme système de gestion de base de données | Accepté |
 | ADR-008 | Entity Framework Core + Npgsql comme couche d'accès aux données | Accepté |
-| ADR-009 | Authentification par jetons JWT, adossée à ASP.NET Core Identity | Proposé |
+| ADR-009 | Authentification par jetons JWT, adossée à ASP.NET Core Identity | Accepté |
 | ADR-010 | Déploiement conteneurisé (Docker Compose + reverse proxy HTTPS) | Accepté |
 
 ---
@@ -276,31 +276,47 @@ L'accès aux données se fait via **Entity Framework Core** (l'ORM standard de .
 
 ## ADR-009 — Authentification par jetons JWT, adossée à ASP.NET Core Identity
 
-**Statut :** Proposé — à préciser
+**Statut :** Accepté — spike réalisé et vérifié
 
 ### Contexte
 
-L'application sera **exposée sur Internet**, ce qui rend l'authentification obligatoire dès la V1 (cf. PRD, RF-25). Avec une architecture front/back séparée (ADR-003), l'authentification se gère côté API. La V1 se contente d'un **compte simple** partagé, sans rôles différenciés, mais le modèle doit préparer une future distinction des utilisateurs (champ `cree_par`, cf. PRD RF-27).
+L'application est **exposée sur Internet**, ce qui rend l'authentification obligatoire dès la V1 (cf. PRD, RF-25). Avec une architecture front/back séparée (ADR-003), l'authentification se gère côté API. La V1 se contente d'un **compte simple** partagé, sans rôles différenciés, mais le modèle doit préparer une future distinction des utilisateurs (champ `created_by`, cf. PRD RF-27).
 
-### Décision (proposée)
+Ce sujet a fait l'objet d'un **spike technique dédié**, réalisé avant tout développement fonctionnel supplémentaire, conformément à la méthode de dé-risquage du projet (cf. CLAUDE.md §2). Il visait spécifiquement le point identifié comme le plus délicat : la gestion du cycle de vie des jetons (expiration, rafraîchissement, stockage côté client, révocation).
 
-L'authentification s'appuie sur **ASP.NET Core Identity** pour la gestion des utilisateurs (stockage sécurisé des identifiants, hachage des mots de passe), avec un échange par **jetons JWT** (JSON Web Tokens) entre le frontend et l'API : le client s'authentifie, reçoit un jeton, et le présente à chaque appel d'API.
+### Décision
+
+L'authentification s'appuie sur **ASP.NET Core Identity**, en version **allégée** (`IdentityUserContext<AppUser, Guid>` plutôt que le `IdentityDbContext` complet) — pas de table de rôles, cohérent avec RF-26 (compte simple partagé, aucun rôle différencié en V1). Le mécanisme retenu combine deux types de jetons, avec des propriétés de sécurité différentes et complémentaires :
+
+- **Access token JWT**, courte durée de vie (**15 minutes**), signé HMAC-SHA256, contenant les claims minimales (`sub`, `email`, `jti`). Conservé **en mémoire uniquement côté client** (jamais persisté en `localStorage` ni ailleurs), donc perdu au rechargement de page — c'est voulu, le refresh token sert précisément à en obtenir un nouveau silencieusement.
+- **Refresh token**, longue durée de vie (**30 jours**), **stocké côté serveur** (table `refresh_token`, valeur brute jamais persistée : seul un hash SHA-256 est conservé, comme un mot de passe) et transmis au client via un **cookie `httpOnly` + `Secure`**, avec un `Path` restreint à `/api/auth` (le cookie n'est jamais envoyé aux autres routes de l'API). Étant `httpOnly`, il est inaccessible à tout JavaScript côté client — donc non exfiltrable par une faille XSS, contrairement à un jeton en `localStorage`.
+
+Le refresh token est **rotatif** : chaque utilisation en émet un nouveau et révoque l'ancien (`revoked_at`, `replaced_by_token_hash`). Une **détection de rejeu** est intégrée : si un refresh token déjà révoqué est présenté à nouveau (signe qu'il a été volé et qu'un attaquant tente de l'utiliser après le légitime propriétaire, ou l'inverse), **tous les refresh tokens actifs de l'utilisateur sont révoqués immédiatement**, forçant une reconnexion complète.
+
+Par ailleurs, l'API adopte une **politique d'autorisation par défaut fail-closed** : toute route est protégée par défaut (`FallbackPolicy` exigeant un utilisateur authentifié), et seules `login`/`refresh`/`logout` sont explicitement ouvertes (`[AllowAnonymous]`). Il n'existe **aucune route d'inscription publique** : l'unique compte de la V1 est **seedé au démarrage** de l'application depuis des variables d'environnement (`Seed:AdminEmail`/`Seed:AdminPassword`), uniquement si aucun `app_user` n'existe encore.
 
 ### Conséquences
 
 **Positives**
 - Identity est une brique éprouvée et intégrée à .NET : elle évite de réinventer la sécurité (hachage, gestion des comptes), point critique sur un service exposé.
-- Le modèle par jetons est le standard pour une API consommée par un client séparé (SPA/PWA).
+- La séparation access token (mémoire) / refresh token (cookie httpOnly) combine les forces des deux approches : pas de jeton longue durée exposé au JavaScript, et pas de nécessité de renvoyer les identifiants à chaque expiration d'access token.
+- La rotation avec détection de rejeu transforme le vol d'un refresh token en incident détectable et auto-corrigé (révocation globale), plutôt qu'en compromission silencieuse et durable.
+- L'absence d'inscription publique supprime toute une classe de risques (créations de comptes non désirées, énumération d'utilisateurs) pour un gain fonctionnel nul en V1 (un seul compte partagé).
 - Auto-hébergé, sans dépendance externe, cohérent avec ADR-002.
 
 **Négatives / à surveiller**
-- La **gestion du cycle de vie des jetons** (expiration, rafraîchissement, stockage côté client, révocation) est le point le plus délicat de tout le montage. Un stockage inadéquat du jeton côté navigateur est une source classique de vulnérabilité.
-- Ce sujet doit faire l'objet d'un **spike technique dédié et prioritaire** avant le développement des fonctionnalités métier, afin de valider une approche sûre (mécanisme de *refresh token*, stratégie de stockage, HTTPS strict).
+- Le cookie `Secure` impose HTTPS **même en développement local**, ce qui a nécessité un profil `https` dédié et le certificat de développement .NET (`dotnet dev-certs https --trust`) — un peu de friction locale en échange de la sécurité en production.
+- `SameSite` du cookie de refresh est fixé à `Lax` par défaut (configurable via `Auth:RefreshCookieSameSite`) ; cette valeur devra être revue une fois la topologie de déploiement définitivement tranchée par l'ADR-010 (même domaine via reverse proxy vs sous-domaines séparés, ce qui influe directement sur le comportement `SameSite` requis).
+- La politique de mot de passe d'ASP.NET Core Identity utilisée est celle par défaut (non personnalisée) — à revisiter à l'usage réel par les deux utilisateurs finaux, non-techniques.
+- Les tables Identity annexes (`app_user_claim`, `app_user_login`, `app_user_token`) sont créées mais **inutilisées** en V1 (pas de login externe, pas de claims personnalisées) — conservées telles quelles car standard et inoffensif, sans nettoyage particulier.
 
 ### Alternatives écartées
 
 - **Fournisseur d'identité externe (OAuth/OpenID managé)** : réduirait le risque sécurité mais introduirait une dépendance externe, en tension avec l'objectif d'auto-hébergement et de montée en compétence.
-- **Authentification par cookie de session classique** : viable, mais moins naturelle pour une API découplée consommée par une PWA ; le choix entre cookie sécurisé et JWT sera définitivement tranché lors du spike d'authentification.
+- **Authentification par cookie de session classique (sans JWT)** : viable, mais moins naturelle pour une API découplée consommée par une PWA ; le choix final combine en réalité les deux logiques (JWT pour l'access token, cookie sécurisé pour le refresh token), plutôt que de trancher entre l'une ou l'autre.
+- **JWT longue durée sans refresh token, ou refresh token stateless (non stocké en base)** : plus simple, mais sans possibilité de révocation individuelle ni de détection de rejeu — jugé trop fragile pour un service exposé sur Internet (RNF-04).
+- **Access token persisté en `localStorage`** : rejeté d'emblée, vulnérable à l'exfiltration par XSS ; c'est précisément ce que le choix mémoire + cookie `httpOnly` évite.
+- **Inscription publique en V1** : inutile (un seul compte partagé) et source de risque additionnel sans bénéfice ; reportée indéfiniment tant que le besoin de plusieurs comptes ne se matérialise pas.
 
 ---
 

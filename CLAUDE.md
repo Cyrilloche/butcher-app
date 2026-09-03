@@ -23,16 +23,16 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 | Décisions d'architecture (ADR) | ✅ Rédigées (ADR-006 tranché : Vuetify) |
 | Modèle de données | ✅ Rédigé (v0.3, aligné sur l'implémentation) |
 | Maquettes (Claude Design) | ✅ Direction visuelle validée (écran Stock) ; arrêtées volontairement au profit de l'itération en code (voir §10) |
-| Backend — cœur métier (6 entités, CRUD + logique métier) | ✅ Exposé en API, 63 tests (branche `backend-init`) |
-| Spike authentification (JWT) | 🔄 Prochaine étape immédiate — ADR-009 |
+| Backend — cœur métier (6 entités, CRUD + logique métier) | ✅ Exposé en API, 71 tests (branche `backend-init`) |
+| Spike authentification (JWT) | ✅ Réalisé et vérifié — ADR-009 accepté (Identity allégé, refresh token rotatif en base, cookie httpOnly/Secure, seed par variable d'environnement) |
 | Frontend — scaffold | 🔄 En cours (branche `frontend-init`, worktree séparé) |
 | Développement Vague 1 | 🔄 Démarré |
 
 **Méthode : dé-risquage avant développement.** On valide les points techniques risqués par des *spikes* isolés **avant** de construire les fonctionnalités. Spikes prévus, dans l'ordre :
 
-1. **Authentification** (JWT + refresh + stockage sécurisé du jeton côté PWA) — **prioritaire**, c'est le point le plus délicat (service exposé sur Internet). Voir ADR-009.
-2. **Socle de déploiement** : Docker Compose (backend + frontend + PostgreSQL) derrière un reverse proxy HTTPS (Caddy/Nginx). Voir ADR-010.
-3. **Fondations données** : EF Core + Npgsql, première migration, connexion Postgres.
+1. ~~**Authentification** (JWT + refresh + stockage sécurisé du jeton côté PWA)~~ — ✅ **fait**, voir ADR-009 (accepté).
+2. **Socle de déploiement** : Docker Compose (backend + frontend + PostgreSQL) derrière un reverse proxy HTTPS (Caddy/Nginx). Voir ADR-010. **Prochain spike.**
+3. **Fondations données** : EF Core + Npgsql, première migration, connexion Postgres. ✅ **déjà en place** (utilisé par toutes les entités et par l'authentification).
 
 **Vague 1 (MVP) — périmètre visé** (détail dans le PRD §4.1) :
 - Authentification (compte simple partagé).
@@ -69,7 +69,7 @@ La documentation de référence vit dans `docs/`. **En cas de doute, ces documen
 | **Contrat** | API **REST**, documentée via OpenAPI/Swagger. |
 | **Accès données** | Entity Framework Core + **Npgsql**. |
 | **Base de données** | **PostgreSQL**. |
-| **Authentification** | ASP.NET Core Identity + jetons **JWT** (*à préciser via spike — ADR-009*). |
+| **Authentification** | ASP.NET Core Identity (allégé, sans rôles) + access token **JWT** en mémoire (15 min) + refresh token rotatif en base, cookie httpOnly/Secure (30 jours). Voir ADR-009 (accepté). |
 | **Déploiement** | Docker Compose sur VPS, reverse proxy Caddy/Nginx, HTTPS Let's Encrypt. **Auto-hébergé** (pas de BaaS). |
 
 **Contraintes d'architecture structurantes** :
@@ -205,8 +205,8 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 
 | Réf. | Question | Statut |
 |---|---|---|
-| ADR-009 | Stratégie d'authentification (JWT + refresh + stockage) | 🔄 Spike démarre maintenant — l'API métier est prête |
-| — | CORS : aucune politique configurée côté backend | À ajouter dès que le frontend appelle réellement l'API |
+| ADR-009 | `SameSite` du cookie de refresh token, actuellement `Lax` par défaut | À retrancher une fois la topologie de prod tranchée par ADR-010 |
+| — | Politique de mot de passe Identity (valeurs par défaut, non revues pour 2 utilisateurs non techniques) | Ouvert, non bloquant |
 | — | Choix du VPS, stratégie de sauvegarde PostgreSQL | Phase de mise en place |
 
 ---
