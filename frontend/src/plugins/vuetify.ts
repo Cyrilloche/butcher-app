@@ -38,6 +38,12 @@ export default createVuetify({
           // le "bois" (secondary), plus sobre que primary/terracotta.
           'status-neutral': '#6E5A45',
           'status-neutral-container': '#EDE6DA',
+
+          // Champs de saisie (AppTextField) : fond blanc distinct du fond
+          // "carte" (surface), bordure au repos ton kraft (voir maquettes
+          // Ajout Stock).
+          'field-surface': '#FFFFFF',
+          'field-border': '#DACFBB',
         },
       },
     },

@@ -1,6 +1,16 @@
 import { h } from 'vue'
 import type { IconSet, IconProps } from 'vuetify'
-import { PhPackage, PhCashRegister, PhUsers, PhCookingPot } from '@phosphor-icons/vue'
+import {
+  PhPackage,
+  PhCashRegister,
+  PhUsers,
+  PhCookingPot,
+  PhCaretLeft,
+  PhPlus,
+  PhMinus,
+  PhTrash,
+  PhTag,
+} from '@phosphor-icons/vue'
 
 /**
  * Registry of Phosphor icons available through the `phosphor:` iconset.
@@ -12,6 +22,11 @@ const phosphorIcons: Record<string, unknown> = {
   'cash-register': PhCashRegister,
   users: PhUsers,
   'cooking-pot': PhCookingPot,
+  'caret-left': PhCaretLeft,
+  plus: PhPlus,
+  minus: PhMinus,
+  trash: PhTrash,
+  tag: PhTag,
 }
 
 export const phosphor: IconSet = {
