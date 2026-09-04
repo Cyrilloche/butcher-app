@@ -14,7 +14,12 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 
-var builder = WebApplication.CreateBuilder(args);
+// Commande hors-ligne de création de compte (`create-user <email> <mot-de-passe>`),
+// lancée dans le conteneur en prod. Les arguments positionnels ne sont pas passés
+// au builder : le fournisseur de configuration ligne de commande les rejetterait.
+var createUserCommand = args is ["create-user", ..];
+
+var builder = WebApplication.CreateBuilder(createUserCommand ? [] : args);
 
 // Add services to the container.
 
@@ -93,6 +98,11 @@ builder.Services.AddScoped<ISaleService, SaleService>();
 
 var app = builder.Build();
 
+if (createUserCommand)
+{
+    return await CreateUserAsync(app, args);
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -118,6 +128,8 @@ await MigrateDatabaseAsync(app);
 await SeedAdminUserAsync(app);
 
 app.Run();
+
+return 0;
 
 static async Task MigrateDatabaseAsync(WebApplication app)
 {
@@ -156,4 +168,38 @@ static async Task SeedAdminUserAsync(WebApplication app)
     }
 
     app.Logger.LogInformation("Compte administrateur seedé pour {Email}", email);
+}
+
+static async Task<int> CreateUserAsync(WebApplication app, string[] args)
+{
+    if (args.Length != 3)
+    {
+        await Console.Error.WriteLineAsync("Usage : create-user <email> <mot-de-passe>");
+        return 1;
+    }
+
+    var email = args[1];
+    var password = args[2];
+
+    using var scope = app.Services.CreateScope();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+
+    if (await userManager.FindByEmailAsync(email) is not null)
+    {
+        await Console.Error.WriteLineAsync($"Un compte existe déjà pour {email}.");
+        return 1;
+    }
+
+    var user = new AppUser { UserName = email, Email = email, CreatedAt = DateTimeOffset.UtcNow };
+    var result = await userManager.CreateAsync(user, password);
+
+    if (!result.Succeeded)
+    {
+        await Console.Error.WriteLineAsync(
+            $"Échec de la création du compte : {string.Join(", ", result.Errors.Select(e => e.Description))}");
+        return 1;
+    }
+
+    Console.WriteLine($"Compte créé pour {email}.");
+    return 0;
 }
