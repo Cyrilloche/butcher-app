@@ -102,7 +102,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-app.UseHttpsRedirection();
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseCors("Frontend");
 
@@ -111,9 +114,17 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+await MigrateDatabaseAsync(app);
 await SeedAdminUserAsync(app);
 
 app.Run();
+
+static async Task MigrateDatabaseAsync(WebApplication app)
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();
+}
 
 static async Task SeedAdminUserAsync(WebApplication app)
 {

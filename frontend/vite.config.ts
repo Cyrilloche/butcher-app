@@ -18,8 +18,8 @@ export default defineConfig({
         name: 'Saloir',
         short_name: 'Saloir',
         description: 'Gestion de production, stock et ventes — charcuterie artisanale',
-        theme_color: '#7B1E1E',
-        background_color: '#F5EFE6',
+        theme_color: '#C4623C',
+        background_color: '#ECE2D0',
         display: 'standalone',
         icons: [
           {
