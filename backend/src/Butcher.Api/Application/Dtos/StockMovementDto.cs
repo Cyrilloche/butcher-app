@@ -16,6 +16,13 @@ public class StockMovementDto
 
     public decimal? Amount { get; set; }
 
+    /// <summary>Renseigné pour les mouvements de type « vente » uniquement.</summary>
+    public int? SaleId { get; set; }
+
+    public string? SaleNumber { get; set; }
+
+    // Lecture seule : le client est porté par la vente, pas par le mouvement. Exposé ici pour
+    // éviter au frontend un aller-retour supplémentaire sur les vues « historique par unité ».
     public int? CustomerId { get; set; }
 
     public string? CustomerName { get; set; }

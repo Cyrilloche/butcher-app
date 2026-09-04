@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | **Nom de projet** | Mini-ERP Charcuterie (nom de code : *à définir*) |
-| **Version du document** | 0.2 |
-| **Date** | 3 septembre 2026 |
-| **Statut** | Cadrage validé, en cours d'implémentation (backend) |
+| **Version du document** | 0.3 |
+| **Date** | 4 septembre 2026 |
+| **Statut** | Cadrage validé, en cours d'implémentation (backend exposé, frontend en cours) |
 | **Auteur** | Cyril, avec assistance à l'architecture |
 | **Destinataires** | Utilisateurs finaux (exploitants), équipe de développement |
 
@@ -15,6 +15,7 @@
 |---|---|---|---|
 | 0.1 | 2026-09-02 | Cyril | Rédaction initiale à partir des ateliers de cadrage métier |
 | 0.2 | 2026-09-03 | Cyril, avec assistance à l'implémentation | Ajout des règles de gestion RG-08 à RG-12, apparues pendant l'implémentation du backend (cœur métier V1 entièrement exposé en API à cette date) ; précision sur RF-10 |
+| 0.3 | 2026-09-04 | Cyril, avec assistance à l'implémentation | **Q-04 et Q-05 résolus et implémentés** : ajout de l'entité *vente* (numéro unique, statut de paiement, regroupement de plusieurs unités) — nouvelles exigences RF-28 à RF-31 et règles RG-13 à RG-15 ; RF-17/RG-07 (client obligatoire) désormais garantis par le modèle ; §9 mis en cohérence (le client n'est plus optionnel) |
 
 ---
 
@@ -173,6 +174,10 @@ Le stock n'est pas un compteur abstrait : il représente des **objets physiques 
 | RF-19 | **Vente partielle d'une unité (ex. jambon à la tranche)** : plusieurs mouvements de vente peuvent être rattachés à une même unité physique. L'unité passe au statut `entamé` et **ne quitte pas le stock automatiquement**. Chaque vente est pesée (poids de tranche × prix/kg du lot) et rattachée au client concerné. |
 | RF-20 | L'utilisateur peut clôturer manuellement une unité `entamé` en la passant au statut `vendu` (ou `perdu`) lorsqu'elle est épuisée. Le poids restant n'est pas suivi. |
 | RF-21 | L'utilisateur peut marquer une unité physique en `perso` (autoconsommation) ou `perdu` (invendable/jeté) sans passer par une vente. Ces statuts s'appliquent **unité par unité**. |
+| RF-28 | **(2026-09-04)** Une **vente** est une entité à part entière : elle regroupe une ou plusieurs unités physiques vendues en une fois au même client, et porte ce qui est commun à la transaction — numéro, date, client, statut de paiement, total. Chaque unité vendue reste une ligne de la vente (mouvement rattaché à l'unité physique, RF-15). |
+| RF-29 | **(2026-09-04)** Chaque vente porte un **numéro unique auto-généré**, communicable et retrouvable (`V-YYMMDD-N`), sur le même principe que le numéro de lot. |
+| RF-30 | **(2026-09-04)** Chaque vente porte un **statut de paiement** (« Payée » / « À payer »), modifiable en un geste depuis la liste des ventes — la vente informelle en espèces admet couramment un règlement différé. |
+| RF-31 | **(2026-09-04)** L'utilisateur peut consulter la liste des ventes, filtrée par client, par statut de paiement et par période, et retrouver le détail d'une vente (ses lignes et son total). |
 
 ### 6.6 Clients
 
@@ -208,6 +213,9 @@ Le stock n'est pas un compteur abstrait : il représente des **objets physiques 
 | RG-10 | Un **lot de production** reste partiellement modifiable après création (prix de vente, référence matière première, DLC, notes), pour corriger une erreur de saisie. Le produit, la date de production et le numéro de lot sont **définitifs** dès la création : ils sont indissociables du numéro de lot lui-même (§4.1 du modèle de données) et de l'identité du lot. Aucune suppression de lot n'est possible. |
 | RG-11 | Contrairement au lot de production, un **mouvement de stock** (vente, perso, perte) reste **modifiable et supprimable** après création — choix assumé pour une activité amateur sans contrainte comptable formelle, plutôt qu'un principe strict d'immuabilité de l'historique. Supprimer le dernier mouvement rattaché à une unité physique la remet au statut `disponible` ; dans les autres cas (ex. une vente parmi plusieurs sur un jambon entamé), le statut de l'unité n'est pas recalculé automatiquement. |
 | RG-12 | Une unité physique peut être marquée `perso` ou `perdu` aussi bien depuis le statut `disponible` que depuis `entamé` (ex. un jambon entamé qui tourne peut être déclaré perdu sans repasser par une vente complète). |
+| RG-13 | **(2026-09-04)** Une vente comporte **au moins une ligne** et est enregistrée **en une seule opération** (en-tête + lignes) : si une ligne est invalide, rien n'est enregistré. À l'inverse d'un lot de production, dont les unités sont ajoutées progressivement (pesée étalée), une vente est un instant unique. Des lignes peuvent néanmoins être ajoutées après coup à une vente existante. |
+| RG-14 | **(2026-09-04)** Une vente est **modifiable** (client, date, paiement, notes) et **supprimable** (prolongement de RG-11). La supprimer supprime ses lignes ; toute unité physique ne portant alors plus aucun mouvement redevient `disponible`. Supprimer la dernière ligne d'une vente est refusé : c'est la vente qu'il faut supprimer. |
+| RG-15 | **(2026-09-04)** Le **total d'une vente** est la somme des montants réellement encaissés sur ses lignes ; il est calculé, jamais saisi ni figé — chaque ligne conserve son montant réel (RG-05, montant stocké et non recalculé). |
 
 ---
 
@@ -236,7 +244,8 @@ Le stock n'est pas un compteur abstrait : il représente des **objets physiques 
 - **Unité de mesure** — libellé, abréviation.
 - **Lot de production** — produit, date, prix de vente, référence matière première (texte), DLC, auteur de création.
 - **Unité physique** — rattachée à un lot ; poids (si applicable), statut.
-- **Mouvement** — rattaché à une unité physique ; type (vente/perso/casse), montant, poids vendu, client (optionnel), date, auteur de création.
+- **Vente** — numéro unique, date, client (obligatoire), statut de paiement, notes, auteur de création ; regroupe une ou plusieurs lignes.
+- **Mouvement** (ligne) — rattaché à une unité physique ; type (vente/perso/casse), montant, poids vendu, date, auteur de création ; rattaché à une `Vente` si et seulement si son type est « vente ».
 - **Client** — nom, prénom, téléphone.
 - **Utilisateur** — compte d'authentification.
 
@@ -245,8 +254,8 @@ Le stock n'est pas un compteur abstrait : il représente des **objets physiques 
 - Un `Produit` possède plusieurs `Lots de production`.
 - Un `Lot` possède plusieurs `Unités physiques`.
 - Une `Unité physique` possède un ou plusieurs `Mouvements` (un seul pour une vente « en une fois », plusieurs pour une unité `entamé`).
-- Un `Mouvement` de type vente référence optionnellement un `Client`.
-- La chaîne `Mouvement → Unité physique → Lot` assure la traçabilité « client ↔ lot ».
+- Une `Vente` appartient à un `Client` (obligatoire, RF-17/RG-07) et regroupe un ou plusieurs `Mouvements` de type vente.
+- La chaîne `Vente → Mouvement → Unité physique → Lot` assure la traçabilité « client ↔ lot ». Un client ayant des ventes ne peut plus être supprimé, sous peine d'effacer cette traçabilité.
 
 **Points d'extension prévus (V2+)** — sans impact sur le noyau V1 :
 
@@ -287,8 +296,8 @@ Le stock n'est pas un compteur abstrait : il représente des **objets physiques 
 | Q-01 | Choix de la plateforme d'hébergement et de la stratégie d'authentification (à traiter en phase technique). |
 | Q-02 | Faut-il, à l'usage, passer à deux comptes distincts avec journalisation dès la V1 ou attendre une vague ultérieure ? (décision reportée à la phase de développement). |
 | Q-03 | Existe-t-il des produits futurs (terrines, etc.) dont le mode de vente n'entre pas dans `poids_variable` / `piece_simple` ? (à valider avec les exploitants). |
-| Q-04 | **(2026-09-04)** Statut de paiement de la vente (`payée` / `à payer`) : identifié en concevant les vues Ventes, absent du modèle actuel. À ajouter côté backend — voir proposition de schéma dans `data-model.md` §9 (QM-04). |
-| Q-05 | **(2026-09-04)** Une vente peut regrouper plusieurs unités physiques vendues en une fois à un client (un numéro, une date, un statut de paiement, un total) — le modèle actuel n'a **aucune entité de regroupement** : chaque `stock_movement` est indépendant. Proposition : entité `sale` (miroir de `production_batch` côté vente), `stock_movement.sale_id` en FK. Voir `data-model.md` §9 (QM-04). Implique aussi RF-17/RG-07 (client désormais obligatoire). |
+| ~~Q-04~~ | ~~Statut de paiement de la vente (`payée` / `à payer`)~~ — ✅ **Résolu et implémenté le 2026-09-04** : voir RF-30 et `data-model.md` §3.7. |
+| ~~Q-05~~ | ~~Entité de regroupement des ventes (numéro, plusieurs unités par vente)~~ — ✅ **Résolu et implémenté le 2026-09-04** : entité `sale`, `stock_movement.sale_id`, numéro `V-YYMMDD-N`. Voir RF-28/RF-29 et `data-model.md` §3.7. RF-17/RG-07 (client obligatoire) sont désormais garantis par le schéma. |
 
 ---
 
@@ -299,6 +308,7 @@ Le stock n'est pas un compteur abstrait : il représente des **objets physiques 
 | **Lot de production** | Ensemble d'unités d'un même produit fabriquées à une date donnée, avec un prix de vente propre. |
 | **Unité physique** | Objet individuel de stock (un sachet, un jambon), suivi séparément avec son poids et son statut. |
 | **Mode de vente** | Propriété d'un produit déterminant s'il se vend au poids (`poids_variable`) ou à la pièce (`piece_simple`). |
+| **Vente** | Transaction unique avec un client : un numéro, une date, un statut de paiement, et une ou plusieurs unités physiques vendues (une ligne chacune). |
 | **Sortie perso** | Retrait de stock pour autoconsommation ou usage personnel, distinct d'une vente. |
 | **DLC** | Date Limite de Consommation. |
 | **PWA** | Progressive Web App — application web installable et utilisable en mobilité. |
@@ -306,4 +316,4 @@ Le stock n'est pas un compteur abstrait : il représente des **objets physiques 
 
 ---
 
-*Fin du document — version 0.2. Ce PRD est un document vivant, appelé à évoluer au fil des vagues de développement.*
+*Fin du document — version 0.3. Ce PRD est un document vivant, appelé à évoluer au fil des vagues de développement.*

@@ -50,12 +50,31 @@ public class StockMovementServiceTests(PostgresDatabaseFixture fixture) : IAsync
         return customer;
     }
 
+    /// <summary>
+    /// Une vente est désormais toujours rattachée à une <c>Sale</c>, qui porte le client obligatoire
+    /// (RF-17 / RG-07). Ce helper crée l'enveloppe attendue par les mouvements de type « vente ».
+    /// </summary>
+    private static async Task<Sale> SeedSaleAsync(AppDbContext dbContext, string saleNumber = "V-260904-1")
+    {
+        var customer = await SeedCustomerAsync(dbContext);
+
+        var sale = new Sale
+        {
+            SaleNumber = saleNumber,
+            CustomerId = customer.Id,
+            Date = DateTimeOffset.UtcNow,
+        };
+        dbContext.Sales.Add(sale);
+        await dbContext.SaveChangesAsync();
+        return sale;
+    }
+
     [Fact]
     public async Task CreateAsync_FullSaleByWeight_SetsUnitSoldAndStoresAmount()
     {
         await using var dbContext = fixture.CreateDbContext();
         var unit = await SeedStockUnitAsync(dbContext, SaleMode.ByWeight, weight: 0.320m);
-        var customer = await SeedCustomerAsync(dbContext);
+        var sale = await SeedSaleAsync(dbContext);
         var service = new StockMovementService(dbContext);
 
         var result = await service.CreateAsync(unit.Id, new CreateStockMovementRequest
@@ -64,11 +83,13 @@ public class StockMovementServiceTests(PostgresDatabaseFixture fixture) : IAsync
             IsFullSale = true,
             SoldWeight = 0.320m,
             Amount = 4.5m,
-            CustomerId = customer.Id,
+            SaleId = sale.Id,
         });
 
         Assert.Equal(MovementType.Sale, result.Type);
         Assert.Equal(4.5m, result.Amount);
+        Assert.Equal(sale.Id, result.SaleId);
+        Assert.Equal("V-260904-1", result.SaleNumber);
         Assert.Equal("Jean Dupont", result.CustomerName);
 
         var updatedUnit = await dbContext.StockUnits.FindAsync(unit.Id);
@@ -80,6 +101,7 @@ public class StockMovementServiceTests(PostgresDatabaseFixture fixture) : IAsync
     {
         await using var dbContext = fixture.CreateDbContext();
         var unit = await SeedStockUnitAsync(dbContext, SaleMode.ByWeight, weight: null);
+        var sale = await SeedSaleAsync(dbContext);
         var service = new StockMovementService(dbContext);
 
         await service.CreateAsync(unit.Id, new CreateStockMovementRequest
@@ -88,6 +110,7 @@ public class StockMovementServiceTests(PostgresDatabaseFixture fixture) : IAsync
             IsFullSale = false,
             SoldWeight = 0.150m,
             Amount = 2m,
+            SaleId = sale.Id,
         });
 
         var afterFirst = await dbContext.StockUnits.FindAsync(unit.Id);
@@ -101,6 +124,7 @@ public class StockMovementServiceTests(PostgresDatabaseFixture fixture) : IAsync
             IsFullSale = true,
             SoldWeight = 0.100m,
             Amount = 1.3m,
+            SaleId = sale.Id,
         });
 
         var afterSecond = await dbContext.StockUnits.FindAsync(unit.Id);
@@ -112,8 +136,9 @@ public class StockMovementServiceTests(PostgresDatabaseFixture fixture) : IAsync
     {
         await using var dbContext = fixture.CreateDbContext();
         var unit = await SeedStockUnitAsync(dbContext, SaleMode.ByWeight, weight: null);
+        var sale = await SeedSaleAsync(dbContext);
         var service = new StockMovementService(dbContext);
-        await service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Sale, IsFullSale = false, SoldWeight = 0.150m, Amount = 2m });
+        await service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Sale, IsFullSale = false, SoldWeight = 0.150m, Amount = 2m, SaleId = sale.Id });
 
         await service.CloseAsync(unit.Id);
 
@@ -136,8 +161,9 @@ public class StockMovementServiceTests(PostgresDatabaseFixture fixture) : IAsync
     {
         await using var dbContext = fixture.CreateDbContext();
         var unit = await SeedStockUnitAsync(dbContext, SaleMode.ByWeight, weight: null);
+        var sale = await SeedSaleAsync(dbContext);
         var service = new StockMovementService(dbContext);
-        await service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Sale, IsFullSale = false, SoldWeight = 0.150m, Amount = 2m });
+        await service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Sale, IsFullSale = false, SoldWeight = 0.150m, Amount = 2m, SaleId = sale.Id });
 
         await service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Personal, SoldWeight = 0.170m });
 
@@ -150,8 +176,9 @@ public class StockMovementServiceTests(PostgresDatabaseFixture fixture) : IAsync
     {
         await using var dbContext = fixture.CreateDbContext();
         var unit = await SeedStockUnitAsync(dbContext, SaleMode.ByWeight, weight: 0.320m);
+        var sale = await SeedSaleAsync(dbContext);
         var service = new StockMovementService(dbContext);
-        await service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Sale, IsFullSale = true, SoldWeight = 0.320m, Amount = 4m });
+        await service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Sale, IsFullSale = true, SoldWeight = 0.320m, Amount = 4m, SaleId = sale.Id });
 
         await Assert.ThrowsAsync<ConflictException>(() =>
             service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Personal, SoldWeight = 0.1m }));
@@ -162,10 +189,11 @@ public class StockMovementServiceTests(PostgresDatabaseFixture fixture) : IAsync
     {
         await using var dbContext = fixture.CreateDbContext();
         var unit = await SeedStockUnitAsync(dbContext, SaleMode.ByWeight, weight: 0.320m);
+        var sale = await SeedSaleAsync(dbContext);
         var service = new StockMovementService(dbContext);
 
         await Assert.ThrowsAsync<BadRequestException>(() =>
-            service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Sale, SoldWeight = 0.320m }));
+            service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Sale, SoldWeight = 0.320m, SaleId = sale.Id }));
     }
 
     [Fact]
@@ -184,34 +212,47 @@ public class StockMovementServiceTests(PostgresDatabaseFixture fixture) : IAsync
     {
         await using var dbContext = fixture.CreateDbContext();
         var unit = await SeedStockUnitAsync(dbContext, SaleMode.ByPiece, weight: null);
+        var sale = await SeedSaleAsync(dbContext);
         var service = new StockMovementService(dbContext);
 
         await Assert.ThrowsAsync<BadRequestException>(() =>
-            service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Sale, IsFullSale = true, Amount = 5m, SoldWeight = 0.1m }));
+            service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Sale, IsFullSale = true, Amount = 5m, SoldWeight = 0.1m, SaleId = sale.Id }));
     }
 
+    // RF-17 / RG-07 (modifiés le 2026-09-04) : une vente sans client n'existe plus. Structurellement,
+    // pas de vente sans Sale — et une Sale porte toujours un client.
     [Fact]
-    public async Task CreateAsync_SaleAnonymous_Succeeds()
+    public async Task CreateAsync_SaleWithoutSaleId_ThrowsBadRequestException()
     {
         await using var dbContext = fixture.CreateDbContext();
         var unit = await SeedStockUnitAsync(dbContext, SaleMode.ByPiece, weight: null);
         var service = new StockMovementService(dbContext);
 
-        var result = await service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Sale, IsFullSale = true, Amount = 5m });
-
-        Assert.Null(result.CustomerId);
-        Assert.Null(result.CustomerName);
+        await Assert.ThrowsAsync<BadRequestException>(() =>
+            service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Sale, IsFullSale = true, Amount = 5m }));
     }
 
     [Fact]
-    public async Task CreateAsync_WithUnknownCustomer_ThrowsConflictException()
+    public async Task CreateAsync_PersonalWithSaleId_ThrowsBadRequestException()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var unit = await SeedStockUnitAsync(dbContext, SaleMode.ByPiece, weight: null);
+        var sale = await SeedSaleAsync(dbContext);
+        var service = new StockMovementService(dbContext);
+
+        await Assert.ThrowsAsync<BadRequestException>(() =>
+            service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Personal, SaleId = sale.Id }));
+    }
+
+    [Fact]
+    public async Task CreateAsync_WithUnknownSale_ThrowsConflictException()
     {
         await using var dbContext = fixture.CreateDbContext();
         var unit = await SeedStockUnitAsync(dbContext, SaleMode.ByPiece, weight: null);
         var service = new StockMovementService(dbContext);
 
         await Assert.ThrowsAsync<ConflictException>(() =>
-            service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Sale, IsFullSale = true, Amount = 5m, CustomerId = 999 }));
+            service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Sale, IsFullSale = true, Amount = 5m, SaleId = 999 }));
     }
 
     [Fact]
@@ -219,8 +260,9 @@ public class StockMovementServiceTests(PostgresDatabaseFixture fixture) : IAsync
     {
         await using var dbContext = fixture.CreateDbContext();
         var unit = await SeedStockUnitAsync(dbContext, SaleMode.ByPiece, weight: null);
+        var sale = await SeedSaleAsync(dbContext);
         var service = new StockMovementService(dbContext);
-        var created = await service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Sale, IsFullSale = true, Amount = 5m });
+        var created = await service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Sale, IsFullSale = true, Amount = 5m, SaleId = sale.Id });
 
         var updated = await service.UpdateAsync(created.Id, new UpdateStockMovementRequest { Amount = 5.5m, Notes = "Remise fidélité" });
 
@@ -234,7 +276,7 @@ public class StockMovementServiceTests(PostgresDatabaseFixture fixture) : IAsync
         await using var dbContext = fixture.CreateDbContext();
         var unit = await SeedStockUnitAsync(dbContext, SaleMode.ByPiece, weight: null);
         var service = new StockMovementService(dbContext);
-        var created = await service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Sale, IsFullSale = true, Amount = 5m });
+        var created = await service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Personal });
 
         await service.DeleteAsync(created.Id);
 
@@ -242,14 +284,29 @@ public class StockMovementServiceTests(PostgresDatabaseFixture fixture) : IAsync
         Assert.Equal(StockUnitStatus.Available, updatedUnit!.Status);
     }
 
+    // Supprimer la dernière ligne d'une vente laisserait une vente vide : on renvoie l'utilisateur
+    // vers DELETE /api/sales/{id}, qui est explicite.
+    [Fact]
+    public async Task DeleteAsync_LastLineOfSale_ThrowsConflictException()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var unit = await SeedStockUnitAsync(dbContext, SaleMode.ByPiece, weight: null);
+        var sale = await SeedSaleAsync(dbContext);
+        var service = new StockMovementService(dbContext);
+        var created = await service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Sale, IsFullSale = true, Amount = 5m, SaleId = sale.Id });
+
+        await Assert.ThrowsAsync<ConflictException>(() => service.DeleteAsync(created.Id));
+    }
+
     [Fact]
     public async Task DeleteAsync_OneOfSeveralPartialMovements_KeepsUnitOpened()
     {
         await using var dbContext = fixture.CreateDbContext();
         var unit = await SeedStockUnitAsync(dbContext, SaleMode.ByWeight, weight: null);
+        var sale = await SeedSaleAsync(dbContext);
         var service = new StockMovementService(dbContext);
-        var first = await service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Sale, IsFullSale = false, SoldWeight = 0.150m, Amount = 2m });
-        await service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Sale, IsFullSale = false, SoldWeight = 0.100m, Amount = 1.3m });
+        var first = await service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Sale, IsFullSale = false, SoldWeight = 0.150m, Amount = 2m, SaleId = sale.Id });
+        await service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Sale, IsFullSale = false, SoldWeight = 0.100m, Amount = 1.3m, SaleId = sale.Id });
 
         await service.DeleteAsync(first.Id);
 
@@ -263,14 +320,33 @@ public class StockMovementServiceTests(PostgresDatabaseFixture fixture) : IAsync
         await using var dbContext = fixture.CreateDbContext();
         var unit1 = await SeedStockUnitAsync(dbContext, SaleMode.ByPiece, weight: null, code: "SC");
         var unit2 = await SeedStockUnitAsync(dbContext, SaleMode.ByPiece, weight: null, code: "JB");
+        var sale = await SeedSaleAsync(dbContext);
         var service = new StockMovementService(dbContext);
-        await service.CreateAsync(unit1.Id, new CreateStockMovementRequest { Type = MovementType.Sale, IsFullSale = true, Amount = 5m });
-        await service.CreateAsync(unit2.Id, new CreateStockMovementRequest { Type = MovementType.Sale, IsFullSale = true, Amount = 6m });
+        await service.CreateAsync(unit1.Id, new CreateStockMovementRequest { Type = MovementType.Sale, IsFullSale = true, Amount = 5m, SaleId = sale.Id });
+        await service.CreateAsync(unit2.Id, new CreateStockMovementRequest { Type = MovementType.Sale, IsFullSale = true, Amount = 6m, SaleId = sale.Id });
 
-        var result = await service.GetAllAsync(unit1.Id, customerId: null);
+        var result = await service.GetAllAsync(unit1.Id, customerId: null, saleId: null);
 
         Assert.Single(result);
         Assert.Equal(unit1.Id, result[0].StockUnitId);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_FilteredByCustomerId_ResolvesThroughTheSale()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var unit1 = await SeedStockUnitAsync(dbContext, SaleMode.ByPiece, weight: null, code: "SC");
+        var unit2 = await SeedStockUnitAsync(dbContext, SaleMode.ByPiece, weight: null, code: "JB");
+        var sale = await SeedSaleAsync(dbContext);
+        var service = new StockMovementService(dbContext);
+        await service.CreateAsync(unit1.Id, new CreateStockMovementRequest { Type = MovementType.Sale, IsFullSale = true, Amount = 5m, SaleId = sale.Id });
+        await service.CreateAsync(unit2.Id, new CreateStockMovementRequest { Type = MovementType.Personal });
+
+        var result = await service.GetAllAsync(stockUnitId: null, customerId: sale.CustomerId, saleId: null);
+
+        Assert.Single(result);
+        Assert.Equal(unit1.Id, result[0].StockUnitId);
+        Assert.Equal(sale.CustomerId, result[0].CustomerId);
     }
 
     [Fact]

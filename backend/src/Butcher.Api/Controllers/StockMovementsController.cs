@@ -9,9 +9,9 @@ public class StockMovementsController(IStockMovementService stockMovementService
 {
     [HttpGet("/api/stock-movements")]
     public async Task<ActionResult<List<StockMovementDto>>> GetAll(
-        [FromQuery] int? stockUnitId = null, [FromQuery] int? customerId = null)
+        [FromQuery] int? stockUnitId = null, [FromQuery] int? customerId = null, [FromQuery] int? saleId = null)
     {
-        return Ok(await stockMovementService.GetAllAsync(stockUnitId, customerId));
+        return Ok(await stockMovementService.GetAllAsync(stockUnitId, customerId, saleId));
     }
 
     [HttpGet("/api/stock-movements/{id:int}")]

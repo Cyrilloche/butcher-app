@@ -29,11 +29,13 @@ public class StockMovementConfiguration : IEntityTypeConfiguration<StockMovement
             .HasForeignKey(m => m.StockUnitId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Restrict : la suppression d'une vente passe par SaleService, qui rétablit au passage le
+        // statut des unités physiques concernées — une cascade SQL les laisserait "sold" à tort.
         builder
-            .HasOne(m => m.Customer)
-            .WithMany(c => c.StockMovements)
-            .HasForeignKey(m => m.CustomerId)
-            .OnDelete(DeleteBehavior.SetNull);
+            .HasOne(m => m.Sale)
+            .WithMany(s => s.StockMovements)
+            .HasForeignKey(m => m.SaleId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder
             .HasOne(m => m.CreatedBy)

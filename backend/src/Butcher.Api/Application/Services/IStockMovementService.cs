@@ -4,7 +4,7 @@ namespace Butcher.Api.Application.Services;
 
 public interface IStockMovementService
 {
-    Task<List<StockMovementDto>> GetAllAsync(int? stockUnitId, int? customerId);
+    Task<List<StockMovementDto>> GetAllAsync(int? stockUnitId, int? customerId, int? saleId);
 
     Task<StockMovementDto> GetByIdAsync(int id);
 

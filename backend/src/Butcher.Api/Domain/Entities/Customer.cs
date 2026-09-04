@@ -14,5 +14,5 @@ public class Customer
 
     public DateTimeOffset CreatedAt { get; set; }
 
-    public ICollection<StockMovement> StockMovements { get; set; } = [];
+    public ICollection<Sale> Sales { get; set; } = [];
 }

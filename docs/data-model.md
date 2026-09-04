@@ -4,8 +4,8 @@
 |---|---|
 | **Projet** | Mini-ERP Charcuterie (repo : `butcher-app`) |
 | **Document** | Modèle de données détaillé (V1) |
-| **Version** | 0.3 |
-| **Date** | 3 septembre 2026 |
+| **Version** | 0.4 |
+| **Date** | 4 septembre 2026 |
 | **Statut** | Implémenté (backend, cœur métier V1 complet) |
 | **Documents liés** | PRD v0.2, Journal ADR v0.1 |
 
@@ -16,6 +16,7 @@
 | 0.1 | 2026-09-02 | Modèle initial (nommage français) |
 | 0.2 | 2026-09-02 | Passage du schéma en **anglais** ; ajout du champ `code` sur `product` ; définition du format de numéro de lot |
 | 0.3 | 2026-09-03 | Documentation des règles apparues pendant l'implémentation du backend : contraintes d'unicité supplémentaires, politiques de mutabilité/suppression par entité, convention de casse des enums dans l'API. QM-01 résolu. |
+| 0.4 | 2026-09-04 | **QM-04 résolu et implémenté** : nouvelle entité `sale` (§3.7) regroupant les lignes d'une vente sous un numéro `V-YYMMDD-N`, un client obligatoire et un statut de paiement ; `stock_movement.customer_id` remplacé par `sale_id` ; suppression d'un client passée en `Restrict`. Répond à Q-04/Q-05 du PRD et aux exigences RF-17/RG-07 modifiées. |
 
 ### Objet du document
 
@@ -31,7 +32,7 @@ Ce document décrit le **modèle de données de la V1** : entités, attributs, r
 - **Table utilisateur** : nommée `app_user` et non `user`, ce dernier étant un mot réservé de PostgreSQL.
 - **Clés primaires** : entier auto-incrémenté (`id`) pour les entités métier ; `uuid` pour `app_user` (aligné sur ASP.NET Core Identity, cf. ADR-009).
 - **Horodatage** : `created_at` / `updated_at` (`timestamptz`) pour l'audit et le tri.
-- **Traçabilité auteur** : `created_by` (→ `app_user`) sur les tables clés (`production_batch`, `stock_movement`), conformément à RF-27.
+- **Traçabilité auteur** : `created_by` (→ `app_user`) sur les tables clés (`production_batch`, `sale`, `stock_movement`), conformément à RF-27.
 - **Types monétaires et poids** : `decimal` à précision fixe — `decimal(10,2)` pour les montants, `decimal(10,3)` pour les poids (précision au gramme).
 
 ---
@@ -41,10 +42,12 @@ Ce document décrit le **modèle de données de la V1** : entités, attributs, r
 Chaîne centrale porteuse de la valeur métier (production → traçabilité) :
 
 ```
-product → production_batch → stock_unit → stock_movement → customer
+product → production_batch → stock_unit → stock_movement → sale → customer
 ```
 
-Un **product** est décliné en **production_batch** (fabrication datée, à un prix donné). Chaque lot est matérialisé par des **stock_unit** individuelles (un sachet, un jambon), suivies une à une. Toute sortie de stock — vente, usage personnel, perte — est un **stock_movement** rattaché à une unité précise ; une vente peut pointer vers un **customer**. On remonte ainsi, pour toute vente, jusqu'au lot d'origine et au client.
+Un **product** est décliné en **production_batch** (fabrication datée, à un prix donné). Chaque lot est matérialisé par des **stock_unit** individuelles (un sachet, un jambon), suivies une à une. Toute sortie de stock — vente, usage personnel, perte — est un **stock_movement** rattaché à une unité précise ; un mouvement de type `sale` appartient à une **sale**, qui porte le client. On remonte ainsi, pour toute vente, jusqu'au lot d'origine et au client.
+
+Le schéma comporte donc **deux couples parent/enfant symétriques** : `production_batch → stock_unit` côté production, `sale → stock_movement` côté vente.
 
 Deux référentiels complètent l'ensemble : `unit_of_measure` (unités personnalisables) et `app_user` (authentification).
 
@@ -139,9 +142,32 @@ Fiche client pour la vente informelle et la traçabilité (RF-22 à RF-24).
 | `notes` | text | nullable | Observations |
 | `created_at` | timestamptz | | Audit |
 
-**Règle complémentaire (implémentation)** : la suppression d'un client est autorisée (pas de champ `is_active`) ; la FK depuis `stock_movement` est en `SetNull`, donc supprimer un client anonymise ses ventes passées plutôt que de les bloquer ou de les supprimer.
+**Règle complémentaire (implémentation, modifiée le 2026-09-04)** : la suppression d'un client **sans aucune vente** est autorisée (pas de champ `is_active`) ; dès qu'il a au moins une `sale`, elle est refusée (`409`). La FK depuis `sale` est en `Restrict`. La version précédente (`SetNull` depuis `stock_movement`) effaçait silencieusement la traçabilité « quel lot vendu à quel client » (RF-24 / OBJ-3) sur tout l'historique du client — comportement corrigé.
 
-### 3.7 `stock_movement`
+### 3.7 `sale`
+
+Une **vente** telle que l'utilisateur la vit : un numéro, une date, un client, un statut de paiement, un total — regroupant une ou plusieurs lignes (`stock_movement`), une par unité physique vendue. Pendant, côté vente, de `production_batch` côté production. Résout QM-04 (Q-04 et Q-05 du PRD).
+
+| Attribut | Type | Contraintes | Rôle |
+|---|---|---|---|
+| `id` | integer | PK | Identifiant |
+| `sale_number` | varchar | unique, non nul, auto-généré | Numéro communicable, format `V-YYMMDD-N` (§4.1) |
+| `customer_id` | integer | FK → `customer`, **non nul**, `Restrict` | Client — obligatoire (RF-17/RG-07 modifiés) |
+| `date` | timestamptz | non nul | Date de la vente (défaut : maintenant) |
+| `paid` | boolean | non nul, défaut `false` | Statut de paiement (« Payée » / « À payer ») |
+| `notes` | text | nullable | Observations |
+| `created_by` | uuid | FK → `app_user`, nullable | Auteur (RF-27) |
+| `created_at` / `updated_at` | timestamptz | | Audit |
+
+**Règles complémentaires (implémentation)** :
+- Contrairement au lot de production (dont les unités sont ajoutées par un **appel distinct**, la pesée pouvant s'étaler sur plusieurs jours), une vente est un **instant unique** : `POST /api/sales` la crée **avec ses lignes**, en une seule transaction. Si une seule ligne est invalide, rien n'est écrit et aucun statut d'unité n'est modifié.
+- Une vente comporte **au moins une ligne**. Supprimer la dernière ligne d'une vente est refusé (`409`) : c'est la vente qu'il faut supprimer.
+- Des lignes peuvent être ajoutées après coup via `POST /api/stock-units/{id}/movements` en passant le `saleId`.
+- L'en-tête (client, date, paiement, notes) reste modifiable (`PUT /api/sales/{id}`), et le seul statut de paiement bascule en un geste (`POST /api/sales/{id}/payment`).
+- Une vente est **supprimable** (RG-11) : ses lignes sont supprimées avec elle et chaque unité qui ne porte plus aucun mouvement redevient `available`.
+- Le **total** de la vente est la somme des `amount` des lignes ; il n'est pas stocké (aucun risque de divergence), mais il est calculé et exposé par l'API.
+
+### 3.8 `stock_movement`
 
 Toute sortie de stock, rattachée à une **stock_unit précise** (RF-15). Journal qui portera, en V2, la valorisation (rentabilité, autoconsommation).
 
@@ -153,7 +179,7 @@ Toute sortie de stock, rattachée à une **stock_unit précise** (RF-15). Journa
 | `date` | timestamptz | non nul, défaut `now()` | Date de la sortie |
 | `sold_weight` | decimal(10,3) | nullable | Poids concerné (`by_weight`) ; `null` pour `by_piece` |
 | `amount` | decimal(10,2) | nullable | Encaissé — **uniquement** pour `type = sale` |
-| `customer_id` | integer | FK → `customer`, **non nul si `type = sale`**, `null` sinon | Obligatoire pour une vente depuis le 2026-09-04 (RF-17/RG-07 modifiés — plus de vente anonyme, V1 = particuliers uniquement) |
+| `sale_id` | integer | FK → `sale`, **non nul si `type = sale`**, `null` sinon | Vente d'appartenance. Le **client** n'est plus porté ici : il vient de `sale.customer_id`, obligatoire — plus de vente anonyme (RF-17/RG-07 modifiés le 2026-09-04) |
 | `notes` | text | nullable | Observations |
 | `created_by` | uuid | FK → `app_user`, nullable | Auteur (RF-27) |
 | `created_at` | timestamptz | | Audit |
@@ -164,7 +190,9 @@ Toute sortie de stock, rattachée à une **stock_unit précise** (RF-15). Journa
 - Aucun mouvement n'est possible sur une unité déjà `sold`, `personal` ou `lost` (statuts terminaux, RG-06).
 - Contrairement à `production_batch`, un `stock_movement` reste **modifiable et supprimable** après création (RG-11). La suppression du dernier mouvement d'une unité la remet `available` ; dans les autres cas, le statut n'est pas recalculé (pas de machine à états inverse complète).
 
-**⚠️ Écart identifié (2026-09-04)** : contrairement à `production_batch` (`batch_number`, unique, format documenté en §4.1), `stock_movement` n'a **aucun numéro unique** — seul `id` (technique, non pensé pour être communiqué). Besoin exprimé : chaque **vente** doit avoir un numéro unique (ex. remis au client, retrouvable). Champ à ajouter et format à définir — voir QM-04 (§9). Tant que ce n'est pas tranché, **ne pas construire de frontend en supposant un tel numéro** (contrairement au cas `stock_unit`, ici il n'y a pas de dérivation client-side raisonnable : un numéro de vente doit être stable et non-collisionnant, donc généré et persisté côté serveur, comme `batch_number`).
+- Le **numéro communicable** est porté par la vente (`sale.sale_number`), pas par la ligne : c'est la vente que l'utilisateur retrouve et cite, pas le mouvement individuel. Un `stock_movement` n'a donc que son `id` technique. *(Écart identifié le 2026-09-04, résolu le jour même par l'ajout de `sale`.)*
+- Un mouvement `personal` ou `loss` n'a **jamais** de `sale_id` (ni d'`amount`) : ce n'est pas une vente.
+- Pour éviter au frontend un aller-retour, l'API expose en lecture seule `saleNumber`, `customerId` et `customerName` sur chaque ligne, résolus via la vente.
 
 ---
 
@@ -190,6 +218,14 @@ Le numéro est **auto-généré** puis **recopié à la main** sur l'étiquette 
 - `product.code` est normalisé en majuscules **à la création du produit** (pas seulement au moment de composer le numéro de lot) et ne doit pas contenir le séparateur `-`.
 
 > *Le format encode volontairement le produit et la date : cela aide à identifier un lot « à l'œil » sur un sachet sous vide, sans ouvrir l'application, tout en restant recopiable à la main.*
+
+#### Format du numéro de vente (`sale_number`)
+
+Même logique, appliquée à la vente — pas de code produit, une vente pouvant en regrouper plusieurs :
+
+**Format retenu :** `V-{YYMMDD}-{N}`, où `N` est réinitialisé **chaque jour** (toutes ventes confondues). Exemple : `V-260904-1`.
+
+Génération et garantie d'unicité identiques à `batch_number` : comptage des ventes déjà enregistrées ce jour-là, contrainte d'unicité en base, et jusqu'à 3 tentatives en cas de création concurrente. À la différence des lots, une vente **peut** être supprimée (RG-11) : le comptage peut donc réattribuer un numéro déjà utilisé et libéré — l'unicité reste garantie par la base, mais un numéro n'est pas un identifiant d'archive au sens comptable (H-02 : activité informelle, aucune contrainte de facturation légale).
 
 ### 4.2 Correspondance code (anglais) ↔ affichage interface (français)
 
@@ -250,7 +286,10 @@ Le champ `status` est une **dénormalisation assumée** : l'état pourrait, pour
 | `stock_unit` | `batch_id` | Lister les unités d'un lot |
 | `stock_unit` | `status` | Calcul du stock disponible (fréquent) |
 | `stock_movement` | `stock_unit_id` | Historique d'une unité (jambon entamé) |
-| `stock_movement` | `customer_id` | Historique d'un client (RF-23) |
+| `stock_movement` | `sale_id` | Lignes d'une vente |
+| `sale` | `sale_number` | Recherche par numéro (unique) |
+| `sale` | `customer_id` | Historique d'un client (RF-23) |
+| `sale` | `date` | Liste chronologique des ventes |
 | `stock_movement` | `date` | Vues chronologiques, futurs rapports |
 
 ---
@@ -343,21 +382,39 @@ Table customer {
   created_at timestamptz [default: `now()`]
 }
 
+Table sale {
+  id integer [pk, increment]
+  sale_number varchar [not null, unique, note: 'V-YYMMDD-N']
+  customer_id integer [not null, ref: > customer.id]
+  date timestamptz [not null, default: `now()`]
+  paid boolean [not null, default: false]
+  notes text
+  created_by uuid [ref: > app_user.id]
+  created_at timestamptz [default: `now()`]
+  updated_at timestamptz
+
+  Indexes {
+    sale_number [unique]
+    customer_id
+    date
+  }
+}
+
 Table stock_movement {
   id integer [pk, increment]
   stock_unit_id integer [not null, ref: > stock_unit.id]
   type movement_type [not null]
+  sale_id integer [ref: > sale.id, note: 'not null iff type = sale']
   date timestamptz [not null, default: `now()`]
   sold_weight "decimal(10,3)" [note: 'concerned weight (by_weight); null for by_piece']
   amount "decimal(10,2)" [note: 'received, only for type = sale']
-  customer_id integer [ref: > customer.id, note: 'only for type = sale']
   notes text
   created_by uuid [ref: > app_user.id]
   created_at timestamptz [default: `now()`]
 
   Indexes {
     stock_unit_id
-    customer_id
+    sale_id
     date
   }
 }
@@ -393,27 +450,17 @@ Table stock_movement {
 | QM-01 | **Modélisation des produits `by_piece`** : conserver le mécanisme uniforme (une ligne `stock_unit` par pièce, sans poids) ou un simple compteur sur le lot ? | ✅ Résolu — mécanisme uniforme implémenté : `POST /api/production-batches/{id}/stock-units` génère une `stock_unit` par pièce (`weight = null`) à partir d'une `quantity`, symétrique au cas `by_weight` (une par poids fourni). |
 | QM-02 | Format du numéro de lot | ✅ Résolu (§4.1) |
 | QM-03 | Comptage des tranches de jambon | ✅ Résolu — poids seul, pas de comptage |
-| QM-04 | **Regroupement des ventes** (numéro unique + statut de paiement + plusieurs unités par vente) : voir proposition de schéma ci-dessous. | 🔴 Ouvert — à implémenter côté backend. Décisions déjà actées (2026-09-04) : client obligatoire (RF-17/RG-07 modifiés), V1 = particuliers uniquement. |
+| QM-04 | **Regroupement des ventes** (numéro unique + statut de paiement + plusieurs unités par vente) | ✅ **Résolu et implémenté (2026-09-04)** — entité `sale` (§3.7), `stock_movement.sale_id` (§3.8), numéro `V-YYMMDD-N` (§4.1), suppression client passée en `Restrict` (§3.6). Répond à Q-04 et Q-05 du PRD ; RF-17/RG-07 (client obligatoire) sont désormais garantis par le schéma. |
 
-### Proposition pour QM-04 — entité `sale` (non implémentée, à confirmer côté backend)
+### Ce qui a été retenu pour QM-04, et ce qui a été écarté
 
-Constat : une "vente" côté utilisateur (un numéro, une date, un client, un statut de paiement, potentiellement plusieurs unités physiques vendues en une fois, un total) n'a **aucun équivalent** dans le modèle actuel — seul `stock_movement` existe, une ligne indépendante par unité vendue, sans regroupement. C'est le pendant, côté vente, de ce qu'est `production_batch` côté production : un parent qui regroupe plusieurs enregistrements enfants (`stock_unit` pour le lot, `stock_movement` pour la vente). Proposition, par symétrie avec ce précédent déjà en place :
+La proposition initiale conservait `stock_movement.customer_id` **en plus** de `sale.customer_id`. Ça a été **écarté** : deux sources de vérité pour le même client divergent tôt ou tard (modifier le client d'une vente aurait obligé à propager sur chaque ligne). La colonne a donc été **supprimée** de `stock_movement` au profit de `sale_id` seul ; l'API continue d'exposer `customerId`/`customerName` sur les lignes, mais en lecture seule, résolus via la vente.
 
-| Attribut | Type | Contraintes | Rôle |
-|---|---|---|---|
-| `id` | integer | PK | Identifiant |
-| `sale_number` | varchar | unique, non nul, auto-généré | Numéro communicable (ex. `V-260904-1`, format à confirmer — même logique que `batch_number`, §4.1) |
-| `customer_id` | integer | FK → `customer`, non nul | Obligatoire (RF-17/RG-07 modifiés, V1 = particuliers) |
-| `date` | timestamptz | non nul, défaut `now()` | Date de la vente |
-| `paid` | boolean (ou enum si plus de 2 états utiles) | non nul, défaut à définir | Statut de paiement ("Payée" / "À payer") — notion absente du modèle actuel |
-| `notes` | text | nullable | |
-| `created_by` | uuid | FK → `app_user`, nullable | Audit (RF-27) |
-| `created_at` | timestamptz | | |
+Deux points tranchés à l'implémentation, non couverts par la proposition :
 
-Et `stock_movement` gagnerait une FK `sale_id → sale` (non nulle si `type = sale`, `null` sinon — même schéma que `customer_id`/`amount` déjà réservés au type `sale`). Chaque ligne `stock_movement` reste l'enregistrement par unité physique (montant, poids vendu) ; `sale` porte ce qui est commun à toute la transaction (numéro, date, client, paiement).
-
-Ceci est une proposition de conception, pas une décision actée — à confirmer/ajuster avant implémentation backend.
+- **Création atomique.** Le précédent `production_batch` (créer le lot, puis ajouter les unités dans un second appel) n'a **pas** été repris tel quel : il existe parce que la pesée peut s'étaler sur plusieurs jours. Une vente, elle, est un instant unique — `POST /api/sales` crée l'en-tête et ses lignes ensemble. L'ajout de lignes après coup reste possible.
+- **Suppression d'un client.** Rendre le client obligatoire rendait intenable le `SetNull` existant (il vidait l'historique en silence). Passé en `Restrict` + refus explicite côté service. Un `is_active` sur `customer`, s'il devient nécessaire pour masquer d'anciens clients de la saisie, reste une extension possible sans refonte (§8).
 
 ---
 
-*Fin du document — version 0.3. Le schéma physique est matérialisé par les migrations Entity Framework Core (`backend/src/Butcher.Api/Infrastructure/Data/Migrations/`), déjà appliquées pour l'ensemble du cœur métier V1.*
+*Fin du document — version 0.4. Le schéma physique est matérialisé par les migrations Entity Framework Core (`backend/src/Butcher.Api/Infrastructure/Data/Migrations/`), déjà appliquées pour l'ensemble du cœur métier V1.*

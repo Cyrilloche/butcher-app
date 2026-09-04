@@ -12,15 +12,17 @@ public class StockMovement
 
     public MovementType Type { get; set; }
 
+    // Renseigné si et seulement si Type = Sale. Le client, la date et le statut de paiement de la
+    // vente sont portés par la Sale, pas dupliqués ici (source de vérité unique).
+    public int? SaleId { get; set; }
+
+    public Sale? Sale { get; set; }
+
     public DateTimeOffset Date { get; set; }
 
     public decimal? SoldWeight { get; set; }
 
     public decimal? Amount { get; set; }
-
-    public int? CustomerId { get; set; }
-
-    public Customer? Customer { get; set; }
 
     public string? Notes { get; set; }
 

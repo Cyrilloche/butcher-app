@@ -21,6 +21,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityUser
 
     public DbSet<Customer> Customers => Set<Customer>();
 
+    public DbSet<Sale> Sales => Set<Sale>();
+
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

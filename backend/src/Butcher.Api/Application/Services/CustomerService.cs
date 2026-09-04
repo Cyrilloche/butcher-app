@@ -49,6 +49,16 @@ public class CustomerService(AppDbContext dbContext) : ICustomerService
     public async Task DeleteAsync(int id)
     {
         var customer = await FindOrThrowAsync(id);
+
+        // Supprimer un client effacerait la traçabilité "quel lot a été vendu à quel client"
+        // (RF-24 / OBJ-3) sur tout son historique : on refuse plutôt que de la perdre en silence.
+        var saleCount = await dbContext.Sales.CountAsync(s => s.CustomerId == id);
+        if (saleCount > 0)
+        {
+            throw new ConflictException(
+                $"Le client « {customer.LastName} » a {saleCount} vente(s) enregistrée(s) et ne peut pas être supprimé.");
+        }
+
         dbContext.Customers.Remove(customer);
         await dbContext.SaveChangesAsync();
     }

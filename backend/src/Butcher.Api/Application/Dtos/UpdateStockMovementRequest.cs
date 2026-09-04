@@ -8,8 +8,6 @@ public class UpdateStockMovementRequest
 
     public decimal? Amount { get; set; }
 
-    public int? CustomerId { get; set; }
-
     [MaxLength(2000)]
     public string? Notes { get; set; }
 }

@@ -46,6 +46,7 @@ public class PostgresDatabaseFixture : IAsyncLifetime
             """
             TRUNCATE TABLE
                 stock_movement,
+                sale,
                 stock_unit,
                 production_batch,
                 product,

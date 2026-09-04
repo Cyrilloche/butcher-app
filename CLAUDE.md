@@ -19,11 +19,11 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 | Étape | Statut |
 |---|---|
 | Cadrage métier (discovery) | ✅ Terminé |
-| PRD | ✅ Rédigé (v0.2) |
+| PRD | ✅ Rédigé (v0.3) |
 | Décisions d'architecture (ADR) | ✅ Rédigées (ADR-006 tranché : Vuetify) |
-| Modèle de données | ✅ Rédigé (v0.3, aligné sur l'implémentation) |
+| Modèle de données | ✅ Rédigé (v0.4, aligné sur l'implémentation) |
 | Maquettes (Claude Design) | ✅ Direction visuelle validée (écran Stock) ; arrêtées volontairement au profit de l'itération en code (voir §10) |
-| Backend — cœur métier (6 entités, CRUD + logique métier) | ✅ Exposé en API, 71 tests (branche `backend-init`) |
+| Backend — cœur métier (7 entités, CRUD + logique métier) | ✅ Exposé en API, 87 tests |
 | Spike authentification (JWT) | ✅ Réalisé et vérifié — ADR-009 accepté (Identity allégé, refresh token rotatif en base, cookie httpOnly/Secure, seed par variable d'environnement) |
 | Frontend — scaffold | 🔄 En cours (branche `frontend-init`, worktree séparé) |
 | Développement Vague 1 | 🔄 Démarré |
@@ -140,7 +140,7 @@ Monorepo, deux applications indépendantes avec chacune son cycle de vie et son 
 Chaîne centrale, porteuse de toute la valeur métier (production → traçabilité) :
 
 ```
-product → production_batch → stock_unit → stock_movement → customer
+product → production_batch → stock_unit → stock_movement → sale → customer
 ```
 
 | Entité | Rôle |
@@ -148,7 +148,8 @@ product → production_batch → stock_unit → stock_movement → customer
 | `product` | Produit fabriqué. Porte un `code` court (ex. `SC`) et un `sale_mode` (`by_weight` / `by_piece`). |
 | `production_batch` | Une fabrication datée d'un produit, à un **prix propre au lot**. Identifiée par un `batch_number` auto-généré. |
 | `stock_unit` | **Objet physique individuel** (un sachet, un jambon), avec son `weight` pesé et son `status`. |
-| `stock_movement` | Toute sortie de stock (`sale` / `personal` / `loss`), rattachée à une `stock_unit`. |
+| `stock_movement` | Toute sortie de stock (`sale` / `personal` / `loss`), rattachée à une `stock_unit` — et, pour une vente, à une `sale`. |
+| `sale` | Une **vente** : numéro `V-YYMMDD-N`, date, client (obligatoire), statut de paiement, regroupant ses lignes (`stock_movement`). Pendant de `production_batch` côté vente. |
 | `customer` | Client (vente informelle, traçabilité). |
 | `unit_of_measure` | Référentiel d'unités personnalisables. |
 | `app_user` | Compte d'accès (Identity). |
@@ -171,11 +172,13 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 
 4. **Le `status` de `stock_unit` est la source de vérité de l'état de stock.** C'est une dénormalisation assumée : le passage `opened → sold` d'un jambon est une décision manuelle non déductible des mouvements. Le backend maintient la cohérence status ↔ mouvements.
 
-5. **Le montant de vente (`amount`) est stocké, pas recalculé.** Vente informelle en espèces : le montant réellement encaissé peut différer du théorique (`sold_weight × sale_price`). On pré-remplit avec le calcul, on conserve la valeur réelle saisie.
+5. **Une vente est une entité, pas une ligne isolée.** Une `sale` regroupe les unités vendues en une fois au même client, et porte le numéro, la date, le client (**obligatoire** — plus de vente anonyme, RF-17/RG-07) et le statut de paiement. Chaque unité vendue reste une ligne (`stock_movement`). Contrairement au lot de production, une vente est créée **avec ses lignes en un seul appel** (`POST /api/sales`) : c'est un instant unique, pas une saisie étalée.
 
-6. **Champs réservés à la vente.** `amount` et `customer_id` ne sont renseignés que si `type = sale`. `null` pour `personal` / `loss`.
+6. **Le montant de vente (`amount`) est stocké, pas recalculé.** Vente informelle en espèces : le montant réellement encaissé peut différer du théorique (`sold_weight × sale_price`). On pré-remplit avec le calcul, on conserve la valeur réelle saisie.
 
-7. **Numéro de lot** `CODE-YYMMDD-N` (ex. `SC-250831-1`) : auto-généré, `N` réinitialisé par produit et par jour, unicité garantie. Format pensé pour être **recopié à la main** sur l'étiquette → rester court et lisible.
+7. **Champs réservés à la vente.** `amount` et `sale_id` ne sont renseignés que si `type = sale`. `null` pour `personal` / `loss`. Le client vient de `sale.customer_id`, jamais dupliqué sur le mouvement.
+
+8. **Numéro de lot** `CODE-YYMMDD-N` (ex. `SC-250831-1`) : auto-généré, `N` réinitialisé par produit et par jour, unicité garantie. Format pensé pour être **recopié à la main** sur l'étiquette → rester court et lisible.
 
 ---
 
@@ -186,6 +189,8 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 - ❌ Afficher des valeurs techniques anglaises à l'utilisateur → passer par la table de correspondance FR.
 - ❌ Recalculer `amount` à la volée en ignorant la valeur saisie → conserver le montant réel.
 - ❌ Modéliser le stock `by_piece` avec un compteur parallèle → garder le mécanisme uniforme.
+- ❌ Dupliquer le client sur `stock_movement` (une seule source de vérité : `sale.customer_id`).
+- ❌ Supprimer un client qui a des ventes → refusé (`409`), ça effacerait la traçabilité lot ↔ client (RF-24).
 - ❌ Coupler frontend et backend autrement que par le contrat d'API REST.
 - ❌ Traiter l'authentification à la légère (service exposé) → suivre le spike auth avant tout.
 - ❌ Sérialiser/stocker les enums en `PascalCase` (`ByWeight`) → toujours `snake_case` (`by_weight`), cohérent avec la table de correspondance FR et le reste du schéma (bug réel rencontré et corrigé, cf. `data-model.md` C-11).
@@ -206,6 +211,7 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 | Réf. | Question | Statut |
 |---|---|---|
 | ADR-009 | `SameSite` du cookie de refresh token, actuellement `Lax` par défaut | À retrancher une fois la topologie de prod tranchée par ADR-010 |
+| RF-27 | `created_by` existe sur `production_batch`, `sale` et `stock_movement` mais **n'est jamais renseigné** : le champ prépare la journalisation V2, il ne la fait pas | Ouvert, non bloquant (compte partagé en V1) |
 | — | Politique de mot de passe Identity (valeurs par défaut, non revues pour 2 utilisateurs non techniques) | Ouvert, non bloquant |
 | — | Choix du VPS, stratégie de sauvegarde PostgreSQL | Phase de mise en place |
 
