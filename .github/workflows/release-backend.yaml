@@ -58,3 +58,37 @@ jobs:
           sed -i "s|^BACKEND_VERSION=.*|BACKEND_VERSION=${{ needs.build-and-push.outputs.version }}|" .env
           docker compose pull backend
           docker compose up -d backend
+
+  release-notes:
+    name: Publish GitHub release notes
+    needs: build-and-push
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # git-cliff a besoin de tout l'historique et de tous les tags.
+          fetch-depth: 0
+
+      - name: Build changelog for this release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          # Notes de la plage `<tag backend précédent>..<nouveau tag>`. Pas de
+          # filtre par chemin : `--include-path` écrase la plage dans git-cliff
+          # 2.x (il rejoue tout l'historique). Chaque ligne porte son scope
+          # (**backend**, **deploy**...), ce qui suffit à situer les changements.
+          previous=$(git tag --list 'backend-v*' --sort=-v:refname | grep -v "^$GITHUB_REF_NAME$" | head -n1 || true)
+          range="$GITHUB_REF_NAME"
+          if [ -n "$previous" ]; then range="$previous..$GITHUB_REF_NAME"; fi
+          npx -y git-cliff@2 --config cliff.toml --strip header --tag "$GITHUB_REF_NAME" --output RELEASE_NOTES.md "$range"
+          if ! grep -q '^- ' RELEASE_NOTES.md; then
+            echo "Aucun changement conventionnel depuis $previous." > RELEASE_NOTES.md
+          fi
+          gh release create "$GITHUB_REF_NAME" \
+            --title "Backend ${{ needs.build-and-push.outputs.version }}" \
+            --notes-file RELEASE_NOTES.md

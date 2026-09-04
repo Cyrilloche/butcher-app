@@ -1,0 +1,60 @@
+# Configuration git-cliff — génération automatique du changelog à partir des
+# messages de commit (Conventional Commits, déjà la convention du dépôt).
+#
+# Deux usages :
+#   - CHANGELOG.md (racine) : historique complet, une section par tag de
+#     release, tous composants confondus — `make changelog`.
+#   - Notes de release GitHub : les workflows `release-*` rejouent git-cliff
+#     sur la plage `<tag précédent>..<nouveau tag>` du composant, filtrée par
+#     chemin (`--include-path`). La plage est passée explicitement car
+#     `--include-path` fait disparaître les bornes de tag autrement.
+
+[changelog]
+header = """
+# Changelog
+
+Généré à partir des messages de commit ([Conventional Commits](https://www.conventionalcommits.org/fr/)).
+Ne pas éditer à la main : régénérer avec `make changelog`.
+"""
+
+body = """
+{% if version %}
+## {{ version }} — {{ timestamp | date(format="%d/%m/%Y") }}
+{% else %}
+## Non publié
+{% endif %}
+{%- for group, commits in commits | group_by(attribute="group") %}
+### {{ group | split(pat="@@") | last }}
+{% for commit in commits %}
+- {% if commit.scope %}**{{ commit.scope }}** : {% endif %}{{ commit.message | upper_first }}{% if commit.breaking %} ⚠️ **rupture**{% endif %} ({{ commit.id | truncate(length=7, end="") }})
+{%- endfor %}
+{% endfor %}
+"""
+
+footer = ""
+trim = true
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+split_commits = false
+protect_breaking_commits = true
+
+# Le préfixe "N@@" force l'ordre des sections (group_by trie alphabétiquement) ;
+# il est retiré à l'affichage par le template.
+commit_parsers = [
+  { message = "^feat", group = "1@@Nouveautés" },
+  { message = "^fix", group = "2@@Corrections" },
+  { message = "^perf", group = "3@@Performance" },
+  { message = "^refactor", group = "4@@Refactorisations" },
+  { message = "^docs", group = "5@@Documentation" },
+  { message = "^test", group = "6@@Tests" },
+  { message = "^ci|^build", group = "7@@Intégration et déploiement" },
+  # Bruit d'outillage : sans intérêt pour un journal de version.
+  { message = "^chore", skip = true },
+  { message = "^style", skip = true },
+]
+
+filter_commits = true
+topo_order = false
+sort_commits = "oldest"
