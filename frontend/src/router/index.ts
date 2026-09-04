@@ -15,6 +15,13 @@ const router = createRouter({
     },
     { path: '/sales', name: 'sales', component: () => import('@/views/SalesView.vue') },
     { path: '/customers', name: 'customers', component: () => import('@/views/CustomersView.vue') },
+    { path: '/customers/add', name: 'customers-add', component: () => import('@/views/CustomerAddView.vue') },
+    {
+      path: '/customers/:id',
+      name: 'customers-detail',
+      component: () => import('@/views/CustomerDetailView.vue'),
+      props: true,
+    },
     { path: '/products', name: 'products', component: () => import('@/views/ProductsView.vue') },
     { path: '/products/add', name: 'products-add', component: () => import('@/views/ProductAddView.vue') },
     {

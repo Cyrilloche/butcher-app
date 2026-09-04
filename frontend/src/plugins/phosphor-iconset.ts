@@ -14,6 +14,9 @@ import {
   PhScales,
   PhHandCoins,
   PhInfo,
+  PhMagnifyingGlass,
+  PhXCircle,
+  PhCaretRight,
 } from '@phosphor-icons/vue'
 
 /**
@@ -35,6 +38,9 @@ const phosphorIcons: Record<string, unknown> = {
   scales: PhScales,
   'hand-coins': PhHandCoins,
   info: PhInfo,
+  'magnifying-glass': PhMagnifyingGlass,
+  'x-circle': PhXCircle,
+  'caret-right': PhCaretRight,
 }
 
 export const phosphor: IconSet = {

@@ -91,6 +91,44 @@ export interface AddStockUnitsRequest {
   quantity?: number
 }
 
+// --- StockMovement -------------------------------------------------------------
+
+export interface StockMovementDto {
+  id: number
+  stockUnitId: number
+  type: MovementType
+  date: string
+  soldWeight: number | null
+  amount: number | null
+  customerId: number | null
+  customerName: string | null
+  notes: string | null
+}
+
+// --- Customer -------------------------------------------------------------
+
+export interface CustomerDto {
+  id: number
+  lastName: string
+  firstName: string | null
+  phone: string | null
+  notes: string | null
+}
+
+export interface CreateCustomerRequest {
+  lastName: string
+  firstName?: string
+  phone?: string
+  notes?: string
+}
+
+export interface UpdateCustomerRequest {
+  lastName: string
+  firstName?: string
+  phone?: string
+  notes?: string
+}
+
 // --- UnitOfMeasure -------------------------------------------------------------
 
 export interface UnitOfMeasureDto {
