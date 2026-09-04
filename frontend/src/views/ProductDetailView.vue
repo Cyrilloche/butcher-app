@@ -23,18 +23,23 @@ const { data: stockSummary } = useAsyncData(async () => (await getStockDetail(pr
 
 watch(() => props.code, reload)
 
-const state = reactive({ name: '' })
+const state = reactive({ name: '', allowPartialSale: false })
 
 watch(
   product,
   (p) => {
     if (!p) return
     state.name = p.name
+    state.allowPartialSale = p.allowPartialSale
   },
   { immediate: true },
 )
 
-const dirty = computed(() => !!product.value && state.name !== product.value.name)
+const dirty = computed(
+  () =>
+    !!product.value &&
+    (state.name !== product.value.name || state.allowPartialSale !== product.value.allowPartialSale),
+)
 
 const canSave = computed(() => state.name.trim().length > 0)
 const saving = ref(false)
@@ -45,7 +50,10 @@ async function save() {
   saving.value = true
   saveError.value = null
   try {
-    await updateProduct(product.value.id, { name: state.name.trim() })
+    await updateProduct(product.value.id, {
+      name: state.name.trim(),
+      allowPartialSale: product.value.saleMode === 'by_weight' && state.allowPartialSale,
+    })
     await reload()
   } catch (err) {
     saveError.value = err instanceof ApiError ? err.message : "Erreur lors de l'enregistrement, réessaie."
@@ -99,6 +107,17 @@ async function toggleStatus() {
           <v-icon size="22">phosphor:{{ product.saleMode === 'by_weight' ? 'scales' : 'hand-coins' }}</v-icon>
           {{ product.saleMode === 'by_weight' ? 'Au poids' : 'À la pièce' }}
         </div>
+
+        <v-checkbox
+          v-if="product.saleMode === 'by_weight'"
+          v-model="state.allowPartialSale"
+          label="Peut être vendu à la tranche (ex. jambon entier)"
+          color="primary"
+          density="comfortable"
+          :disabled="!product.isActive"
+          hide-details
+          class="mt-2"
+        />
       </AppCard>
 
       <AppCard>

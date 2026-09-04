@@ -26,6 +26,8 @@ export interface ProductDto {
   code: string
   name: string
   saleMode: SaleMode
+  /** Uniquement pertinent si saleMode = by_weight (400 sinon). */
+  allowPartialSale: boolean
   isActive: boolean
 }
 
@@ -33,10 +35,12 @@ export interface CreateProductRequest {
   code: string
   name: string
   saleMode: SaleMode
+  allowPartialSale: boolean
 }
 
 export interface UpdateProductRequest {
   name: string
+  allowPartialSale: boolean
 }
 
 // --- ProductionBatch -------------------------------------------------------------

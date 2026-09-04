@@ -15,6 +15,7 @@ export interface Product {
   unitLabel: string
   /** Unité affichée à côté du prix : "kg" au poids, "pièce" à la pièce (RG-02/03) — dérivé de saleMode. */
   priceUnit: string
+  allowPartialSale: boolean
 }
 
 export interface StockDashboardProduct {
@@ -55,6 +56,7 @@ function toProduct(dto: ProductDto): Product {
     saleMode: dto.saleMode,
     unitLabel: dto.saleMode === 'by_weight' ? 'unités' : 'pièces',
     priceUnit: dto.saleMode === 'by_weight' ? 'kg' : 'pièce',
+    allowPartialSale: dto.allowPartialSale,
   }
 }
 

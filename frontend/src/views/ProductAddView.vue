@@ -17,6 +17,7 @@ const state = reactive({
   name: '',
   code: '',
   saleMode: 'by_weight' as SaleMode,
+  allowPartialSale: false,
 })
 
 const batchDateCode = new Date().toISOString().slice(2, 10).replace(/-/g, '')
@@ -42,6 +43,7 @@ async function save() {
       code: state.code.trim().toUpperCase(),
       name: state.name.trim(),
       saleMode: state.saleMode,
+      allowPartialSale: state.saleMode === 'by_weight' && state.allowPartialSale,
     })
     await router.push('/products')
   } catch (err) {
@@ -74,6 +76,16 @@ async function save() {
         <div class="product-add-view__section-title text-secondary">2. Comment se vend-il ?</div>
         <SaleModeToggle v-model="state.saleMode" class="mb-3" />
         <AppHintBox icon="info">{{ modeHint }}</AppHintBox>
+
+        <v-checkbox
+          v-if="state.saleMode === 'by_weight'"
+          v-model="state.allowPartialSale"
+          label="Peut être vendu à la tranche (ex. jambon entier)"
+          color="primary"
+          density="comfortable"
+          hide-details
+          class="mt-2"
+        />
       </AppCard>
     </div>
 
