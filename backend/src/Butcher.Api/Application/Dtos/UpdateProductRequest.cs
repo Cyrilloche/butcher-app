@@ -6,4 +6,6 @@ public class UpdateProductRequest
 {
     [Required, MaxLength(200)]
     public required string Name { get; set; }
+
+    public bool AllowPartialSale { get; set; }
 }

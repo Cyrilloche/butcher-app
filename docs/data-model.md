@@ -4,7 +4,7 @@
 |---|---|
 | **Projet** | Mini-ERP Charcuterie (repo : `butcher-app`) |
 | **Document** | Modèle de données détaillé (V1) |
-| **Version** | 0.5 |
+| **Version** | 0.6 |
 | **Date** | 4 septembre 2026 |
 | **Statut** | Implémenté (backend, cœur métier V1 complet) |
 | **Documents liés** | PRD v0.2, Journal ADR v0.1 |
@@ -18,6 +18,7 @@
 | 0.3 | 2026-09-03 | Documentation des règles apparues pendant l'implémentation du backend : contraintes d'unicité supplémentaires, politiques de mutabilité/suppression par entité, convention de casse des enums dans l'API. QM-01 résolu. |
 | 0.5 | 2026-09-04 | **Entité `unit_of_measure` supprimée** et `product.sale_unit_id` avec elle (décision produit, voir §3.2) : le champ n'avait aucun rôle fonctionnel — RG-03 code le prix en €/kg en dur — et bloquait la création de produit sur une base vide. `sale_mode` suffit à piloter l'affichage. RF-03/RF-04/RF-05 et RG-08 retirés du périmètre V1. |
 | 0.4 | 2026-09-04 | **QM-04 résolu et implémenté** : nouvelle entité `sale` (§3.7) regroupant les lignes d'une vente sous un numéro `V-YYMMDD-N`, un client obligatoire et un statut de paiement ; `stock_movement.customer_id` remplacé par `sale_id` ; suppression d'un client passée en `Restrict`. Répond à Q-04/Q-05 du PRD et aux exigences RF-17/RG-07 modifiées. |
+| 0.6 | 2026-09-04 | Ajout de `product.allow_partial_sale` (booléen, défaut `false`, pertinent uniquement si `sale_mode = by_weight`) : la vente à la tranche (RF-19) n'est plus possible sur n'importe quel produit au poids, elle doit être explicitement autorisée. Contrôle appliqué côté serveur (`409` sinon), pas seulement dans l'UI. |
 
 ### Objet du document
 
@@ -86,10 +87,11 @@ Un produit fabriqué. Le **mode de vente** est la propriété structurante (RG-0
 | `code` | varchar | unique, non nul | Code court (ex. `SC`), brique du numéro de lot |
 | `name` | varchar | non nul | Désignation |
 | `sale_mode` | enum | non nul | `by_weight` ou `by_piece` (RF-02) |
+| `allow_partial_sale` | boolean | non nul, défaut `false` | Autorise la vente à la tranche (RF-19) sur les unités de ce produit. Pertinent uniquement si `sale_mode = by_weight` — rejeté sinon. |
 | `is_active` | boolean | non nul, défaut `true` | Désactivation sans suppression (RF-01) |
 | `created_at` / `updated_at` | timestamptz | | Audit |
 
-**Règles complémentaires (implémentation)** : `code` et `sale_mode` sont **définitifs** après création (RG-01 pour `sale_mode` ; `code` porte le numéro de lot, §4.1, donc figé pour la même raison) — seul `name` reste modifiable. La **désactivation d'un produit n'est jamais bloquée** (RG-09), même s'il a déjà des lots. Un produit se crée sur une base entièrement vide : aucun référentiel préalable à alimenter (§3.2).
+**Règles complémentaires (implémentation)** : `code` et `sale_mode` sont **définitifs** après création (RG-01 pour `sale_mode` ; `code` porte le numéro de lot, §4.1, donc figé pour la même raison) — seuls `name` et `allow_partial_sale` restent modifiables. La **désactivation d'un produit n'est jamais bloquée** (RG-09), même s'il a déjà des lots. Un produit se crée sur une base entièrement vide : aucun référentiel préalable à alimenter (§3.2). `allow_partial_sale = true` sur un produit `by_piece` est refusé (`400`) à la création comme à la modification. La vente partielle (RF-19, mouvement `isFullSale: false`) est elle-même rejetée (`409`) si l'unité vendue appartient à un produit qui n'a pas `allow_partial_sale = true` — contrôle serveur, pas seulement une UI qui masque l'option.
 
 ### 3.4 `production_batch`
 
@@ -329,6 +331,7 @@ Table product {
   code varchar [unique, not null, note: 'short code, e.g. SC — used in batch_number']
   name varchar [not null]
   sale_mode sale_mode [not null]
+  allow_partial_sale boolean [not null, default: false, note: 'only meaningful when sale_mode = by_weight']
   is_active boolean [not null, default: true]
   created_at timestamptz [default: `now()`]
   updated_at timestamptz

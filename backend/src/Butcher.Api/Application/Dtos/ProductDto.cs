@@ -12,5 +12,7 @@ public class ProductDto
 
     public SaleMode SaleMode { get; set; }
 
+    public bool AllowPartialSale { get; set; }
+
     public bool IsActive { get; set; }
 }

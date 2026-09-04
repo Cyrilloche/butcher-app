@@ -5,6 +5,7 @@ using Butcher.Api.Domain.Entities;
 using Butcher.Api.Domain.Enums;
 using Butcher.Api.Infrastructure.Data;
 using Butcher.Api.Tests.Support;
+using Microsoft.EntityFrameworkCore;
 
 namespace Butcher.Api.Tests.Application.Services;
 
@@ -18,7 +19,7 @@ public class SaleServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifetime
     private static async Task<List<StockUnit>> SeedStockUnitsAsync(
         AppDbContext dbContext, SaleMode saleMode, int count, decimal? weight, string code = "SC")
     {
-        var product = new Product { Code = code, Name = "Saucisse curry", SaleMode = saleMode };
+        var product = new Product { Code = code, Name = "Saucisse curry", SaleMode = saleMode, AllowPartialSale = true };
         dbContext.Products.Add(product);
         await dbContext.SaveChangesAsync();
 
@@ -130,6 +131,24 @@ public class SaleServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifetime
 
         var refreshed = await dbContext.StockUnits.FindAsync(units[0].Id);
         Assert.Equal(StockUnitStatus.Opened, refreshed!.Status);
+    }
+
+    [Fact]
+    public async Task CreateAsync_PartialLine_OnProductWithoutAllowPartialSale_ThrowsConflictException()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var units = await SeedStockUnitsAsync(dbContext, SaleMode.ByWeight, count: 1, weight: null);
+        var product = await dbContext.Products.SingleAsync(p => p.Code == "SC");
+        product.AllowPartialSale = false;
+        await dbContext.SaveChangesAsync();
+        var customer = await SeedCustomerAsync(dbContext);
+        var service = new SaleService(dbContext);
+
+        await Assert.ThrowsAsync<ConflictException>(() => service.CreateAsync(new CreateSaleRequest
+        {
+            CustomerId = customer.Id,
+            Lines = [new CreateSaleLineRequest { StockUnitId = units[0].Id, IsFullSale = false, SoldWeight = 0.150m, Amount = 2m }],
+        }));
     }
 
     // La vente est atomique : une ligne invalide n'en laisse aucune enregistrée, et aucun statut

@@ -1,6 +1,7 @@
 using Butcher.Api.Application.Dtos;
 using Butcher.Api.Common.Exceptions;
 using Butcher.Api.Domain.Entities;
+using Butcher.Api.Domain.Enums;
 using Butcher.Api.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,12 +31,14 @@ public class ProductService(AppDbContext dbContext) : IProductService
     {
         var code = request.Code.ToUpperInvariant();
         await EnsureCodeIsUniqueAsync(code, excludingId: null);
+        EnsureAllowPartialSaleIsApplicable(request.SaleMode, request.AllowPartialSale);
 
         var product = new Product
         {
             Code = code,
             Name = request.Name,
             SaleMode = request.SaleMode,
+            AllowPartialSale = request.AllowPartialSale,
         };
 
         dbContext.Products.Add(product);
@@ -47,8 +50,10 @@ public class ProductService(AppDbContext dbContext) : IProductService
     public async Task<ProductDto> UpdateAsync(int id, UpdateProductRequest request)
     {
         var product = await FindOrThrowAsync(id);
+        EnsureAllowPartialSaleIsApplicable(product.SaleMode, request.AllowPartialSale);
 
         product.Name = request.Name;
+        product.AllowPartialSale = request.AllowPartialSale;
         await dbContext.SaveChangesAsync();
 
         return ToDto(product);
@@ -84,6 +89,15 @@ public class ProductService(AppDbContext dbContext) : IProductService
         }
     }
 
+    private static void EnsureAllowPartialSaleIsApplicable(SaleMode saleMode, bool allowPartialSale)
+    {
+        if (allowPartialSale && saleMode != SaleMode.ByWeight)
+        {
+            throw new BadRequestException(
+                "« AllowPartialSale » n'est applicable qu'aux produits vendus au poids.");
+        }
+    }
+
     private static ProductDto ToDto(Product product) =>
         new()
         {
@@ -91,6 +105,7 @@ public class ProductService(AppDbContext dbContext) : IProductService
             Code = product.Code,
             Name = product.Name,
             SaleMode = product.SaleMode,
+            AllowPartialSale = product.AllowPartialSale,
             IsActive = product.IsActive,
         };
 }

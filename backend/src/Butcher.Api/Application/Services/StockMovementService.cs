@@ -48,6 +48,7 @@ public class StockMovementService(AppDbContext dbContext) : IStockMovementServic
         StockMovementRules.EnsureCanReceiveMovement(unit);
         StockMovementRules.ValidateSoldWeight(unit, request.SoldWeight);
         StockMovementRules.ValidateAmount(request.Type, request.Amount);
+        StockMovementRules.EnsurePartialSaleIsAllowed(unit, request.Type, request.IsFullSale);
         var sale = await ValidateAndResolveSaleAsync(request.Type, request.SaleId);
 
         var movement = new StockMovement

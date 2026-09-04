@@ -12,6 +12,8 @@ public class Product
 
     public SaleMode SaleMode { get; set; }
 
+    public bool AllowPartialSale { get; set; }
+
     public bool IsActive { get; set; } = true;
 
     public DateTimeOffset CreatedAt { get; set; }

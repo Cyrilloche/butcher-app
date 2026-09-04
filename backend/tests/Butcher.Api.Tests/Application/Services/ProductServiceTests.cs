@@ -36,6 +36,62 @@ public class ProductServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifeti
         Assert.True(result.IsActive);
     }
 
+    [Fact]
+    public async Task CreateAsync_ByWeightWithAllowPartialSale_Succeeds()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var service = new ProductService(dbContext);
+
+        var result = await service.CreateAsync(new CreateProductRequest
+        {
+            Code = "JB",
+            Name = "Jambon",
+            SaleMode = SaleMode.ByWeight,
+            AllowPartialSale = true,
+        });
+
+        Assert.True(result.AllowPartialSale);
+    }
+
+    // La vente à la tranche n'a de sens que pour un produit vendu au poids (RF-19).
+    [Fact]
+    public async Task CreateAsync_ByPieceWithAllowPartialSale_ThrowsBadRequestException()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var service = new ProductService(dbContext);
+
+        await Assert.ThrowsAsync<BadRequestException>(() => service.CreateAsync(new CreateProductRequest
+        {
+            Code = "TR",
+            Name = "Terrine",
+            SaleMode = SaleMode.ByPiece,
+            AllowPartialSale = true,
+        }));
+    }
+
+    [Fact]
+    public async Task UpdateAsync_CanToggleAllowPartialSale_ForByWeightProduct()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var service = new ProductService(dbContext);
+        var created = await service.CreateAsync(new CreateProductRequest { Code = "JB", Name = "Jambon", SaleMode = SaleMode.ByWeight });
+
+        var updated = await service.UpdateAsync(created.Id, new UpdateProductRequest { Name = "Jambon", AllowPartialSale = true });
+
+        Assert.True(updated.AllowPartialSale);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ByPieceWithAllowPartialSale_ThrowsBadRequestException()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var service = new ProductService(dbContext);
+        var created = await service.CreateAsync(new CreateProductRequest { Code = "TR", Name = "Terrine", SaleMode = SaleMode.ByPiece });
+
+        await Assert.ThrowsAsync<BadRequestException>(() =>
+            service.UpdateAsync(created.Id, new UpdateProductRequest { Name = "Terrine", AllowPartialSale = true }));
+    }
+
     // Création possible sur une base entièrement vide : plus aucun référentiel à alimenter d'abord.
     [Fact]
     public async Task CreateAsync_OnEmptyDatabase_Succeeds()

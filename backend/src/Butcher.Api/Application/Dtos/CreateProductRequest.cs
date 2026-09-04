@@ -13,4 +13,6 @@ public class CreateProductRequest
 
     [Required]
     public SaleMode SaleMode { get; set; }
+
+    public bool AllowPartialSale { get; set; }
 }

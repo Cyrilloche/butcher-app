@@ -37,6 +37,20 @@ internal static class StockMovementRules
         }
     }
 
+    public static void EnsurePartialSaleIsAllowed(StockUnit unit, MovementType type, bool isFullSale)
+    {
+        if (type != MovementType.Sale || isFullSale)
+        {
+            return;
+        }
+
+        if (!unit.Batch!.Product!.AllowPartialSale)
+        {
+            throw new ConflictException(
+                $"Le produit « {unit.Batch.Product.Name} » n'autorise pas la vente à la tranche.");
+        }
+    }
+
     public static void ValidateAmount(MovementType type, decimal? amount)
     {
         if (type == MovementType.Sale)

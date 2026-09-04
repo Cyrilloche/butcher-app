@@ -5,6 +5,7 @@ using Butcher.Api.Domain.Entities;
 using Butcher.Api.Domain.Enums;
 using Butcher.Api.Infrastructure.Data;
 using Butcher.Api.Tests.Support;
+using Microsoft.EntityFrameworkCore;
 
 namespace Butcher.Api.Tests.Application.Services;
 
@@ -18,7 +19,7 @@ public class StockMovementServiceTests(PostgresDatabaseFixture fixture) : IAsync
     private static async Task<StockUnit> SeedStockUnitAsync(
         AppDbContext dbContext, SaleMode saleMode, decimal? weight, string code = "SC")
     {
-        var product = new Product { Code = code, Name = "Saucisse curry", SaleMode = saleMode };
+        var product = new Product { Code = code, Name = "Saucisse curry", SaleMode = saleMode, AllowPartialSale = true };
         dbContext.Products.Add(product);
         await dbContext.SaveChangesAsync();
 
@@ -127,6 +128,29 @@ public class StockMovementServiceTests(PostgresDatabaseFixture fixture) : IAsync
 
         var afterSecond = await dbContext.StockUnits.FindAsync(unit.Id);
         Assert.Equal(StockUnitStatus.Opened, afterSecond!.Status);
+    }
+
+    // Le produit ne remplit AllowPartialSale que dans SeedStockUnitAsync ; ici on le désactive
+    // explicitement pour vérifier le garde-fou serveur.
+    [Fact]
+    public async Task CreateAsync_PartialSale_OnProductWithoutAllowPartialSale_ThrowsConflictException()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var unit = await SeedStockUnitAsync(dbContext, SaleMode.ByWeight, weight: null);
+        var product = await dbContext.Products.SingleAsync(p => p.Code == "SC");
+        product.AllowPartialSale = false;
+        await dbContext.SaveChangesAsync();
+        var sale = await SeedSaleAsync(dbContext);
+        var service = new StockMovementService(dbContext);
+
+        await Assert.ThrowsAsync<ConflictException>(() => service.CreateAsync(unit.Id, new CreateStockMovementRequest
+        {
+            Type = MovementType.Sale,
+            IsFullSale = false,
+            SoldWeight = 0.150m,
+            Amount = 2m,
+            SaleId = sale.Id,
+        }));
     }
 
     [Fact]
