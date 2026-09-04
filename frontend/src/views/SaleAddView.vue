@@ -7,6 +7,7 @@ import AppButton from '@/components/base/AppButton.vue'
 import AppTextField from '@/components/base/AppTextField.vue'
 import { listCustomers } from '@/api/customers'
 import { createSale } from '@/api/sales'
+import { listStockMovements } from '@/api/stockMovements'
 import { listSellableLots, type SellableLot } from '@/composables/useSales'
 import { formatWeight } from '@/composables/useStock'
 import { useAsyncData } from '@/composables/useAsyncData'
@@ -65,11 +66,31 @@ const lotResults = computed(() => {
 const pendingLot = ref<SellableLot | null>(null)
 const pendingMode = ref<'choice' | 'weight' | null>(null)
 const sliceGrams = ref('')
+/** Poids restant estimé (kg) sur l'unité en cours — poids d'origine − somme déjà vendue.
+ *  Indicatif seulement : le backend revalide et fait foi (garde-fou anti-dépassement,
+ *  cf. docs/data-model.md RG-05). */
+const remainingWeightKg = ref<number | null>(null)
+const loadingRemaining = ref(false)
+
+async function loadRemainingWeight(lot: SellableLot) {
+  if (lot.weight == null) return
+  loadingRemaining.value = true
+  try {
+    const movements = await listStockMovements({ stockUnitId: lot.stockUnitId })
+    const alreadySold = movements
+      .filter((m) => m.type === 'sale')
+      .reduce((sum, m) => sum + (m.soldWeight ?? 0), 0)
+    remainingWeightKg.value = Math.max(0, lot.weight - alreadySold)
+  } finally {
+    loadingRemaining.value = false
+  }
+}
 
 function pickLot(lot: SellableLot) {
   if (lot.status === 'opened') {
     pendingLot.value = lot
     pendingMode.value = 'weight'
+    loadRemainingWeight(lot)
   } else if (lot.allowPartialSale) {
     pendingLot.value = lot
     pendingMode.value = 'choice'
@@ -79,11 +100,24 @@ function pickLot(lot: SellableLot) {
   state.lotQuery = ''
 }
 
+function startSlice() {
+  if (!pendingLot.value) return
+  pendingMode.value = 'weight'
+  loadRemainingWeight(pendingLot.value)
+}
+
 function clearPending() {
   pendingLot.value = null
   pendingMode.value = null
   sliceGrams.value = ''
+  remainingWeightKg.value = null
 }
+
+const exceedsRemaining = computed(() => {
+  const grams = Number(sliceGrams.value)
+  if (remainingWeightKg.value == null || !(grams > 0)) return false
+  return grams / 1000 > remainingWeightKg.value
+})
 
 function addFullSaleToCart(lot: SellableLot) {
   state.cart.push({
@@ -106,7 +140,7 @@ const sliceAmount = computed(() => {
 function confirmSlice() {
   const lot = pendingLot.value
   const grams = Number(sliceGrams.value)
-  if (!lot || !(grams > 0)) return
+  if (!lot || !(grams > 0) || exceedsRemaining.value) return
   state.cart.push({
     stockUnitId: lot.stockUnitId,
     productName: lot.productName,
@@ -222,25 +256,41 @@ async function save() {
             <AppButton color="primary" height="52" @click="addFullSaleToCart(pendingLot)">
               Vendre en entier — {{ pendingLot.price.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} €
             </AppButton>
-            <AppButton height="52" @click="pendingMode = 'weight'">Vendre une tranche</AppButton>
+            <AppButton height="52" @click="startSlice">Vendre une tranche</AppButton>
           </div>
 
-          <div v-else class="sale-add-view__pending-weight">
-            <AppTextField
-              v-model="sliceGrams"
-              type="number"
-              inputmode="numeric"
-              min="0"
-              label="Poids de la tranche"
-              suffix="g"
-              hide-details
-            />
-            <div class="sale-add-view__pending-amount text-secondary">
-              {{ sliceAmount > 0 ? `${sliceAmount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €` : '—' }}
+          <div v-else class="sale-add-view__pending-weight-block">
+            <p v-if="loadingRemaining" class="text-secondary sale-add-view__remaining">Calcul du poids restant...</p>
+            <p v-else-if="remainingWeightKg != null" class="sale-add-view__remaining" :class="{ 'text-error': exceedsRemaining }">
+              Poids restant estimé : {{ formatWeight(Math.round(remainingWeightKg * 1000)) }}
+            </p>
+
+            <div class="sale-add-view__pending-weight">
+              <AppTextField
+                v-model="sliceGrams"
+                type="number"
+                inputmode="numeric"
+                min="0"
+                label="Poids de la tranche"
+                suffix="g"
+                hide-details
+              />
+              <div class="sale-add-view__pending-amount text-secondary">
+                {{ sliceAmount > 0 ? `${sliceAmount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €` : '—' }}
+              </div>
+              <AppButton
+                color="primary"
+                height="52"
+                :disabled="!(Number(sliceGrams) > 0) || exceedsRemaining"
+                @click="confirmSlice"
+              >
+                Ajouter au panier
+              </AppButton>
             </div>
-            <AppButton color="primary" height="52" :disabled="!(Number(sliceGrams) > 0)" @click="confirmSlice">
-              Ajouter au panier
-            </AppButton>
+
+            <p v-if="exceedsRemaining" class="text-error sale-add-view__remaining-warning">
+              Ce poids dépasse le poids restant estimé sur cette unité.
+            </p>
           </div>
         </div>
 
@@ -426,6 +476,24 @@ async function save() {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.sale-add-view__pending-weight-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sale-add-view__remaining {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.sale-add-view__remaining-warning {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
 }
 
 .sale-add-view__pending-weight {
