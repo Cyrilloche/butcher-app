@@ -5,7 +5,9 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
+ARG APP_VERSION=0.0.0
 ENV VITE_API_BASE_URL=
+ENV APP_VERSION=$APP_VERSION
 RUN npm run build
 
 FROM nginx:1.29-alpine AS runtime

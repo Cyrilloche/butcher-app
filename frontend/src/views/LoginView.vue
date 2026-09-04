@@ -12,6 +12,10 @@ const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 
+// Version du bundle, injectée au build (voir vite.config.ts) : permet de
+// savoir quelle version tourne sans ouvrir la console.
+const appVersion = __APP_VERSION__
+
 const email = ref('')
 const password = ref('')
 const errorMessage = ref<string | null>(null)
@@ -56,6 +60,8 @@ async function submit() {
         </AppButton>
       </form>
     </AppCard>
+
+    <p class="login-view__version text-secondary">Version {{ appVersion }}</p>
   </v-container>
 </template>
 
@@ -63,8 +69,16 @@ async function submit() {
 .login-view {
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 16px;
+}
+
+.login-view__version {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
 }
 
 .login-view__card {

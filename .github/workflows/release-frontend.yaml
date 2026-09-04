@@ -34,6 +34,8 @@ jobs:
         with:
           context: ./frontend
           push: true
+          build-args: |
+            APP_VERSION=${{ steps.version.outputs.version }}
           # Explicit version pinning. No 'latest' tag used.
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/butcher-app-frontend:${{ steps.version.outputs.version }}

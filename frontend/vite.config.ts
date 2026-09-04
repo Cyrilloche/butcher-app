@@ -6,8 +6,21 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 import vuetify from 'vite-plugin-vuetify'
 import { VitePWA } from 'vite-plugin-pwa'
 
+import pkg from './package.json' with { type: 'json' }
+
+/**
+ * Version affichée dans l'app (écran de connexion). La source de vérité en
+ * production est le tag Git `frontend-vX.Y.Z`, transmis par la CI au build
+ * Docker (ARG APP_VERSION). Hors release, on retombe sur la version du
+ * package.json suffixée `-dev` pour que l'origine soit sans ambiguïté.
+ */
+const appVersion = process.env.APP_VERSION || `${pkg.version}-dev`
+
 // https://vite.dev/config/
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion),
+  },
   plugins: [
     vue(),
     vueDevTools(),
