@@ -1,12 +1,18 @@
-# Graph Report - .  (2026-09-04)
+# Graph Report - butcher-app  (2026-09-04)
 
 ## Corpus Check
-- Corpus is ~42,763 words - fits in a single context window. You may not need a graph.
+- 170 files · ~63,880 words
+- Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 870 nodes · 971 edges · 245 communities (34 shown, 211 thin omitted)
-- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 1 edges (avg confidence: 0.95)
-- Token cost: 60,000 input · 16,933 output
+- 1886 nodes · 3425 edges · 183 communities (115 shown, 68 thin omitted)
+- Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 252 edges (avg confidence: 0.8)
+- Token cost: 0 input · 0 output
+
+## Graph Freshness
+- Built from commit: `30d77cd1`
+- Run `git rev-parse HEAD` and compare to check if the graph is stale.
+- Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - API Controllers
@@ -105,6 +111,12 @@
 - Community 94
 - Community 95
 - Community 96
+- Community 97
+- Community 100
+- Community 102
+- Community 103
+- Community 104
+- Community 105
 - Community 106
 - Community 107
 - Community 108
@@ -168,94 +180,18 @@
 - Community 166
 - Community 167
 - Community 168
-- Community 169
-- Community 170
-- Community 171
-- Community 172
-- Community 173
-- Community 174
-- Community 175
-- Community 176
-- Community 177
-- Community 178
-- Community 179
-- Community 180
-- Community 181
-- Community 182
-- Community 183
-- Community 184
-- Community 185
-- Community 186
-- Community 187
-- Community 188
-- Community 189
-- Community 190
-- Community 191
-- Community 192
-- Community 193
-- Community 194
-- Community 195
-- Community 196
-- Community 197
-- Community 198
-- Community 199
-- Community 200
-- Community 201
-- Community 202
-- Community 203
-- Community 204
-- Community 205
-- Community 206
-- Community 207
-- Community 208
-- Community 209
-- Community 210
-- Community 211
-- Community 212
-- Community 213
-- Community 214
-- Community 215
-- Community 216
-- Community 217
-- Community 218
-- Community 219
-- Community 220
-- Community 221
-- Community 222
-- Community 223
-- Community 224
-- Community 225
-- Community 226
-- Community 227
-- Community 228
-- Community 229
-- Community 230
-- Community 231
-- Community 232
-- Community 233
-- Community 234
-- Community 235
-- Community 236
-- Community 237
-- Community 238
-- Community 239
-- Community 240
-- Community 241
-- Community 242
-- Community 243
-- Community 244
 
 ## God Nodes (most connected - your core abstractions)
-1. `Butcher.Api.Application.Dtos` - 44 edges
-2. `Butcher.Api.Domain.Entities` - 34 edges
-3. `Butcher.Api.Application.Services` - 33 edges
-4. `Vague 1 (MVP)` - 28 edges
-5. `Butcher.Api.Domain.Enums` - 23 edges
-6. `StockMovementServiceTests` - 22 edges
-7. `Butcher.Api.Common.Exceptions` - 20 edges
-8. `Butcher.Api.Infrastructure.Data` - 19 edges
-9. `ProductServiceTests` - 17 edges
-10. `StockUnitServiceTests` - 15 edges
+1. `Butcher.Api.Application.Dtos` - 91 edges
+2. `Butcher.Api.Domain.Entities` - 68 edges
+3. `Butcher.Api.Application.Services` - 66 edges
+4. `Butcher.Api.Domain.Enums` - 49 edges
+5. `Butcher.Api.Common.Exceptions` - 41 edges
+6. `Butcher.Api.Infrastructure.Data` - 40 edges
+7. `apiFetch()` - 35 edges
+8. `StockMovementServiceTests` - 29 edges
+9. `Vague 1 (MVP)` - 28 edges
+10. `AppDbContext` - 23 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `ADR-001: Client-serveur (no offline)` --rationale_for--> `Mini-ERP Charcuterie (butcher-app)`  [EXTRACTED]
@@ -275,91 +211,83 @@
 ## Hyperedges (group relationships)
 - **Chaîne de Traçabilité Production** — docs_data_model_product, docs_data_model_production_batch, docs_data_model_stock_unit, docs_data_model_stock_movement, docs_data_model_customer [EXTRACTED 1.00]
 
-## Communities (245 total, 211 thin omitted)
-
-### Community 0 - "API Controllers"
-Cohesion: 0.05
-Nodes (7): ControllerBase, CustomersController, ProductionBatchesController, ProductsController, StockMovementsController, StockUnitsController, UnitsOfMeasureController
+## Communities (183 total, 68 thin omitted)
 
 ### Community 1 - "Application DTOs & Services"
-Cohesion: 0.08
-Nodes (13): Butcher.Api.Application.Dtos, Butcher.Api.Application.Services, Butcher.Api.Controllers, AddStockUnitsRequest, CreateCustomerRequest, CreateProductionBatchRequest, CreateUnitOfMeasureRequest, CustomerDto (+5 more)
-
-### Community 2 - "Service Tests"
-Cohesion: 0.08
-Nodes (5): IAsyncLifetime, CustomerServiceTests, ProductServiceTests, PostgresDatabaseFixture, PostgreSqlContainer
+Cohesion: 0.05
+Nodes (17): Butcher.Api.Application.Dtos, Butcher.Api.Application.Services, Butcher.Api.Controllers, AddStockUnitsRequest, CreateCustomerRequest, CreateProductionBatchRequest, CreateUnitOfMeasureRequest, CustomerDto (+9 more)
 
 ### Community 3 - "Frontend Dependencies"
-Cohesion: 0.06
-Nodes (30): dependencies, @mdi/font, @phosphor-icons/vue, pinia, vue, vue-router, vuetify, engines (+22 more)
+Cohesion: 0.15
+Nodes (17): dependencies, @phosphor-icons/vue, pinia, vue, vue-router, vuetify, dependencies, @phosphor-icons/vue (+9 more)
 
 ### Community 4 - "Domain Entities & Setup"
-Cohesion: 0.10
-Nodes (10): Butcher.Api.Infrastructure.Data.Configurations, Butcher.Api.Domain.Entities, Butcher.Api.Common, Customer, Product, ProductionBatch, RefreshToken, StockMovement (+2 more)
+Cohesion: 0.13
+Nodes (7): Butcher.Api.Infrastructure.Data.Configurations, Butcher.Api.Domain.Entities, Butcher.Api.Common, Customer, ProductionBatch, RefreshToken, UnitOfMeasure
 
 ### Community 5 - "PRD Requirements"
-Cohesion: 0.07
-Nodes (28): Vague 1 (MVP), RF-01: Création/Modification Produits, RF-02: Mode de vente, RF-03: Unité d'affichage de vente, RF-04: Gestion Unités de mesure, RF-05: Attributs Unité de mesure, RF-06: Création Lot de production, RF-07: Prix au niveau du lot (+20 more)
+Cohesion: 0.04
+Nodes (47): Mini-ERP Charcuterie (butcher-app), Système de design « Kraft », Phosphor Icons, Saloir (PWA Application Name), Vague 1 (MVP), Vague 2+, Vuetify, Work Sans (Font) (+39 more)
 
 ### Community 6 - "Database Migrations"
-Cohesion: 0.08
-Nodes (10): Butcher.Api.Infrastructure.Data.Migrations, Migration, InitialCreate, InitialCreate, AddUnitOfMeasureUniqueIndexes, AddUnitOfMeasureUniqueIndexes, AddIdentityAndRefreshTokens, AddIdentityAndRefreshTokens (+2 more)
+Cohesion: 0.20
+Nodes (4): Butcher.Api.Infrastructure.Data.Migrations, InitialCreate, AddUnitOfMeasureUniqueIndexes, AddIdentityAndRefreshTokens
 
 ### Community 7 - "Product DTOs & Requests"
-Cohesion: 0.11
-Nodes (11): Butcher.Api.Tests.Support, Butcher.Api.Tests.Application.Services, Butcher.Api.Domain.Enums, CreateProductRequest, CreateStockMovementRequest, ProductDto, StockMovementDto, StockUnitDto (+3 more)
+Cohesion: 0.05
+Nodes (12): Butcher.Api.Domain.Enums, CreateProductRequest, CreateStockMovementRequest, ProductDto, StockMovementDto, StockUnitDto, Product, StockMovement (+4 more)
 
 ### Community 8 - "Frontend Config"
-Cohesion: 0.09
-Nodes (17): categories, correctness, env, browser, plugins, $schema, app, phosphor (+9 more)
+Cohesion: 0.19
+Nodes (12): categories, correctness, env, browser, plugins, $schema, plugins, eslint (+4 more)
 
 ### Community 9 - "Common Utilities"
-Cohesion: 0.12
-Nodes (10): IEntityTypeConfiguration, EnumSnakeCaseConverter, AppUserConfiguration, CustomerConfiguration, ProductConfiguration, ProductionBatchConfiguration, RefreshTokenConfiguration, StockMovementConfiguration (+2 more)
+Cohesion: 0.06
+Nodes (25): EnumSnakeCaseConverter, Product, DateTimeOffset, ICollection, RefreshToken, DateTimeOffset, Guid, ProductConfiguration (+17 more)
 
 ### Community 11 - "Community 11"
-Cohesion: 0.11
-Nodes (19): Mini-ERP Charcuterie (butcher-app), Système de design « Kraft », Phosphor Icons, Saloir (PWA Application Name), Vague 2+, Vuetify, Work Sans (Font), Zilla Slab (Font) (+11 more)
+Cohesion: 0.07
+Nodes (35): CreateSaleLineRequest, CreateSaleRequest, DateTimeOffset, List, SaleDto, DateTimeOffset, List, SetSalePaymentRequest (+27 more)
 
 ### Community 14 - "Community 14"
 Cohesion: 0.24
 Nodes (4): DbContext, IConfiguration, AuthServiceTests, Service
-
-### Community 15 - "Community 15"
-Cohesion: 0.18
-Nodes (4): DbUpdateException, int, IProductionBatchService, ProductionBatchService
 
 ### Community 17 - "Community 17"
 Cohesion: 0.13
 Nodes (15): ASPNETCORE_ENVIRONMENT, applicationUrl, commandName, dotnetRunMessages, environmentVariables, launchBrowser, applicationUrl, commandName (+7 more)
 
 ### Community 18 - "Community 18"
-Cohesion: 0.15
-Nodes (13): compilerOptions, noUncheckedIndexedAccess, paths, tsBuildInfoFile, exclude, extends, include, env.d.ts (+5 more)
+Cohesion: 0.11
+Nodes (21): compilerOptions, noUncheckedIndexedAccess, paths, tsBuildInfoFile, exclude, extends, include, env.d.ts (+13 more)
 
 ### Community 22 - "Community 22"
-Cohesion: 0.17
-Nodes (10): net10.0, coverlet.collector (6.0.4), Microsoft.EntityFrameworkCore (10.0.11), Microsoft.EntityFrameworkCore.Relational (10.0.11), Microsoft.Extensions.Identity.Core (10.0.11), Microsoft.NET.Test.Sdk (17.14.1), Testcontainers.PostgreSql (4.14.0), xunit (2.9.3) (+2 more)
+Cohesion: 0.12
+Nodes (19): net10.0, net10.0, coverlet.collector (6.0.4), EFCore.NamingConventions (10.0.1), Microsoft.AspNetCore.Authentication.JwtBearer (10.0.11), Microsoft.AspNetCore.Identity.EntityFrameworkCore (10.0.11), Microsoft.AspNetCore.OpenApi (10.0.11), Microsoft.EntityFrameworkCore (10.0.11) (+11 more)
 
 ### Community 23 - "Community 23"
-Cohesion: 0.15
-Nodes (12): compilerOptions, lib, tsBuildInfoFile, types, exclude, extends, include, env.d.ts (+4 more)
+Cohesion: 0.11
+Nodes (19): compilerOptions, lib, tsBuildInfoFile, types, exclude, extends, include, env.d.ts (+11 more)
+
+### Community 26 - "Community 26"
+Cohesion: 0.16
+Nodes (4): Butcher.Api.Tests.Support, Butcher.Api.Common.Exceptions, Butcher.Api.Infrastructure.Data, Butcher.Api.Tests.Application.Services
 
 ### Community 28 - "Community 28"
-Cohesion: 0.20
-Nodes (9): net10.0, EFCore.NamingConventions (10.0.1), Microsoft.AspNetCore.Authentication.JwtBearer (10.0.11), Microsoft.AspNetCore.Identity.EntityFrameworkCore (10.0.11), Microsoft.AspNetCore.OpenApi (10.0.11), Microsoft.EntityFrameworkCore.Design (10.0.11), Npgsql.EntityFrameworkCore.PostgreSQL (10.0.3), Scalar.AspNetCore (2.17.2) (+1 more)
+Cohesion: 0.05
+Nodes (64): RFC-7807, login(), logout(), refresh(), createCustomer(), getCustomer(), listCustomers(), updateCustomer() (+56 more)
 
 ### Community 29 - "Community 29"
-Cohesion: 0.22
-Nodes (5): Exception, BadRequestException, ConflictException, NotFoundException, UnauthorizedException
+Cohesion: 0.12
+Nodes (9): BadRequestException, ConflictException, NotFoundException, UnauthorizedException, Exception, BadRequestException, ConflictException, NotFoundException (+1 more)
 
 ### Community 30 - "Community 30"
 Cohesion: 0.31
 Nodes (3): AuthResponseDto, LoginRequest, AuthController
 
 ### Community 32 - "Community 32"
-Cohesion: 0.29
-Nodes (7): eslint, eslint-config-prettier, devDependencies, eslint, eslint-config-prettier, @types/node, @types/node
+Cohesion: 0.67
+Nodes (3): eslint, eslint, eslint
 
 ### Community 33 - "Community 33"
 Cohesion: 0.33
@@ -370,28 +298,333 @@ Cohesion: 0.40
 Nodes (4): printWidth, $schema, semi, singleQuote
 
 ### Community 35 - "Community 35"
+Cohesion: 0.05
+Nodes (48): CreateStockMovementRequest, StockMovementDto, DateTimeOffset, UpdateStockMovementRequest, IStockMovementService, List, Task, StockMovementRules (+40 more)
+
+### Community 37 - "Community 37"
+Cohesion: 0.25
+Nodes (4): ExceptionHandlingMiddleware, Task, HttpContext, ExceptionHandlingMiddleware
+
+### Community 38 - "Community 38"
+Cohesion: 0.18
+Nodes (7): DatabaseCollection, string, PostgresDatabaseFixture, Task, UserManager, ICollectionFixture, DatabaseCollection
+
+### Community 39 - "Community 39"
+Cohesion: 0.12
+Nodes (12): AccessTokenResult, ITokenService, TimeSpan, TokenService, TimeSpan, AppUser, DateTimeOffset, Guid (+4 more)
+
+### Community 40 - "Community 40"
+Cohesion: 0.33
+Nodes (6): eslint-plugin-oxlint, devDependencies, eslint-plugin-oxlint, vue-eslint-parser, vue-eslint-parser, vue-eslint-parser
+
+### Community 41 - "Community 41"
+Cohesion: 0.67
+Nodes (3): eslint-plugin-vue, eslint-plugin-vue, eslint-plugin-vue
+
+### Community 42 - "Community 42"
+Cohesion: 0.67
+Nodes (3): jiti, jiti, jiti
+
+### Community 43 - "Community 43"
+Cohesion: 0.67
+Nodes (3): jsdom, jsdom, jsdom
+
+### Community 44 - "Community 44"
+Cohesion: 0.67
+Nodes (3): npm-run-all2, npm-run-all2, npm-run-all2
+
+### Community 45 - "Community 45"
+Cohesion: 0.67
+Nodes (3): oxlint, oxlint, oxlint
+
+### Community 46 - "Community 46"
+Cohesion: 0.67
+Nodes (3): prettier, prettier, prettier
+
+### Community 47 - "Community 47"
+Cohesion: 0.67
+Nodes (3): @tsconfig/node24, @tsconfig/node24, @tsconfig/node24
+
+### Community 48 - "Community 48"
+Cohesion: 0.67
+Nodes (3): @types/jsdom, @types/jsdom, @types/jsdom
+
+### Community 49 - "Community 49"
+Cohesion: 0.67
+Nodes (3): typescript, typescript, typescript
+
+### Community 50 - "Community 50"
+Cohesion: 0.67
+Nodes (3): vite, vite, vite
+
+### Community 51 - "Community 51"
+Cohesion: 0.67
+Nodes (3): vite-plugin-pwa, vite-plugin-pwa, vite-plugin-pwa
+
+### Community 52 - "Community 52"
+Cohesion: 0.67
+Nodes (3): vite-plugin-vue-devtools, vite-plugin-vue-devtools, vite-plugin-vue-devtools
+
+### Community 53 - "Community 53"
+Cohesion: 0.67
+Nodes (3): vite-plugin-vuetify, vite-plugin-vuetify, vite-plugin-vuetify
+
+### Community 54 - "Community 54"
+Cohesion: 0.67
+Nodes (3): @vitejs/plugin-vue, @vitejs/plugin-vue, @vitejs/plugin-vue
+
+### Community 55 - "Community 55"
+Cohesion: 0.67
+Nodes (3): vitest, vitest, vitest
+
+### Community 56 - "Community 56"
+Cohesion: 0.67
+Nodes (3): @vitest/eslint-plugin, @vitest/eslint-plugin, @vitest/eslint-plugin
+
+### Community 57 - "Community 57"
+Cohesion: 0.67
+Nodes (3): @vue/eslint-config-typescript, @vue/eslint-config-typescript, @vue/eslint-config-typescript
+
+### Community 58 - "Community 58"
+Cohesion: 0.08
+Nodes (28): AddStockUnitsRequest, List, StockUnitDto, IStockUnitService, List, Task, StockUnitService, List (+20 more)
+
+### Community 59 - "Community 59"
+Cohesion: 0.25
+Nodes (8): @vue/test-utils, vue-tsc, devDependencies, eslint-plugin-oxlint, @vue/test-utils, vue-tsc, @vue/test-utils, vue-tsc
+
+### Community 60 - "Community 60"
+Cohesion: 0.09
+Nodes (21): CreateProductRequest, ProductDto, UpdateProductRequest, IProductService, List, Task, ProductService, List (+13 more)
+
+### Community 61 - "Community 61"
+Cohesion: 0.67
+Nodes (3): @vue/tsconfig, @vue/tsconfig, @vue/tsconfig
+
+### Community 63 - "Community 63"
+Cohesion: 0.09
+Nodes (25): CreateProductionBatchRequest, DateOnly, ProductionBatchDto, DateOnly, UpdateProductionBatchRequest, DateOnly, IProductionBatchService, List (+17 more)
+
+### Community 64 - "Community 64"
+Cohesion: 0.10
+Nodes (21): CreateCustomerRequest, CustomerDto, UpdateCustomerRequest, CustomerService, List, Task, ICustomerService, List (+13 more)
+
+### Community 65 - "Community 65"
+Cohesion: 0.06
+Nodes (30): 10. Hypothèses et contraintes, 11. Risques, 12. Questions ouvertes, 13. Glossaire, 1. Résumé exécutif, 2.1 Situation actuelle, 2.2 Points de douleur identifiés, 2.3 Opportunité (+22 more)
+
+### Community 66 - "Community 66"
+Cohesion: 0.08
+Nodes (26): addFullSaleToCart(), canSave, CartLine, clearPending(), client, clientResults, confirmSlice(), { data: customers } (+18 more)
+
+### Community 100 - "Community 100"
+Cohesion: 0.11
+Nodes (12): ADR-0009, config, props, useAuthStore, useCounterStore, { data: customers, loading, error }, filtered, groups (+4 more)
+
+### Community 102 - "Community 102"
+Cohesion: 0.22
+Nodes (7): auth, email, errorMessage, password, route, router, submitting
+
+### Community 103 - "Community 103"
+Cohesion: 0.07
+Nodes (26): 1. Conventions, 2. Vue d'ensemble, 3.1 `app_user`, 3.2 ~~`unit_of_measure`~~ — supprimée (2026-09-04), 3.3 `product`, 3.4 `production_batch`, 3.5 `stock_unit`, 3.6 `customer` (+18 more)
+
+### Community 104 - "Community 104"
+Cohesion: 0.22
+Nodes (8): currentYear, { data: allSales, loading, error }, filtered, groups, MonthGroup, query, yearRevenue, yearSales
+
+### Community 106 - "Community 106"
+Cohesion: 0.09
+Nodes (21): 10. Façon de travailler (accords), 11. Questions ouvertes, 12. Système de design (« Kraft »), 1. En une phrase, 2. État d'avancement & feuille de route, 3. Carte de la documentation, 4. Pile technique, 5. Structure du dépôt (cible) (+13 more)
+
+### Community 107 - "Community 107"
+Cohesion: 0.10
+Nodes (15): batchDateCode, canSave, { data: productCatalog, loading: loadingCatalog, error: catalogError }, isPiece, isWeight, nextBatchPreview, product, router (+7 more)
+
+### Community 108 - "Community 108"
+Cohesion: 0.32
+Nodes (5): AuthServiceTests, Fact, string, Task, UserManager
+
+### Community 109 - "Community 109"
+Cohesion: 0.20
+Nodes (17): formatDateLabel(), formatPriceLabel(), formatWeight(), getStockDashboard(), getStockDetail(), isInStock(), listActiveProducts(), pluralize() (+9 more)
+
+### Community 110 - "Community 110"
+Cohesion: 0.13
+Nodes (15): ASPNETCORE_ENVIRONMENT, applicationUrl, commandName, dotnetRunMessages, environmentVariables, launchBrowser, applicationUrl, commandName (+7 more)
+
+### Community 111 - "Community 111"
+Cohesion: 0.20
+Nodes (8): AuthResponseDto, DateTimeOffset, LoginRequest, ActionResult, DateTimeOffset, HttpPost, IActionResult, Task
+
+### Community 112 - "Community 112"
+Cohesion: 0.14
+Nodes (12): canSave, customerId, { data: customer, loading, error, reload }, { data: sales }, dirty, lastSaleLabel, props, salesSorted (+4 more)
+
+### Community 113 - "Community 113"
+Cohesion: 0.15
+Nodes (9): canSave, { data: product, loading, error, reload }, { data: stockSummary }, dirty, props, saveError, saving, state (+1 more)
+
+### Community 114 - "Community 114"
+Cohesion: 0.33
+Nodes (5): AuthResult, AuthService, Guid, string, Task
+
+### Community 115 - "Community 115"
+Cohesion: 0.18
+Nodes (11): scripts, build, build-only, dev, format, lint, lint:eslint, lint:oxlint (+3 more)
+
+### Community 116 - "Community 116"
+Cohesion: 0.18
+Nodes (10): Compile and Hot-Reload for Development, Customize configuration, Lint with [ESLint](https://eslint.org/), Project Setup, Recommended Browser Setup, Recommended IDE Setup, Run Unit Tests with [Vitest](https://vitest.dev/), Type-Check, Compile and Minify for Production (+2 more)
+
+### Community 117 - "Community 117"
+Cohesion: 0.18
+Nodes (11): scripts, build, build-only, dev, format, lint, lint:eslint, lint:oxlint (+3 more)
+
+### Community 118 - "Community 118"
+Cohesion: 0.20
+Nodes (8): batchDateCode, batchPreview, canSave, modeHint, router, saveError, saving, state
+
+### Community 120 - "Community 120"
+Cohesion: 0.28
+Nodes (4): app, phosphor, phosphorIcons, router
+
+### Community 121 - "Community 121"
+Cohesion: 0.22
+Nodes (3): Migration, InitialCreate, AddUnitOfMeasureUniqueIndexes
+
+### Community 122 - "Community 122"
+Cohesion: 0.25
+Nodes (4): AuthController, string, ControllerBase, ProductionBatchesController
+
+### Community 123 - "Community 123"
+Cohesion: 0.25
+Nodes (4): AppDbContextModelSnapshot, ModelBuilder, AppDbContextModelSnapshot, ModelSnapshot
+
+### Community 124 - "Community 124"
+Cohesion: 0.29
+Nodes (6): engines, node, name, private, type, version
+
+### Community 125 - "Community 125"
+Cohesion: 0.43
+Nodes (5): CustomerGroup, customerInitials(), customerSortKey(), groupCustomersByLetter(), stripDiacritics()
+
+### Community 126 - "Community 126"
+Cohesion: 0.29
+Nodes (5): canSave, router, saveError, saving, state
+
+### Community 127 - "Community 127"
+Cohesion: 0.29
+Nodes (5): { data: sale, loading, error, reload }, lineViews, props, saleId, togglingPayment
+
+### Community 131 - "Community 131"
+Cohesion: 0.29
+Nodes (6): engines, node, name, private, type, version
+
+### Community 133 - "Community 133"
+Cohesion: 0.33
+Nodes (5): Décisions restant à trancher, Index des décisions, Journal des décisions d'architecture (ADR) — Mini-ERP Charcuterie, Synthèse de la pile technique retenue, À propos de ce document
+
+### Community 134 - "Community 134"
+Cohesion: 0.33
+Nodes (6): ADR-006 — Bibliothèque de composants UI (Vuetify ou PrimeVue), Alternatives écartées, Alternatives écartées, Conséquences, Contexte, Décision
+
+### Community 135 - "Community 135"
+Cohesion: 0.33
+Nodes (4): closeError, closingId, {
+  data: detail,
+  loading,
+  error,
+  reload,
+}, props
+
+### Community 137 - "Community 137"
+Cohesion: 0.33
+Nodes (5): categories, correctness, env, browser, $schema
+
+### Community 144 - "Community 144"
+Cohesion: 0.40
+Nodes (5): ADR-001 — Architecture applicative client-serveur (sans mode hors-ligne), Alternatives écartées, Conséquences, Contexte, Décision
+
+### Community 145 - "Community 145"
+Cohesion: 0.40
+Nodes (5): ADR-002 — Hébergement auto-géré (self-hosted) plutôt que managé (BaaS), Alternatives écartées, Conséquences, Contexte, Décision
+
+### Community 146 - "Community 146"
+Cohesion: 0.40
+Nodes (5): ADR-003 — Séparation frontend / backend via un contrat d'API REST, Alternatives écartées, Conséquences, Contexte, Décision
+
+### Community 147 - "Community 147"
+Cohesion: 0.40
+Nodes (5): ADR-004 — Backend en ASP.NET Core (C#), Alternatives écartées, Conséquences, Contexte, Décision
+
+### Community 148 - "Community 148"
+Cohesion: 0.40
+Nodes (5): ADR-005 — Frontend en Vue 3 + TypeScript, packagé en PWA, Alternatives écartées, Conséquences, Contexte, Décision
+
+### Community 149 - "Community 149"
+Cohesion: 0.40
+Nodes (5): ADR-007 — PostgreSQL comme système de gestion de base de données, Alternatives écartées, Conséquences, Contexte, Décision
+
+### Community 150 - "Community 150"
+Cohesion: 0.40
+Nodes (5): ADR-008 — Entity Framework Core + Npgsql comme couche d'accès aux données, Alternatives écartées, Conséquences, Contexte, Décision
+
+### Community 151 - "Community 151"
+Cohesion: 0.40
+Nodes (5): ADR-009 — Authentification par jetons JWT, adossée à ASP.NET Core Identity, Alternatives écartées, Conséquences, Contexte, Décision
+
+### Community 152 - "Community 152"
+Cohesion: 0.40
+Nodes (5): ADR-010 — Déploiement conteneurisé (Docker Compose + reverse proxy HTTPS), Alternatives écartées, Conséquences, Contexte, Décision
+
+### Community 153 - "Community 153"
+Cohesion: 0.60
+Nodes (4): listSellableLots(), SellableLot, unitDetail(), unitPrice()
+
+### Community 155 - "Community 155"
+Cohesion: 0.40
+Nodes (4): printWidth, $schema, semi, singleQuote
+
+### Community 162 - "Community 162"
 Cohesion: 0.50
-Nodes (3): DbSet, IdentityUserContext, AppDbContext
+Nodes (3): now, todayDate, todayWeekday
+
+### Community 163 - "Community 163"
+Cohesion: 0.50
+Nodes (3): config, current, props
+
+### Community 165 - "Community 165"
+Cohesion: 0.67
+Nodes (3): eslint-config-prettier, eslint-config-prettier, eslint-config-prettier
+
+### Community 166 - "Community 166"
+Cohesion: 0.67
+Nodes (3): @mdi/font, @mdi/font, @mdi/font
+
+### Community 167 - "Community 167"
+Cohesion: 0.67
+Nodes (3): @types/node, @types/node, @types/node
 
 ## Knowledge Gaps
-- **209 isolated node(s):** `AddStockUnitsRequest`, `CreateCustomerRequest`, `CreateProductRequest`, `CreateProductionBatchRequest`, `CreateStockMovementRequest` (+204 more)
+- **437 isolated node(s):** `net10.0`, `EFCore.NamingConventions (10.0.1)`, `Microsoft.AspNetCore.Authentication.JwtBearer (10.0.11)`, `Microsoft.AspNetCore.Identity.EntityFrameworkCore (10.0.11)`, `Microsoft.AspNetCore.OpenApi (10.0.11)` (+432 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **211 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **68 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Butcher.Api.Application.Dtos` connect `Application DTOs & Services` to `Community 64`, `Community 65`, `Product DTOs & Requests`, `Community 26`, `Community 30`, `Community 63`?**
-  _High betweenness centrality (0.075) - this node is a cross-community bridge._
-- **Why does `Butcher.Api.Application.Services` connect `Application DTOs & Services` to `Community 66`, `Domain Entities & Setup`, `Product DTOs & Requests`, `Community 26`, `Community 27`?**
+- **Why does `Butcher.Api.Application.Dtos` connect `Application DTOs & Services` to `Community 64`, `Community 35`, `Community 26`, `Product DTOs & Requests`, `Community 11`, `Community 111`, `Community 58`, `Community 60`, `Community 30`, `Community 63`?**
+  _High betweenness centrality (0.085) - this node is a cross-community bridge._
+- **Why does `Butcher.Api.Domain.Entities` connect `Domain Entities & Setup` to `Application DTOs & Services`, `Community 35`, `Community 58`, `Community 39`, `Product DTOs & Requests`, `Common Utilities`, `Community 26`?**
+  _High betweenness centrality (0.065) - this node is a cross-community bridge._
+- **Why does `Butcher.Api.Application.Services` connect `Application DTOs & Services` to `Community 132`, `Domain Entities & Setup`, `Product DTOs & Requests`, `Community 39`, `Community 114`, `Community 26`, `Community 27`?**
   _High betweenness centrality (0.063) - this node is a cross-community bridge._
-- **Why does `Butcher.Api.Domain.Entities` connect `Domain Entities & Setup` to `Application DTOs & Services`, `Community 26`, `Product DTOs & Requests`, `Community 39`?**
-  _High betweenness centrality (0.059) - this node is a cross-community bridge._
-- **What connects `AddStockUnitsRequest`, `CreateCustomerRequest`, `CreateProductRequest` to the rest of the system?**
-  _209 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `API Controllers` be split into smaller, more focused modules?**
-  _Cohesion score 0.05263157894736842 - nodes in this community are weakly interconnected._
+- **What connects `net10.0`, `EFCore.NamingConventions (10.0.1)`, `Microsoft.AspNetCore.Authentication.JwtBearer (10.0.11)` to the rest of the system?**
+  _437 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Application DTOs & Services` be split into smaller, more focused modules?**
-  _Cohesion score 0.07823613086770982 - nodes in this community are weakly interconnected._
-- **Should `Service Tests` be split into smaller, more focused modules?**
-  _Cohesion score 0.08333333333333333 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05423728813559322 - nodes in this community are weakly interconnected._
+- **Should `Frontend Dependencies` be split into smaller, more focused modules?**
+  _Cohesion score 0.14705882352941177 - nodes in this community are weakly interconnected._
+- **Should `Domain Entities & Setup` be split into smaller, more focused modules?**
+  _Cohesion score 0.12698412698412698 - nodes in this community are weakly interconnected._
