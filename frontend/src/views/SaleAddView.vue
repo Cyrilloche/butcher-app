@@ -7,9 +7,8 @@ import AppButton from '@/components/base/AppButton.vue'
 import AppTextField from '@/components/base/AppTextField.vue'
 import { listCustomers } from '@/api/customers'
 import { createSale } from '@/api/sales'
-import { listStockMovements } from '@/api/stockMovements'
 import { listSellableLots, type SellableLot } from '@/composables/useSales'
-import { formatWeight } from '@/composables/useStock'
+import { formatWeight, getRemainingWeightKg } from '@/composables/useStock'
 import { useAsyncData } from '@/composables/useAsyncData'
 import { customerFullName } from '@/composables/useCustomers'
 import { ApiError } from '@/api/http'
@@ -76,11 +75,7 @@ async function loadRemainingWeight(lot: SellableLot) {
   if (lot.weight == null) return
   loadingRemaining.value = true
   try {
-    const movements = await listStockMovements({ stockUnitId: lot.stockUnitId })
-    const alreadySold = movements
-      .filter((m) => m.type === 'sale')
-      .reduce((sum, m) => sum + (m.soldWeight ?? 0), 0)
-    remainingWeightKg.value = Math.max(0, lot.weight - alreadySold)
+    remainingWeightKg.value = await getRemainingWeightKg(lot.stockUnitId, lot.weight)
   } finally {
     loadingRemaining.value = false
   }

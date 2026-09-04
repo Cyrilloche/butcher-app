@@ -1,6 +1,7 @@
 import { listProducts } from '@/api/products'
 import { listProductionBatches } from '@/api/productionBatches'
 import { listStockUnits } from '@/api/stockUnits'
+import { listStockMovements } from '@/api/stockMovements'
 import type { ProductDto, ProductionBatchDto, StockUnitDto, SaleMode } from '@/api/types'
 
 export type { SaleMode }
@@ -32,6 +33,8 @@ export interface StockDashboardProduct {
 export interface StockDetailUnit {
   id: number
   number: string
+  /** Poids pesé en kg (null pour un produit à la pièce) — sert aux mouvements de sortie. */
+  weightKg: number | null
   weightLabel: string | null
   status: StockUnitStatus
 }
@@ -199,6 +202,7 @@ export async function getStockDetail(code: string): Promise<StockDetail | null> 
             return {
               id: unit.id,
               number,
+              weightKg: unit.weight,
               weightLabel: unit.weight != null ? formatWeight(grams) : null,
               status: unit.status,
             }
@@ -213,4 +217,25 @@ export async function getStockDetail(code: string): Promise<StockDetail | null> 
   if (product.saleMode === 'by_weight' && totalGrams > 0) summaryParts.push(formatWeight(totalGrams))
 
   return { name: product.name, summary: summaryParts.join(' · '), batches }
+}
+
+/**
+ * Poids restant estimé (kg) d'une unité : poids pesé − somme des poids déjà vendus
+ * (RG-05 : le restant n'est pas une donnée stockée, il se recalcule à la demande).
+ * `null` pour un produit à la pièce, où la notion de poids n'existe pas.
+ *
+ * Indicatif côté client : le backend revalide et fait foi.
+ */
+export async function getRemainingWeightKg(
+  stockUnitId: number,
+  unitWeightKg: number | null,
+): Promise<number | null> {
+  if (unitWeightKg == null) return null
+  const movements = await listStockMovements({ stockUnitId })
+  const alreadySold = movements
+    .filter((m) => m.type === 'sale')
+    .reduce((sum, m) => sum + (m.soldWeight ?? 0), 0)
+  // Arrondi au gramme : le poids est un decimal(10,3) côté base, et la soustraction
+  // de flottants produirait sinon des valeurs du type 0.30000000000000004.
+  return Math.max(0, Math.round((unitWeightKg - alreadySold) * 1000) / 1000)
 }

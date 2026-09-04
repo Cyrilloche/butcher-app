@@ -20,6 +20,8 @@ import {
   PhCheckCircle,
   PhClock,
   PhSignOut,
+  PhDotsThreeVertical,
+  PhHouse,
 } from '@phosphor-icons/vue'
 
 /**
@@ -47,6 +49,8 @@ const phosphorIcons: Record<string, unknown> = {
   'check-circle': PhCheckCircle,
   clock: PhClock,
   'sign-out': PhSignOut,
+  'dots-three-vertical': PhDotsThreeVertical,
+  house: PhHouse,
 }
 
 export const phosphor: IconSet = {

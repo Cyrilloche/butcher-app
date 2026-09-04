@@ -41,7 +41,7 @@ C'est le motif dominant : le backend sait faire, l'utilisateur ne peut pas le d�
 
 | # | Exigence | État backend | État frontend | Gravité |
 |---|---|---|---|---|
-| E-01 | **RF-21** — marquer une unité en `perso` (autoconsommation) ou `perdu` | ✅ `POST /api/stock-units/{id}/movements` accepte `personal` / `loss` | ❌ **aucun écran ne le déclenche** — seul le badge de statut connaît ces valeurs | **Bloquant V1** : le périmètre V1 (PRD §4.1) annonce explicitement « sorties personnelles et pertes » |
+| E-01 | **RF-21** — marquer une unité en `perso` (autoconsommation) ou `perdu` | ✅ `POST /api/stock-units/{id}/movements` accepte `personal` / `loss` | ✅ **traité le 2026-09-04** — menu d'actions par unité dans Détail Stock (`StockUnitOutcomeMenu.vue`), avec confirmation | Clos |
 | E-02 | **RF-08 / RF-09** — référence matière première et DLC d'un lot | ✅ colonnes `raw_material_ref`, `expiry_date` | ❌ non saisissables dans « Ajout Stock » | Moyenne : données de traçabilité perdues à la saisie |
 | E-03 | **RG-10** — lot partiellement modifiable après création | ✅ `PUT /api/production-batches/{id}` | ❌ aucun écran d'édition de lot | Moyenne : une erreur de prix ne se corrige pas depuis l'app |
 | E-04 | **RG-14** — vente modifiable et supprimable | ✅ `PUT` et `DELETE /api/sales/{id}` | ❌ seul le paiement est modifiable | Moyenne : une vente saisie par erreur est définitive côté utilisateur |
@@ -75,7 +75,7 @@ C'est le motif dominant : le backend sait faire, l'utilisateur ne peut pas le d�
 
 Dans l'ordre de valeur décroissante :
 
-1. **E-01 — sorties `perso` et `perte` depuis l'interface.** Le seul écart qui empêche d'affirmer que la Vague 1 est livrée : c'est une exigence explicite du périmètre V1 et un geste du quotidien (un jambon qui tourne, une part consommée à la maison). Un bouton sur le détail d'une unité suffit.
+1. ~~**E-01 — sorties `perso` et `perte` depuis l'interface.**~~ ✅ **Fait le 2026-09-04** : menu d'actions sur chaque unité de Détail Stock (usage perso, perte, clôture), confirmation obligatoire, poids enregistré = **restant estimé** et non poids d'origine (voir §7).
 2. **E-04 — corriger ou supprimer une vente.** Filet de rattrapage d'une saisie erronée, dans une app utilisée par des personnes non techniques qui n'ont aucun autre recours.
 3. **E-02 — DLC et référence matière première à la création d'un lot.** Deux champs facultatifs dans un formulaire existant ; sans eux, la traçabilité annoncée est amputée à la source.
 4. **E-03 — édition d'un lot.** Même logique de rattrapage que E-04, moins fréquente.
@@ -88,3 +88,16 @@ E-05, E-06, E-07 et E-09 relèvent du confort ou de la V2 : à laisser tels quel
 ## 6. Ce que cette analyse ne remet pas en cause
 
 Aucune décision d'architecture n'est contredite par l'implémentation : pas d'ADR à remplacer. Le modèle de données correspond à ce qui tourne (`data-model.md` v0.7), les conventions de nommage sont tenues (`app_user`, `snake_case`, enums en `snake_case`, `decimal` pour l'argent), et les pièges listés en `CLAUDE.md` §9 n'ont pas été commis. L'écart est un **retard du frontend sur le backend**, pas une dérive de conception.
+
+---
+
+## 7. Note d'implémentation — le poids d'une sortie perso/perte
+
+Le backend impose un `sold_weight` strictement positif sur **tout** mouvement d'un produit vendu au poids, y compris `personal` et `loss` (`StockMovementRules.ValidateSoldWeight`). Le client doit donc fournir un poids ; deux valeurs étaient candidates.
+
+- **Le poids pesé de l'unité** : faux dès que l'unité est entamée — la part déjà vendue serait comptée une seconde fois.
+- **Le restant estimé** (poids pesé − somme des `sold_weight` des mouvements de vente) : c'est la valeur retenue. Elle est recalculée à la demande, jamais stockée, ce qui reste conforme à RG-05 (« le poids restant n'est pas suivi » : aucune colonne, aucun affichage permanent).
+
+Ce calcul existait déjà, dupliqué dans « Ajout Vente » ; il est désormais partagé (`getRemainingWeightKg` dans `useStock.ts`) et utilisé par les deux parcours.
+
+Cas limite : une unité entamée dont tout le poids a déjà été vendu a un restant nul. Le backend refuserait un `sold_weight` à zéro ; l'interface le détecte avant l'envoi et oriente vers la clôture (RF-20), qui est le geste correct dans cette situation.

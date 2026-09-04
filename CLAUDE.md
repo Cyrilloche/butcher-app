@@ -14,7 +14,7 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 
 ## 2. État d'avancement & feuille de route
 
-**Phase actuelle : backend Vague 1 complet, socle de déploiement livré (ADR-010), frontend en rattrapage — quelques parcours du périmètre V1 restent à exposer dans l'interface (voir `docs/etat-des-lieux.md`).**
+**Phase actuelle : backend Vague 1 complet, socle de déploiement livré (ADR-010), frontend presque au niveau — les sorties perso/perte sont exposées, restent la correction d'une vente et la saisie DLC/matière première (voir `docs/etat-des-lieux.md`).**
 
 | Étape | Statut |
 |---|---|
@@ -29,7 +29,8 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 | Socle de déploiement (ADR-010) | ✅ **Livré** : Docker Compose de prod, Caddy en reverse proxy, tunnel Cloudflare, images versionnées poussées par la CI, déploiement sur VPS déclenché par tag |
 | Chaîne de release | ✅ Tags `backend-v*` / `frontend-v*`, changelog et notes de release générés par git-cliff (§13) |
 | Vente à la tranche (RF-19/RF-20) | ✅ Vendre/clôturer une unité entamée ; `allow_partial_sale` par produit, garde-fou poids côté serveur |
-| Développement Vague 1 | 🔄 Quasi complet — reste, côté interface, les sorties `perso`/`perte` (RF-21), la correction d'une vente (RG-14) et la saisie DLC/matière première d'un lot (RF-08/RF-09) |
+| Sorties perso / perte (RF-21, RG-12) | ✅ Menu d'actions par unité dans Détail Stock, avec confirmation ; le poids enregistré est le restant estimé |
+| Développement Vague 1 | 🔄 Quasi complet — reste, côté interface, la correction d'une vente (RG-14) et la saisie DLC/matière première d'un lot (RF-08/RF-09) |
 | Analyse d'écart doc ↔ code | ✅ `docs/etat-des-lieux.md` (04/09/2026) |
 
 **Méthode : dé-risquage avant développement.** On valide les points techniques risqués par des *spikes* isolés **avant** de construire les fonctionnalités. Spikes prévus, dans l'ordre :
@@ -232,7 +233,7 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 | RF-27 | `created_by` existe sur `production_batch`, `sale` et `stock_movement` mais **n'est jamais renseigné** : le champ prépare la journalisation V2, il ne la fait pas | Ouvert, non bloquant (compte partagé en V1) |
 | — | Politique de mot de passe Identity (valeurs par défaut, non revues pour 2 utilisateurs non techniques) | Ouvert, non bloquant |
 | — | Stratégie de sauvegarde PostgreSQL (le VPS et le déploiement sont en place) | Ouvert — seul point d'exploitation non traité par ADR-010 |
-| RF-21 | Sorties `perso` / `perte` : implémentées côté API, non déclenchables depuis l'interface | Ouvert, **bloquant pour clore la Vague 1** (voir `docs/etat-des-lieux.md`, E-01) |
+| RF-21 | Sorties `perso` / `perte` | ✅ **Close (2026-09-04)** : exposées dans Détail Stock (`StockUnitOutcomeMenu.vue`) |
 
 ---
 

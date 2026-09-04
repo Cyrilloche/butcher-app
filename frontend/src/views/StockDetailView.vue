@@ -3,10 +3,9 @@ import { ref, watch } from 'vue'
 import AppPageHeader from '@/components/base/AppPageHeader.vue'
 import AppCard from '@/components/base/AppCard.vue'
 import StockUnitRow from '@/components/domain/StockUnitRow.vue'
+import StockUnitOutcomeMenu from '@/components/domain/StockUnitOutcomeMenu.vue'
 import { getStockDetail } from '@/composables/useStock'
-import { closeStockUnit } from '@/api/stockUnits'
 import { useAsyncData } from '@/composables/useAsyncData'
-import { ApiError } from '@/api/http'
 
 const props = defineProps<{ code: string }>()
 
@@ -19,20 +18,13 @@ const {
 
 watch(() => props.code, reload)
 
-const closingId = ref<number | null>(null)
-const closeError = ref<string | null>(null)
+// Sorties de stock (clôture, perso, perte) : le menu porte la logique et la
+// confirmation, la vue ne garde que le rafraîchissement et le message d'erreur.
+const outcomeError = ref<string | null>(null)
 
-async function close(unitId: number) {
-  closingId.value = unitId
-  closeError.value = null
-  try {
-    await closeStockUnit(unitId)
-    await reload()
-  } catch (err) {
-    closeError.value = err instanceof ApiError ? err.message : 'Erreur, réessaie.'
-  } finally {
-    closingId.value = null
-  }
+async function onOutcomeDone() {
+  outcomeError.value = null
+  await reload()
 }
 </script>
 
@@ -47,7 +39,7 @@ async function close(unitId: number) {
 
   <v-container v-else-if="detail" class="stock-detail-view">
     <AppPageHeader to="/" back-label="Stock" :title="detail.name" :subtitle="detail.summary" />
-    <p v-if="closeError" class="text-error stock-detail-view__close-error">{{ closeError }}</p>
+    <p v-if="outcomeError" class="text-error stock-detail-view__outcome-error">{{ outcomeError }}</p>
 
     <div class="stock-detail-view__batches">
       <AppCard v-for="batch in detail.batches" :key="batch.batchNumber" class="stock-detail-view__batch">
@@ -57,16 +49,12 @@ async function close(unitId: number) {
         </div>
         <div>
           <StockUnitRow v-for="unit in batch.units" :key="unit.number" :unit="unit">
-            <template v-if="unit.status === 'opened'" #action>
-              <v-btn
-                size="small"
-                variant="tonal"
-                color="secondary"
-                :loading="closingId === unit.id"
-                @click="close(unit.id)"
-              >
-                Clôturer
-              </v-btn>
+            <template #action>
+              <StockUnitOutcomeMenu
+                :unit="unit"
+                @done="onOutcomeDone"
+                @failed="(message) => (outcomeError = message)"
+              />
             </template>
           </StockUnitRow>
         </div>
@@ -90,7 +78,7 @@ async function close(unitId: number) {
   gap: 16px;
 }
 
-.stock-detail-view__close-error {
+.stock-detail-view__outcome-error {
   font-size: 14px;
   font-weight: 500;
   padding: 0 4px 12px;
