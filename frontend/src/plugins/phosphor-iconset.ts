@@ -10,6 +10,7 @@ import {
   PhMinus,
   PhTrash,
   PhTag,
+  PhStorefront,
 } from '@phosphor-icons/vue'
 
 /**
@@ -27,6 +28,7 @@ const phosphorIcons: Record<string, unknown> = {
   minus: PhMinus,
   trash: PhTrash,
   tag: PhTag,
+  storefront: PhStorefront,
 }
 
 export const phosphor: IconSet = {

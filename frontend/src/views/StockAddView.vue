@@ -144,7 +144,7 @@ function save() {
                 type="number"
                 inputmode="numeric"
                 min="0"
-                :suffix="g"
+                suffix="g"
                 hide-details
                 @keyup.enter="addWeight"
               />
