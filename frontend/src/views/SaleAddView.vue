@@ -1,11 +1,3 @@
-<!--
-  Squelette : pas de statut de paiement (absent du backend, cf.
-  docs/data-model.md §9, QM-04) donc pas de section "Payée / À payer" ici.
-  Le panier de plusieurs lots n'est pas une "vente" atomique côté backend :
-  save() enchaîne un appel POST par lot (un stock_movement chacun),
-  partageant le même client — pas de transaction groupée tant que l'entité
-  `sale` n'existe pas.
--->
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -13,7 +5,7 @@ import AppPageHeader from '@/components/base/AppPageHeader.vue'
 import AppCard from '@/components/base/AppCard.vue'
 import AppButton from '@/components/base/AppButton.vue'
 import { listCustomers } from '@/api/customers'
-import { createStockMovement } from '@/api/stockMovements'
+import { createSale } from '@/api/sales'
 import { listAvailableLots, type AvailableLot } from '@/composables/useSales'
 import { useAsyncData } from '@/composables/useAsyncData'
 import { customerFullName } from '@/composables/useCustomers'
@@ -30,6 +22,7 @@ const state = reactive({
   clientQuery: '',
   lotQuery: '',
   cart: [] as AvailableLot[],
+  paid: true,
 })
 
 const client = computed<CustomerDto | null>(() => customers.value.find((c) => c.id === state.customerId) ?? null)
@@ -75,14 +68,15 @@ async function save() {
   saving.value = true
   saveError.value = null
   try {
-    for (const lot of state.cart) {
-      await createStockMovement(lot.stockUnitId, {
-        type: 'sale',
+    await createSale({
+      customerId: client.value.id,
+      paid: state.paid,
+      lines: state.cart.map((lot) => ({
+        stockUnitId: lot.stockUnitId,
         isFullSale: true,
         amount: lot.price,
-        customerId: client.value.id,
-      })
-    }
+      })),
+    })
     await router.push('/sales')
   } catch (err) {
     saveError.value = err instanceof ApiError ? err.message : "Erreur lors de l'enregistrement, réessaie."
@@ -174,6 +168,30 @@ async function save() {
         <p v-else-if="state.lotQuery.trim().length >= 2" class="text-secondary sale-add-view__no-results">
           Aucun lot disponible ne correspond.
         </p>
+      </AppCard>
+
+      <AppCard>
+        <div class="sale-add-view__section-title text-secondary">3. Le paiement</div>
+        <div class="sale-add-view__payment">
+          <button
+            type="button"
+            class="sale-add-view__payment-option"
+            :class="{ 'sale-add-view__payment-option--paid': state.paid }"
+            @click="state.paid = true"
+          >
+            <v-icon size="22">phosphor:check-circle</v-icon>
+            Payée
+          </button>
+          <button
+            type="button"
+            class="sale-add-view__payment-option"
+            :class="{ 'sale-add-view__payment-option--pending': !state.paid }"
+            @click="state.paid = false"
+          >
+            <v-icon size="22">phosphor:clock</v-icon>
+            À payer
+          </button>
+        </div>
       </AppCard>
     </div>
 
@@ -324,6 +342,41 @@ async function save() {
 .sale-add-view__cart-info {
   flex: 1;
   min-width: 0;
+}
+
+.sale-add-view__payment {
+  display: flex;
+  gap: 10px;
+}
+
+.sale-add-view__payment-option {
+  flex: 1;
+  border: 2px solid rgb(var(--v-theme-field-border));
+  background: rgb(var(--v-theme-field-surface));
+  color: rgb(var(--v-theme-on-surface));
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 500;
+  padding: 12px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.sale-add-view__payment-option--paid {
+  border-color: rgb(var(--v-theme-success));
+  background: rgb(var(--v-theme-success));
+  color: rgb(var(--v-theme-surface));
+}
+
+.sale-add-view__payment-option--pending {
+  border-color: rgb(var(--v-theme-warning));
+  background: rgb(var(--v-theme-warning-container));
+  color: rgb(var(--v-theme-warning));
 }
 
 .sale-add-view__save-error {

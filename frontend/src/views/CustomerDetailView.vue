@@ -5,28 +5,24 @@ import AppCard from '@/components/base/AppCard.vue'
 import AppTextField from '@/components/base/AppTextField.vue'
 import AppButton from '@/components/base/AppButton.vue'
 import { getCustomer, updateCustomer } from '@/api/customers'
-import { listStockMovements } from '@/api/stockMovements'
+import { listSales } from '@/api/sales'
 import { useAsyncData } from '@/composables/useAsyncData'
 import { ApiError } from '@/api/http'
+import type { SaleDto } from '@/api/types'
 
 const props = defineProps<{ id: string }>()
 const customerId = computed(() => Number(props.id))
 
 const { data: customer, loading, error, reload } = useAsyncData(() => getCustomer(customerId.value), null)
 
-// Pas d'entité "vente" groupée côté backend (QM-04, docs/data-model.md §9) : on
-// liste les mouvements de vente individuels, pas des "commandes" regroupées.
-const { data: sales } = useAsyncData(
-  () => listStockMovements({ customerId: customerId.value }).then((all) => all.filter((m) => m.type === 'sale')),
-  [],
-)
+const { data: sales } = useAsyncData(() => listSales({ customerId: customerId.value }), [] as SaleDto[])
 
 watch(customerId, reload)
 
 const salesSorted = computed(() =>
   [...sales.value].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
 )
-const salesTotal = computed(() => sales.value.reduce((sum, m) => sum + (m.amount ?? 0), 0))
+const salesTotal = computed(() => sales.value.reduce((sum, s) => sum + s.total, 0))
 const lastSaleLabel = computed(() => {
   if (salesSorted.value.length === 0) return '—'
   return new Date(salesSorted.value[0]!.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
@@ -135,14 +131,24 @@ async function save() {
       <AppCard v-if="salesSorted.length > 0">
         <div class="customer-detail-view__section-title text-secondary">Dernières ventes</div>
         <div>
-          <div v-for="sale in salesSorted" :key="sale.id" class="customer-detail-view__sale-row">
-            <div class="customer-detail-view__sale-date">
-              {{ new Date(sale.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) }}
+          <RouterLink
+            v-for="sale in salesSorted"
+            :key="sale.id"
+            :to="`/sales/${sale.id}`"
+            class="customer-detail-view__sale-row"
+          >
+            <div class="customer-detail-view__sale-info">
+              <div class="customer-detail-view__sale-date">
+                {{ new Date(sale.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) }}
+              </div>
+              <div class="text-secondary">{{ sale.saleNumber }}</div>
             </div>
+            <span v-if="!sale.paid" class="customer-detail-view__pending">À payer</span>
             <div class="customer-detail-view__sale-amount">
-              {{ (sale.amount ?? 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} €
+              {{ sale.total.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} €
             </div>
-          </div>
+            <v-icon size="16" class="customer-detail-view__sale-caret">phosphor:caret-right</v-icon>
+          </RouterLink>
         </div>
       </AppCard>
     </div>
@@ -239,15 +245,21 @@ async function save() {
 .customer-detail-view__sale-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   min-height: 52px;
   border-top: 1px solid rgb(var(--v-theme-status-neutral-container));
   padding: 8px 0;
+  text-decoration: none;
+  color: rgb(var(--v-theme-on-surface));
 }
 
 .customer-detail-view__sale-row:first-child {
   border-top: none;
+}
+
+.customer-detail-view__sale-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .customer-detail-view__sale-date {
@@ -255,10 +267,26 @@ async function save() {
   font-weight: 600;
 }
 
+.customer-detail-view__pending {
+  background: rgb(var(--v-theme-warning-container));
+  color: rgb(var(--v-theme-warning));
+  font-size: 13px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
 .customer-detail-view__sale-amount {
   font-size: 17px;
   font-weight: 600;
   color: rgb(var(--v-theme-success));
+  flex-shrink: 0;
+}
+
+.customer-detail-view__sale-caret {
+  color: rgb(var(--v-theme-status-neutral));
+  flex-shrink: 0;
 }
 
 .customer-detail-view__save-error {

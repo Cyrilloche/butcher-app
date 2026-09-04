@@ -1,54 +1,46 @@
-<!--
-  Squelette : pas d'entité "vente" groupée côté backend (numéro, statut de
-  paiement, plusieurs lots par vente — cf. docs/data-model.md §9, QM-04).
-  Chaque ligne ici est un stock_movement de type "sale" individuel, pas une
-  "vente" au sens de la maquette. À revoir une fois l'entité ajoutée.
--->
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import AppFab from '@/components/base/AppFab.vue'
 import AppBrandHeader from '@/components/base/AppBrandHeader.vue'
-import { listStockMovements } from '@/api/stockMovements'
+import { listSales } from '@/api/sales'
 import { useAsyncData } from '@/composables/useAsyncData'
+import type { SaleDto } from '@/api/types'
 
-const { data: allMovements, loading, error } = useAsyncData(
-  () => listStockMovements().then((all) => all.filter((m) => m.type === 'sale')),
-  [],
-)
+const { data: allSales, loading, error } = useAsyncData(listSales, [] as SaleDto[])
 
 const query = ref('')
 const filtered = computed(() => {
   const q = query.value.trim().toLowerCase()
-  if (!q) return allMovements.value
-  return allMovements.value.filter((m) => (m.customerName ?? '').toLowerCase().includes(q))
+  if (!q) return allSales.value
+  return allSales.value.filter(
+    (s) => s.customerName.toLowerCase().includes(q) || s.saleNumber.toLowerCase().includes(q),
+  )
 })
 
 const currentYear = new Date().getFullYear()
-const yearMovements = computed(() =>
-  allMovements.value.filter((m) => new Date(m.date).getFullYear() === currentYear),
-)
-const yearRevenue = computed(() => yearMovements.value.reduce((sum, m) => sum + (m.amount ?? 0), 0))
+const yearSales = computed(() => allSales.value.filter((s) => new Date(s.date).getFullYear() === currentYear))
+const yearRevenue = computed(() => yearSales.value.reduce((sum, s) => sum + s.total, 0))
 
 interface MonthGroup {
   label: string
   subtotal: number
-  movements: typeof allMovements.value
+  sales: SaleDto[]
 }
 
 const groups = computed<MonthGroup[]>(() => {
-  const byMonth = new Map<string, typeof allMovements.value>()
-  for (const m of [...filtered.value].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())) {
-    const key = m.date.slice(0, 7)
+  const byMonth = new Map<string, SaleDto[]>()
+  for (const s of [...filtered.value].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())) {
+    const key = s.date.slice(0, 7)
     const list = byMonth.get(key) ?? []
-    list.push(m)
+    list.push(s)
     byMonth.set(key, list)
   }
   return [...byMonth.entries()]
     .sort((a, b) => b[0].localeCompare(a[0]))
-    .map(([key, movements]) => ({
+    .map(([key, sales]) => ({
       label: new Date(`${key}-15`).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }),
-      subtotal: movements.reduce((sum, m) => sum + (m.amount ?? 0), 0),
-      movements,
+      subtotal: sales.reduce((sum, s) => sum + s.total, 0),
+      sales,
     }))
 })
 </script>
@@ -68,14 +60,14 @@ const groups = computed<MonthGroup[]>(() => {
         </div>
         <div class="sales-view__divider" />
         <div class="sales-view__stat">
-          <div class="sales-view__stat-value">{{ yearMovements.length }}</div>
+          <div class="sales-view__stat-value">{{ yearSales.length }}</div>
           <div class="sales-view__stat-label text-secondary">ventes en {{ currentYear }}</div>
         </div>
       </div>
 
       <div class="sales-view__search">
         <v-icon size="20">phosphor:magnifying-glass</v-icon>
-        <input v-model="query" type="text" placeholder="Client" class="sales-view__search-input" />
+        <input v-model="query" type="text" placeholder="Client ou n° de vente" class="sales-view__search-input" />
       </div>
     </header>
 
@@ -92,15 +84,17 @@ const groups = computed<MonthGroup[]>(() => {
           </div>
         </div>
         <div class="sales-view__list">
-          <RouterLink v-for="m in group.movements" :key="m.id" :to="`/sales/${m.id}`" class="sales-view__row">
+          <RouterLink v-for="s in group.sales" :key="s.id" :to="`/sales/${s.id}`" class="sales-view__row">
             <div class="sales-view__row-info">
-              <div class="sales-view__row-client">{{ m.customerName ?? 'Client inconnu' }}</div>
+              <div class="sales-view__row-client">{{ s.customerName }}</div>
               <div class="text-secondary">
-                {{ new Date(m.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) }}
+                {{ s.saleNumber }} ·
+                {{ new Date(s.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) }}
               </div>
             </div>
+            <span v-if="!s.paid" class="sales-view__pending">À payer</span>
             <div class="sales-view__row-amount">
-              {{ (m.amount ?? 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} €
+              {{ s.total.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} €
             </div>
           </RouterLink>
         </div>
@@ -247,6 +241,19 @@ const groups = computed<MonthGroup[]>(() => {
   font-weight: 600;
   font-size: 19px;
   line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sales-view__pending {
+  background: rgb(var(--v-theme-warning-container));
+  color: rgb(var(--v-theme-warning));
+  font-size: 13px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  flex-shrink: 0;
 }
 
 .sales-view__row-amount {

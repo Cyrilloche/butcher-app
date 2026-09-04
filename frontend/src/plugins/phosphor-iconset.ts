@@ -17,6 +17,8 @@ import {
   PhMagnifyingGlass,
   PhXCircle,
   PhCaretRight,
+  PhCheckCircle,
+  PhClock,
 } from '@phosphor-icons/vue'
 
 /**
@@ -41,6 +43,8 @@ const phosphorIcons: Record<string, unknown> = {
   'magnifying-glass': PhMagnifyingGlass,
   'x-circle': PhXCircle,
   'caret-right': PhCaretRight,
+  'check-circle': PhCheckCircle,
+  clock: PhClock,
 }
 
 export const phosphor: IconSet = {

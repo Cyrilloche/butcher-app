@@ -1,29 +1,58 @@
-<!--
-  Squelette : route sur l'id technique du stock_movement (pas de numéro de
-  vente — cf. docs/data-model.md §9, QM-04). Une "vente" ici = un seul
-  mouvement, pas plusieurs lots regroupés comme dans la maquette.
--->
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import AppPageHeader from '@/components/base/AppPageHeader.vue'
 import AppCard from '@/components/base/AppCard.vue'
-import { getStockMovement } from '@/api/stockMovements'
+import AppButton from '@/components/base/AppButton.vue'
+import { getSale, setSalePayment } from '@/api/sales'
 import { getStockUnit } from '@/api/stockUnits'
 import { listProducts } from '@/api/products'
 import { useAsyncData } from '@/composables/useAsyncData'
 import { formatWeight } from '@/composables/useStock'
+import type { StockMovementDto } from '@/api/types'
 
 const props = defineProps<{ id: string }>()
-const movementId = computed(() => Number(props.id))
+const saleId = computed(() => Number(props.id))
 
-const { data: sale, loading, error } = useAsyncData(async () => {
-  const movement = await getStockMovement(movementId.value)
-  const unit = await getStockUnit(movement.stockUnitId)
-  const productCode = unit.batchNumber.split('-')[0]
+interface SaleLineView {
+  movement: StockMovementDto
+  productName: string
+  detail: string
+}
+
+const { data: sale, loading, error, reload } = useAsyncData(() => getSale(saleId.value), null)
+
+const lineViews = ref<SaleLineView[]>([])
+watch(sale, async (s) => {
+  if (!s) {
+    lineViews.value = []
+    return
+  }
   const products = await listProducts(true)
-  const product = products.find((p) => p.code === productCode)
-  return { movement, unit, productName: product?.name ?? productCode }
-}, null)
+  lineViews.value = await Promise.all(
+    s.lines.map(async (movement) => {
+      const unit = await getStockUnit(movement.stockUnitId)
+      const productCode = unit.batchNumber.split('-')[0]
+      const product = products.find((p) => p.code === productCode)
+      return {
+        movement,
+        productName: product?.name ?? productCode ?? '—',
+        detail: `${unit.batchNumber} · ${unit.weight != null ? formatWeight(Math.round(unit.weight * 1000)) : 'À la pièce'}`,
+      }
+    }),
+  )
+})
+
+const togglingPayment = ref(false)
+async function markPaid() {
+  if (!sale.value) return
+  togglingPayment.value = true
+  try {
+    await setSalePayment(sale.value.id, { paid: true })
+    await reload()
+  } finally {
+    togglingPayment.value = false
+  }
+}
 </script>
 
 <template>
@@ -36,42 +65,51 @@ const { data: sale, loading, error } = useAsyncData(async () => {
   </v-container>
 
   <v-container v-else-if="sale" class="sale-detail-view">
-    <AppPageHeader
-      to="/sales"
-      back-label="Ventes"
-      :title="new Date(sale.movement.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })"
-    />
+    <AppPageHeader to="/sales" back-label="Ventes" :title="sale.saleNumber">
+      <template #badge>
+        <span :class="sale.paid ? 'sale-detail-view__badge--paid' : 'sale-detail-view__badge--pending'" class="sale-detail-view__badge">
+          {{ sale.paid ? 'Payée' : 'À payer' }}
+        </span>
+      </template>
+    </AppPageHeader>
+    <div class="sale-detail-view__date text-secondary">
+      {{ new Date(sale.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) }}
+    </div>
 
     <div class="sale-detail-view__sections">
-      <RouterLink
-        v-if="sale.movement.customerId"
-        :to="`/customers/${sale.movement.customerId}`"
-        class="sale-detail-view__customer"
-      >
+      <RouterLink :to="`/customers/${sale.customerId}`" class="sale-detail-view__customer">
         <div class="sale-detail-view__customer-info">
           <div class="sale-detail-view__customer-label text-secondary">Client</div>
-          <div class="sale-detail-view__customer-name">{{ sale.movement.customerName }}</div>
+          <div class="sale-detail-view__customer-name">{{ sale.customerName }}</div>
         </div>
         <v-icon size="16">phosphor:caret-right</v-icon>
       </RouterLink>
 
       <AppCard>
-        <div class="sale-detail-view__lot-row">
-          <div class="sale-detail-view__lot-info">
-            <div class="sale-detail-view__lot-product">{{ sale.productName }}</div>
-            <div class="text-secondary">
-              {{ sale.unit.batchNumber }} ·
-              {{ sale.unit.weight != null ? formatWeight(Math.round(sale.unit.weight * 1000)) : 'À la pièce' }}
-            </div>
+        <div class="sale-detail-view__section-title text-secondary">
+          {{ sale.itemCount }} lot{{ sale.itemCount > 1 ? 's' : '' }} vendu{{ sale.itemCount > 1 ? 's' : '' }}
+        </div>
+        <div v-for="line in lineViews" :key="line.movement.id" class="sale-detail-view__line">
+          <div class="sale-detail-view__line-info">
+            <div class="font-weight-medium">{{ line.productName }}</div>
+            <div class="text-secondary">{{ line.detail }}</div>
+          </div>
+          <div class="font-weight-medium">
+            {{ (line.movement.amount ?? 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} €
           </div>
         </div>
         <div class="sale-detail-view__total-row">
           <div class="font-weight-medium">Total</div>
           <div class="sale-detail-view__total">
-            {{ (sale.movement.amount ?? 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} €
+            {{ sale.total.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} €
           </div>
         </div>
       </AppCard>
+
+      <AppButton v-if="!sale.paid" block height="56" color="success" :disabled="togglingPayment" @click="markPaid">
+        <v-icon start size="18">phosphor:check-circle</v-icon>
+        Marquer comme payée
+      </AppButton>
     </div>
   </v-container>
 </template>
@@ -79,6 +117,31 @@ const { data: sale, loading, error } = useAsyncData(async () => {
 <style scoped>
 .sale-detail-view {
   padding-bottom: 40px;
+}
+
+.sale-detail-view__date {
+  font-size: 16px;
+  font-weight: 500;
+  padding: 0 4px 16px;
+  text-transform: capitalize;
+}
+
+.sale-detail-view__badge {
+  font-size: 15px;
+  font-weight: 600;
+  padding: 5px 14px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.sale-detail-view__badge--paid {
+  background: rgb(var(--v-theme-success-container));
+  color: rgb(var(--v-theme-success));
+}
+
+.sale-detail-view__badge--pending {
+  background: rgb(var(--v-theme-warning-container));
+  color: rgb(var(--v-theme-warning));
 }
 
 .sale-detail-view__sections {
@@ -117,21 +180,33 @@ const { data: sale, loading, error } = useAsyncData(async () => {
   font-size: 19px;
 }
 
-.sale-detail-view__lot-row {
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgb(var(--v-theme-status-neutral-container));
-  margin-bottom: 12px;
-}
-
-.sale-detail-view__lot-product {
+.sale-detail-view__section-title {
   font-size: 16px;
   font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.sale-detail-view__line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  border-top: 1px solid rgb(var(--v-theme-status-neutral-container));
+  padding: 8px 0;
+}
+
+.sale-detail-view__line:first-of-type {
+  border-top: none;
 }
 
 .sale-detail-view__total-row {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+  border-top: 2px solid rgb(var(--v-theme-field-border));
+  padding-top: 12px;
+  margin-top: 4px;
 }
 
 .sale-detail-view__total {

@@ -98,7 +98,14 @@ export interface CreateStockMovementRequest {
   isFullSale?: boolean
   soldWeight?: number
   amount?: number
-  customerId?: number
+  /** Requis si type = sale (vente existante à laquelle rattacher la ligne), interdit sinon. */
+  saleId?: number
+  notes?: string
+}
+
+export interface UpdateStockMovementRequest {
+  soldWeight?: number
+  amount?: number
   notes?: string
 }
 
@@ -109,9 +116,54 @@ export interface StockMovementDto {
   date: string
   soldWeight: number | null
   amount: number | null
+  /** Lecture seule — résolu via la vente (sale.customer_id), plus de duplication sur le mouvement. */
   customerId: number | null
   customerName: string | null
+  saleId: number | null
+  saleNumber: string | null
   notes: string | null
+}
+
+// --- Sale -------------------------------------------------------------
+
+export interface SaleDto {
+  id: number
+  saleNumber: string
+  customerId: number
+  customerName: string
+  date: string
+  paid: boolean
+  notes: string | null
+  total: number
+  itemCount: number
+  lines: StockMovementDto[]
+}
+
+export interface CreateSaleLineRequest {
+  stockUnitId: number
+  isFullSale: boolean
+  soldWeight?: number
+  amount: number
+  notes?: string
+}
+
+export interface CreateSaleRequest {
+  customerId: number
+  date?: string
+  paid: boolean
+  notes?: string
+  lines: CreateSaleLineRequest[]
+}
+
+export interface UpdateSaleRequest {
+  customerId: number
+  date: string
+  paid: boolean
+  notes?: string
+}
+
+export interface SetSalePaymentRequest {
+  paid: boolean
 }
 
 // --- Customer -------------------------------------------------------------
