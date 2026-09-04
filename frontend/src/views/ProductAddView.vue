@@ -6,7 +6,6 @@ import AppCard from '@/components/base/AppCard.vue'
 import AppTextField from '@/components/base/AppTextField.vue'
 import AppButton from '@/components/base/AppButton.vue'
 import AppHintBox from '@/components/base/AppHintBox.vue'
-import UnitOfMeasurePicker from '@/components/domain/UnitOfMeasurePicker.vue'
 import SaleModeToggle from '@/components/domain/SaleModeToggle.vue'
 import { createProduct } from '@/api/products'
 import { ApiError } from '@/api/http'
@@ -18,7 +17,6 @@ const state = reactive({
   name: '',
   code: '',
   saleMode: 'by_weight' as SaleMode,
-  saleUnitId: null as number | null,
 })
 
 const batchDateCode = new Date().toISOString().slice(2, 10).replace(/-/g, '')
@@ -30,15 +28,13 @@ const modeHint = computed(() =>
     : 'Les unités se comptent simplement, prix en € / pièce.',
 )
 
-const canSave = computed(
-  () => state.name.trim().length > 0 && state.code.trim().length >= 2 && state.saleUnitId !== null,
-)
+const canSave = computed(() => state.name.trim().length > 0 && state.code.trim().length >= 2)
 
 const saving = ref(false)
 const saveError = ref<string | null>(null)
 
 async function save() {
-  if (!canSave.value || state.saleUnitId === null) return
+  if (!canSave.value) return
   saving.value = true
   saveError.value = null
   try {
@@ -46,7 +42,6 @@ async function save() {
       code: state.code.trim().toUpperCase(),
       name: state.name.trim(),
       saleMode: state.saleMode,
-      saleUnitId: state.saleUnitId,
     })
     await router.push('/products')
   } catch (err) {
@@ -73,10 +68,6 @@ async function save() {
           </span>
         </div>
 
-        <div class="product-add-view__units mt-3">
-          <label class="product-add-view__units-label">Unité de vente</label>
-          <UnitOfMeasurePicker v-model="state.saleUnitId" />
-        </div>
       </AppCard>
 
       <AppCard>
@@ -120,13 +111,6 @@ async function save() {
 
 .product-add-view__code-hint {
   font-size: 15px;
-}
-
-.product-add-view__units-label {
-  display: block;
-  font-size: 15px;
-  font-weight: 500;
-  margin-bottom: 6px;
 }
 
 .product-add-view__save-error {

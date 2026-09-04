@@ -4,7 +4,6 @@ import AppPageHeader from '@/components/base/AppPageHeader.vue'
 import AppCard from '@/components/base/AppCard.vue'
 import AppTextField from '@/components/base/AppTextField.vue'
 import AppButton from '@/components/base/AppButton.vue'
-import UnitOfMeasurePicker from '@/components/domain/UnitOfMeasurePicker.vue'
 import ProductStatusBadge from '@/components/domain/ProductStatusBadge.vue'
 import { listProducts, updateProduct, deactivateProduct, reactivateProduct } from '@/api/products'
 import { getStockDetail } from '@/composables/useStock'
@@ -24,32 +23,29 @@ const { data: stockSummary } = useAsyncData(async () => (await getStockDetail(pr
 
 watch(() => props.code, reload)
 
-const state = reactive({ name: '', saleUnitId: null as number | null })
+const state = reactive({ name: '' })
 
 watch(
   product,
   (p) => {
     if (!p) return
     state.name = p.name
-    state.saleUnitId = p.saleUnitId
   },
   { immediate: true },
 )
 
-const dirty = computed(
-  () => !!product.value && (state.name !== product.value.name || state.saleUnitId !== product.value.saleUnitId),
-)
+const dirty = computed(() => !!product.value && state.name !== product.value.name)
 
-const canSave = computed(() => state.name.trim().length > 0 && state.saleUnitId !== null)
+const canSave = computed(() => state.name.trim().length > 0)
 const saving = ref(false)
 const saveError = ref<string | null>(null)
 
 async function save() {
-  if (!product.value || !canSave.value || state.saleUnitId === null) return
+  if (!product.value || !canSave.value) return
   saving.value = true
   saveError.value = null
   try {
-    await updateProduct(product.value.id, { name: state.name.trim(), saleUnitId: state.saleUnitId })
+    await updateProduct(product.value.id, { name: state.name.trim() })
     await reload()
   } catch (err) {
     saveError.value = err instanceof ApiError ? err.message : "Erreur lors de l'enregistrement, réessaie."
@@ -93,9 +89,6 @@ async function toggleStatus() {
         <div class="product-detail-view__section-title text-secondary">Le produit</div>
         <AppTextField v-model="state.name" label="Nom du produit" :disabled="!product.isActive" class="mb-3" />
         <AppTextField :model-value="product.code" label="Code (numéros de lot)" disabled style="max-width: 110px" />
-
-        <label class="product-detail-view__units-label mt-3">Unité de vente</label>
-        <UnitOfMeasurePicker v-model="state.saleUnitId" :disabled="!product.isActive" />
       </AppCard>
 
       <AppCard>
@@ -160,13 +153,6 @@ async function toggleStatus() {
   font-size: 16px;
   font-weight: 600;
   margin-bottom: 12px;
-}
-
-.product-detail-view__units-label {
-  display: block;
-  font-size: 15px;
-  font-weight: 500;
-  margin-bottom: 6px;
 }
 
 .product-detail-view__mode {

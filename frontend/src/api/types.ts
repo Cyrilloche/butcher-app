@@ -26,8 +26,6 @@ export interface ProductDto {
   code: string
   name: string
   saleMode: SaleMode
-  saleUnitId: number
-  saleUnitLabel: string
   isActive: boolean
 }
 
@@ -35,12 +33,10 @@ export interface CreateProductRequest {
   code: string
   name: string
   saleMode: SaleMode
-  saleUnitId: number
 }
 
 export interface UpdateProductRequest {
   name: string
-  saleUnitId: number
 }
 
 // --- ProductionBatch -------------------------------------------------------------
@@ -193,19 +189,6 @@ export interface UpdateCustomerRequest {
   notes?: string
 }
 
-// --- UnitOfMeasure -------------------------------------------------------------
-
-export interface UnitOfMeasureDto {
-  id: number
-  label: string
-  abbreviation: string
-  isActive: boolean
-}
-
-export interface CreateUnitOfMeasureRequest {
-  label: string
-  abbreviation: string
-}
 
 // --- Erreurs -------------------------------------------------------------
 

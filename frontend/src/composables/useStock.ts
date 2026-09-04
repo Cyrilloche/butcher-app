@@ -11,9 +11,9 @@ export interface Product {
   code: string
   name: string
   saleMode: SaleMode
-  /** Nom d'unité de comptage (référentiel unit_of_measure du produit, ex. "sachets", "entiers", "pièces"). */
+  /** Nom générique d'unité de comptage — plus de personnalisation par produit (décision 2026-09-04). */
   unitLabel: string
-  /** Unité affichée à côté du prix : toujours "kg" en poids variable (RG-02/03), sinon le nom d'unité du produit. */
+  /** Unité affichée à côté du prix : "kg" au poids, "pièce" à la pièce (RG-02/03) — dérivé de saleMode. */
   priceUnit: string
 }
 
@@ -53,8 +53,8 @@ function toProduct(dto: ProductDto): Product {
     code: dto.code,
     name: dto.name,
     saleMode: dto.saleMode,
-    unitLabel: dto.saleUnitLabel,
-    priceUnit: dto.saleMode === 'by_weight' ? 'kg' : dto.saleUnitLabel,
+    unitLabel: dto.saleMode === 'by_weight' ? 'unités' : 'pièces',
+    priceUnit: dto.saleMode === 'by_weight' ? 'kg' : 'pièce',
   }
 }
 
