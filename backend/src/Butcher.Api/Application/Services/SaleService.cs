@@ -86,6 +86,11 @@ public class SaleService(AppDbContext dbContext) : ISaleService
             StockMovementRules.ValidateSoldWeight(unit, line.SoldWeight);
             StockMovementRules.ValidateAmount(MovementType.Sale, line.Amount);
             StockMovementRules.EnsurePartialSaleIsAllowed(unit, MovementType.Sale, line.IsFullSale);
+
+            var existingSoldWeight = await dbContext.StockMovements
+                .Where(m => m.StockUnitId == unit.Id && m.Type == MovementType.Sale)
+                .SumAsync(m => m.SoldWeight ?? 0m);
+            StockMovementRules.EnsureSoldWeightWithinUnitCapacity(unit, existingSoldWeight, line.SoldWeight);
         }
 
         for (var attempt = 1; attempt <= MaxSaleNumberAttempts; attempt++)

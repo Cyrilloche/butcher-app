@@ -49,6 +49,13 @@ public class StockMovementService(AppDbContext dbContext) : IStockMovementServic
         StockMovementRules.ValidateSoldWeight(unit, request.SoldWeight);
         StockMovementRules.ValidateAmount(request.Type, request.Amount);
         StockMovementRules.EnsurePartialSaleIsAllowed(unit, request.Type, request.IsFullSale);
+
+        if (request.Type == MovementType.Sale)
+        {
+            var existingSoldWeight = await SumSoldWeightForSaleMovementsAsync(unit.Id, excludingMovementId: null);
+            StockMovementRules.EnsureSoldWeightWithinUnitCapacity(unit, existingSoldWeight, request.SoldWeight);
+        }
+
         var sale = await ValidateAndResolveSaleAsync(request.Type, request.SaleId);
 
         var movement = new StockMovement
@@ -81,6 +88,12 @@ public class StockMovementService(AppDbContext dbContext) : IStockMovementServic
 
         StockMovementRules.ValidateSoldWeight(unit, request.SoldWeight);
         StockMovementRules.ValidateAmount(movement.Type, request.Amount);
+
+        if (movement.Type == MovementType.Sale)
+        {
+            var existingSoldWeight = await SumSoldWeightForSaleMovementsAsync(unit.Id, excludingMovementId: movement.Id);
+            StockMovementRules.EnsureSoldWeightWithinUnitCapacity(unit, existingSoldWeight, request.SoldWeight);
+        }
 
         movement.SoldWeight = request.SoldWeight;
         movement.Amount = request.Amount;
@@ -163,6 +176,19 @@ public class StockMovementService(AppDbContext dbContext) : IStockMovementServic
         }
 
         return null;
+    }
+
+    private async Task<decimal> SumSoldWeightForSaleMovementsAsync(int stockUnitId, int? excludingMovementId)
+    {
+        var query = dbContext.StockMovements
+            .Where(m => m.StockUnitId == stockUnitId && m.Type == MovementType.Sale);
+
+        if (excludingMovementId is not null)
+        {
+            query = query.Where(m => m.Id != excludingMovementId);
+        }
+
+        return await query.SumAsync(m => m.SoldWeight ?? 0m);
     }
 
     private IQueryable<StockMovement> BaseQuery() =>

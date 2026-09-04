@@ -210,7 +210,7 @@ Le stock n'est pas un compteur abstrait : il représente des **objets physiques 
 | RG-02 | Le prix de vente s'applique **par lot** ; il n'existe pas de prix « catalogue » figé au niveau du produit. |
 | RG-03 | Pour un produit `poids_variable`, le **prix d'une vente = poids réel × prix au kg du lot**. |
 | RG-04 | Une unité physique vendue « en une fois » sort du stock ; une unité vendue en plusieurs fois reste en stock au statut `entamé` jusqu'à clôture manuelle. |
-| RG-05 | Le poids restant d'une unité `entamé` n'est **pas** suivi : seule la somme des ventes rattachées est significative (chiffre d'affaires généré par l'unité). |
+| RG-05 | Le poids restant d'une unité `entamé` n'est **pas** suivi (aucun champ ni affichage dédié) : seule la somme des ventes rattachées est significative (chiffre d'affaires généré par l'unité). Un garde-fou de cohérence s'applique néanmoins à l'écriture : la somme des `sold_weight` déjà enregistrés sur l'unité (mouvements de type vente) plus le nouveau ne peut pas dépasser le poids physique pesé de l'unité — calculé à la volée, pas de nouvelle colonne stockée. |
 | RG-06 | Les statuts de sortie (`vendu`, `perso`, `perdu`) sont exclusifs et s'appliquent à l'échelle de l'unité physique individuelle. |
 | RG-07 | **(Modifié 2026-09-04, remplace la règle initiale)** Un mouvement de vente doit être rattaché à un client — plus de vente anonyme. V1 limitée à la vente à des particuliers (nom + prénom) ; la vente à des professionnels (raison sociale) est reportée à une évolution ultérieure si le besoin se confirme. |
 | ~~RG-08~~ | ~~Une **unité de mesure** ne peut pas être désactivée tant qu'elle est utilisée par un produit actif.~~ **Abandonnée le 2026-09-04** avec RF-04/RF-05. Identifiant conservé, non réattribué. |

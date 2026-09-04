@@ -133,6 +133,29 @@ public class SaleServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifetime
         Assert.Equal(StockUnitStatus.Opened, refreshed!.Status);
     }
 
+    // RG-05 : la somme des tranches déjà vendues sur cette unité (0.230, hors de cette vente) plus
+    // la nouvelle ligne (1.000) dépasserait le poids pesé de l'unité (1 kg).
+    [Fact]
+    public async Task CreateAsync_PartialLine_ExceedingUnitWeight_ThrowsConflictException()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var units = await SeedStockUnitsAsync(dbContext, SaleMode.ByWeight, count: 1, weight: 1.000m);
+        var customer = await SeedCustomerAsync(dbContext);
+        var service = new SaleService(dbContext);
+
+        await service.CreateAsync(new CreateSaleRequest
+        {
+            CustomerId = customer.Id,
+            Lines = [new CreateSaleLineRequest { StockUnitId = units[0].Id, IsFullSale = false, SoldWeight = 0.230m, Amount = 3m }],
+        });
+
+        await Assert.ThrowsAsync<ConflictException>(() => service.CreateAsync(new CreateSaleRequest
+        {
+            CustomerId = customer.Id,
+            Lines = [new CreateSaleLineRequest { StockUnitId = units[0].Id, IsFullSale = false, SoldWeight = 1.000m, Amount = 12m }],
+        }));
+    }
+
     [Fact]
     public async Task CreateAsync_PartialLine_OnProductWithoutAllowPartialSale_ThrowsConflictException()
     {

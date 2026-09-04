@@ -130,6 +130,68 @@ public class StockMovementServiceTests(PostgresDatabaseFixture fixture) : IAsync
         Assert.Equal(StockUnitStatus.Opened, afterSecond!.Status);
     }
 
+    // RG-05 : le poids restant n'est pas suivi, mais la somme des tranches vendues ne peut pas
+    // dépasser le poids physique pesé de l'unité (1 kg ici).
+    [Fact]
+    public async Task CreateAsync_PartialSale_ExceedingUnitWeight_ThrowsConflictException()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var unit = await SeedStockUnitAsync(dbContext, SaleMode.ByWeight, weight: 1.000m);
+        var sale = await SeedSaleAsync(dbContext);
+        var service = new StockMovementService(dbContext);
+
+        await service.CreateAsync(unit.Id, new CreateStockMovementRequest
+        {
+            Type = MovementType.Sale,
+            IsFullSale = false,
+            SoldWeight = 0.230m,
+            Amount = 3m,
+            SaleId = sale.Id,
+        });
+
+        await Assert.ThrowsAsync<ConflictException>(() => service.CreateAsync(unit.Id, new CreateStockMovementRequest
+        {
+            Type = MovementType.Sale,
+            IsFullSale = false,
+            SoldWeight = 1.000m,
+            Amount = 12m,
+            SaleId = sale.Id,
+        }));
+
+        var afterRejection = await dbContext.StockUnits.FindAsync(unit.Id);
+        Assert.Equal(StockUnitStatus.Opened, afterRejection!.Status);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_SoldWeight_ExceedingUnitWeight_ThrowsConflictException()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var unit = await SeedStockUnitAsync(dbContext, SaleMode.ByWeight, weight: 1.000m);
+        var sale = await SeedSaleAsync(dbContext);
+        var service = new StockMovementService(dbContext);
+
+        await service.CreateAsync(unit.Id, new CreateStockMovementRequest
+        {
+            Type = MovementType.Sale,
+            IsFullSale = false,
+            SoldWeight = 0.230m,
+            Amount = 3m,
+            SaleId = sale.Id,
+        });
+        var second = await service.CreateAsync(unit.Id, new CreateStockMovementRequest
+        {
+            Type = MovementType.Sale,
+            IsFullSale = false,
+            SoldWeight = 0.300m,
+            Amount = 4m,
+            SaleId = sale.Id,
+        });
+
+        // 0.230 (première ligne, non modifiée) + 0.800 (nouvelle valeur) > 1.000 kg.
+        await Assert.ThrowsAsync<ConflictException>(() =>
+            service.UpdateAsync(second.Id, new UpdateStockMovementRequest { SoldWeight = 0.800m, Amount = 4m }));
+    }
+
     // Le produit ne remplit AllowPartialSale que dans SeedStockUnitAsync ; ici on le désactive
     // explicitement pour vérifier le garde-fou serveur.
     [Fact]

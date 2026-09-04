@@ -4,7 +4,7 @@
 |---|---|
 | **Projet** | Mini-ERP Charcuterie (repo : `butcher-app`) |
 | **Document** | Modèle de données détaillé (V1) |
-| **Version** | 0.6 |
+| **Version** | 0.7 |
 | **Date** | 4 septembre 2026 |
 | **Statut** | Implémenté (backend, cœur métier V1 complet) |
 | **Documents liés** | PRD v0.2, Journal ADR v0.1 |
@@ -19,6 +19,7 @@
 | 0.5 | 2026-09-04 | **Entité `unit_of_measure` supprimée** et `product.sale_unit_id` avec elle (décision produit, voir §3.2) : le champ n'avait aucun rôle fonctionnel — RG-03 code le prix en €/kg en dur — et bloquait la création de produit sur une base vide. `sale_mode` suffit à piloter l'affichage. RF-03/RF-04/RF-05 et RG-08 retirés du périmètre V1. |
 | 0.4 | 2026-09-04 | **QM-04 résolu et implémenté** : nouvelle entité `sale` (§3.7) regroupant les lignes d'une vente sous un numéro `V-YYMMDD-N`, un client obligatoire et un statut de paiement ; `stock_movement.customer_id` remplacé par `sale_id` ; suppression d'un client passée en `Restrict`. Répond à Q-04/Q-05 du PRD et aux exigences RF-17/RG-07 modifiées. |
 | 0.6 | 2026-09-04 | Ajout de `product.allow_partial_sale` (booléen, défaut `false`, pertinent uniquement si `sale_mode = by_weight`) : la vente à la tranche (RF-19) n'est plus possible sur n'importe quel produit au poids, elle doit être explicitement autorisée. Contrôle appliqué côté serveur (`409` sinon), pas seulement dans l'UI. |
+| 0.7 | 2026-09-04 | RG-05 précisée (pas remplacée) : garde-fou serveur empêchant la somme des `sold_weight` d'une unité entamée de dépasser son `weight` pesé, à la création comme à la modification d'un mouvement de vente. Calcul à la volée, aucune colonne « poids restant » ajoutée — conforme à l'intention initiale de RG-05. |
 
 ### Objet du document
 
@@ -256,7 +257,7 @@ Certaines règles sont **garanties par la logique applicative** et, si pertinent
 | C-01 | `amount` et `customer_id` ne sont renseignés que si `type = sale`. Pour `personal`/`loss`, ils restent `null`. |
 | C-02 | `weight` (sur `stock_unit`) et `sold_weight` (sur `stock_movement`) sont renseignés pour les produits `by_weight`, et `null` pour `by_piece`. |
 | C-03 | **Vente en une fois** (sachet, jambon entier) : un unique `stock_movement` de type `sale` ; l'unité passe à `sold` (RG-04). |
-| C-04 | **Vente partielle** (jambon à la tranche) : plusieurs `stock_movement` de type `sale` sur une même `stock_unit`, qui reste au statut `opened` jusqu'à clôture manuelle en `sold` (RF-19, RF-20). Le poids restant n'est pas suivi (RG-05). |
+| C-04 | **Vente partielle** (jambon à la tranche) : plusieurs `stock_movement` de type `sale` sur une même `stock_unit`, qui reste au statut `opened` jusqu'à clôture manuelle en `sold` (RF-19, RF-20). Le poids restant n'est pas suivi (RG-05), mais la somme des `sold_weight` déjà enregistrés sur l'unité ne peut jamais dépasser son `weight` pesé — vérifié à l'écriture (création **et** modification d'un mouvement de vente), calcul à la volée sans colonne dédiée, rejeté en `409` sinon. |
 | C-05 | `batch_number` et `product.code` sont uniques. |
 | C-06 | Les statuts de sortie (`sold`/`personal`/`lost`) sont exclusifs, posés à l'échelle de l'unité individuelle (RG-06). |
 | ~~C-07~~ | ~~Unicité de `unit_of_measure.label` / `abbreviation`~~ — sans objet, entité supprimée (§3.2). Identifiant conservé, non réattribué. |

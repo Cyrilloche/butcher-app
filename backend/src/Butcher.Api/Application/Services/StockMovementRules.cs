@@ -51,6 +51,26 @@ internal static class StockMovementRules
         }
     }
 
+    /// <summary>
+    /// RG-05 : le poids restant d'une unité entamée n'est pas suivi, mais la somme des poids déjà
+    /// vendus ne doit jamais dépasser le poids physique pesé de l'unité (<paramref name="existingSoldWeight"/>
+    /// exclut le mouvement en cours d'écriture, le cas échéant).
+    /// </summary>
+    public static void EnsureSoldWeightWithinUnitCapacity(StockUnit unit, decimal existingSoldWeight, decimal? newSoldWeight)
+    {
+        if (newSoldWeight is null || unit.Weight is null)
+        {
+            return;
+        }
+
+        var total = existingSoldWeight + newSoldWeight.Value;
+        if (total > unit.Weight.Value)
+        {
+            throw new ConflictException(
+                $"La somme des poids vendus ({total:0.000} kg) dépasserait le poids de l'unité ({unit.Weight.Value:0.000} kg).");
+        }
+    }
+
     public static void ValidateAmount(MovementType type, decimal? amount)
     {
         if (type == MovementType.Sale)
