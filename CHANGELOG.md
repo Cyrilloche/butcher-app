@@ -3,12 +3,20 @@
 Généré à partir des messages de commit ([Conventional Commits](https://www.conventionalcommits.org/fr/)).
 Ne pas éditer à la main : régénérer avec `make changelog`.
 
-## Non publié
+## frontend-v0.2.0 — 04/09/2026
 
 ### Nouveautés
 
 - **frontend** : Affiche la version du build sur l'écran de connexion (a918d87)
 - **frontend** : Déconnexion, bandeau contrasté et index A-Z des clients (ad0e0db)
+
+### Documentation
+
+- Analyse d'écart prévu/réalisé et remise à niveau de la documentation (cdeb0d7)
+
+### Intégration et déploiement
+
+- Génère le changelog et les notes de release avec git-cliff (dc60f88)
 
 ## backend-v0.2.0 — 04/09/2026
 
