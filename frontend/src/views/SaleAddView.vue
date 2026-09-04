@@ -74,6 +74,7 @@ async function save() {
       lines: state.cart.map((lot) => ({
         stockUnitId: lot.stockUnitId,
         isFullSale: true,
+        soldWeight: lot.weight ?? undefined,
         amount: lot.price,
       })),
     })

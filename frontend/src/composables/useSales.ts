@@ -11,6 +11,8 @@ export interface AvailableLot {
   label: string
   detail: string
   price: number
+  /** Kilogrammes — requis par l'API dans CreateSaleLineRequest.soldWeight pour un produit au poids. */
+  weight: number | null
 }
 
 /** Prix d'une unité : poids réel × prix/kg du lot (RG-03), ou prix pièce du lot tel quel. */
@@ -55,6 +57,7 @@ export async function listAvailableLots(): Promise<AvailableLot[]> {
         label: `${batch.batchNumber}-${index + 1}`,
         detail: unitDetail(unit, batch),
         price: unitPrice(unit, batch),
+        weight: unit.weight,
       })
     })
   }
