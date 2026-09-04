@@ -100,9 +100,6 @@ function jumpToLetter(letter: string) {
 <style scoped>
 .customers-view {
   padding-bottom: 96px;
-  /* Gouttière réservée au rail alphabétique, pour qu'il ne recouvre pas
-     la fin des noms de clients. */
-  padding-right: 30px;
 }
 
 .customers-view__header {
@@ -168,6 +165,9 @@ function jumpToLetter(letter: string) {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  /* Gouttière réservée au rail alphabétique, sur la seule liste : la poser sur
+     le conteneur décalait toute la page vers la gauche (padding asymétrique). */
+  padding-right: 22px;
 }
 
 .customers-view__group {
