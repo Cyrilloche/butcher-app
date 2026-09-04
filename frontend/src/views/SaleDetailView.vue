@@ -1,46 +1,24 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import AppPageHeader from '@/components/base/AppPageHeader.vue'
 import AppCard from '@/components/base/AppCard.vue'
 import AppButton from '@/components/base/AppButton.vue'
 import { getSale, setSalePayment } from '@/api/sales'
-import { getStockUnit } from '@/api/stockUnits'
-import { listProducts } from '@/api/products'
 import { useAsyncData } from '@/composables/useAsyncData'
 import { formatWeight } from '@/composables/useStock'
-import type { StockMovementDto } from '@/api/types'
 
 const props = defineProps<{ id: string }>()
 const saleId = computed(() => Number(props.id))
 
-interface SaleLineView {
-  movement: StockMovementDto
-  productName: string
-  detail: string
-}
-
 const { data: sale, loading, error, reload } = useAsyncData(() => getSale(saleId.value), null)
 
-const lineViews = ref<SaleLineView[]>([])
-watch(sale, async (s) => {
-  if (!s) {
-    lineViews.value = []
-    return
-  }
-  const products = await listProducts(true)
-  lineViews.value = await Promise.all(
-    s.lines.map(async (movement) => {
-      const unit = await getStockUnit(movement.stockUnitId)
-      const productCode = unit.batchNumber.split('-')[0]
-      const product = products.find((p) => p.code === productCode)
-      return {
-        movement,
-        productName: product?.name ?? productCode ?? '—',
-        detail: `${unit.batchNumber} · ${unit.weight != null ? formatWeight(Math.round(unit.weight * 1000)) : 'À la pièce'}`,
-      }
-    }),
-  )
-})
+const lineViews = computed(
+  () =>
+    sale.value?.lines.map((movement) => ({
+      movement,
+      detail: `${movement.batchNumber} · ${movement.soldWeight != null ? formatWeight(Math.round(movement.soldWeight * 1000)) : 'À la pièce'}`,
+    })) ?? [],
+)
 
 const togglingPayment = ref(false)
 async function markPaid() {
@@ -91,7 +69,7 @@ async function markPaid() {
         </div>
         <div v-for="line in lineViews" :key="line.movement.id" class="sale-detail-view__line">
           <div class="sale-detail-view__line-info">
-            <div class="font-weight-medium">{{ line.productName }}</div>
+            <div class="font-weight-medium">{{ line.movement.productName }}</div>
             <div class="text-secondary">{{ line.detail }}</div>
           </div>
           <div class="font-weight-medium">

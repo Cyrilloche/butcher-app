@@ -121,6 +121,9 @@ export interface StockMovementDto {
   customerName: string | null
   saleId: number | null
   saleNumber: string | null
+  /** Lecture seule — résolu côté serveur via stock_unit → production_batch → product. */
+  productName: string
+  batchNumber: string
   notes: string | null
 }
 
