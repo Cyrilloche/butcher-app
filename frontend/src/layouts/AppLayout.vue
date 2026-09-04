@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { RouterView } from 'vue-router'
+import { computed } from 'vue'
+import { RouterView, useRoute } from 'vue-router'
+
+const route = useRoute()
+
+// La page de connexion est hors application : pas de navigation métier
+// tant que la session n'est pas ouverte.
+const showNavigation = computed(() => route.name !== 'login')
 </script>
 
 <template>
@@ -7,7 +14,7 @@ import { RouterView } from 'vue-router'
     <RouterView />
   </v-main>
 
-  <v-bottom-navigation grow color="primary">
+  <v-bottom-navigation v-if="showNavigation" grow color="primary">
     <v-btn to="/" value="stock">
       <v-icon>phosphor:package</v-icon>
       Stock

@@ -15,8 +15,9 @@ const {
 
 <template>
   <v-container class="stock-view">
+    <AppBrandHeader />
+
     <header class="stock-view__header">
-      <AppBrandHeader />
       <div class="stock-view__title-row">
         <h1 class="text-h4 font-weight-bold">Stock</h1>
         <span class="stock-view__total text-secondary font-weight-medium">
@@ -45,7 +46,7 @@ const {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 8px 4px 12px;
+  padding: 0 4px 12px;
 }
 
 .stock-view__title-row {

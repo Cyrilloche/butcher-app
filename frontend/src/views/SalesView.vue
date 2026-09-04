@@ -47,8 +47,9 @@ const groups = computed<MonthGroup[]>(() => {
 
 <template>
   <v-container class="sales-view">
+    <AppBrandHeader />
+
     <header class="sales-view__header">
-      <AppBrandHeader />
       <h1 class="text-h4 font-weight-bold">Ventes</h1>
 
       <div class="sales-view__stats">
@@ -114,7 +115,7 @@ const groups = computed<MonthGroup[]>(() => {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 8px 4px 12px;
+  padding: 0 4px 12px;
 }
 
 .sales-view__stats {

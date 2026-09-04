@@ -19,6 +19,7 @@ import {
   PhCaretRight,
   PhCheckCircle,
   PhClock,
+  PhSignOut,
 } from '@phosphor-icons/vue'
 
 /**
@@ -45,6 +46,7 @@ const phosphorIcons: Record<string, unknown> = {
   'caret-right': PhCaretRight,
   'check-circle': PhCheckCircle,
   clock: PhClock,
+  'sign-out': PhSignOut,
 }
 
 export const phosphor: IconSet = {

@@ -14,8 +14,9 @@ watch(includeInactive, reload)
 
 <template>
   <v-container class="products-view">
+    <AppBrandHeader />
+
     <header class="products-view__header">
-      <AppBrandHeader />
       <div class="products-view__title-row">
         <h1 class="text-h4 font-weight-bold">Produits</h1>
         <span class="products-view__total text-secondary font-weight-medium">
@@ -50,7 +51,7 @@ watch(includeInactive, reload)
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 8px 4px 12px;
+  padding: 0 4px 12px;
 }
 
 .products-view__title-row {
