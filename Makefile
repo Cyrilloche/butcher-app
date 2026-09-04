@@ -1,4 +1,4 @@
-.PHONY: db-up db-down db-logs db-psql build run migration migrate test
+.PHONY: db-up db-down db-logs db-psql pgadmin-logs build run migration migrate test
 
 COMPOSE := docker compose -f development/database-dev.yml --env-file development/.env
 API_PROJECT := backend/src/Butcher.Api
@@ -15,6 +15,9 @@ db-logs:
 db-psql:
 	@set -a; . ./development/.env; set +a; \
 	$(COMPOSE) exec postgres psql -U $$POSTGRES_USER -d $$POSTGRES_DB
+
+pgadmin-logs:
+	$(COMPOSE) logs -f pgadmin
 
 build:
 	dotnet build backend

@@ -1,0 +1,82 @@
+# =========================
+# Graphify Ignore File
+# =========================
+
+# Version Control & IDEs
+.git/
+.github/
+.vscode/
+.vs/
+.idea/
+*.suo
+*.user
+
+# =========================
+# Vue.js (Frontend)
+# =========================
+
+# Dependencies
+node_modules/
+.npm/
+
+# Build outputs (Vite / Vue CLI)
+dist/
+build/
+.output/
+
+# Testing & Coverage
+coverage/
+.cypress/
+*.spec.ts
+*.test.ts
+
+# Environment & Logs
+.env
+.env.*
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Static assets (Optional: uncomment if you don't want them in the graph)
+# public/
+# src/assets/
+
+# =========================
+# .NET (Backend)
+# =========================
+
+# Build outputs
+bin/
+obj/
+publish/
+out/
+
+# Testing & Coverage
+TestResults/
+*.coverage
+*.coveragexml
+
+# Local configuration & Secrets
+appsettings.Development.json
+appsettings.Local.json
+secrets.json
+
+# Entity Framework / DB (Optional: exclude migrations if they clutter the graph)
+# Migrations/
+*.db
+*.db-shm
+*.db-wal
+
+# =========================
+# General & Miscellaneous
+# =========================
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Temp files
+tmp/
+temp/
