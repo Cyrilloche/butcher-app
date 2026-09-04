@@ -3,6 +3,12 @@
 Généré à partir des messages de commit ([Conventional Commits](https://www.conventionalcommits.org/fr/)).
 Ne pas éditer à la main : régénérer avec `make changelog`.
 
+## Non publié
+
+### Nouveautés
+
+- **frontend** : Sorties perso et perte depuis Détail Stock (RF-21) (ed9acdd)
+
 ## frontend-v0.2.0 — 04/09/2026
 
 ### Nouveautés
