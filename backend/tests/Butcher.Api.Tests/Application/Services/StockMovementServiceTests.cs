@@ -91,6 +91,8 @@ public class StockMovementServiceTests(PostgresDatabaseFixture fixture) : IAsync
         Assert.Equal(sale.Id, result.SaleId);
         Assert.Equal("V-260904-1", result.SaleNumber);
         Assert.Equal("Jean Dupont", result.CustomerName);
+        Assert.Equal("Saucisse curry", result.ProductName);
+        Assert.Equal("SC-260831-1", result.BatchNumber);
 
         var updatedUnit = await dbContext.StockUnits.FindAsync(unit.Id);
         Assert.Equal(StockUnitStatus.Sold, updatedUnit!.Status);
@@ -347,6 +349,7 @@ public class StockMovementServiceTests(PostgresDatabaseFixture fixture) : IAsync
         Assert.Single(result);
         Assert.Equal(unit1.Id, result[0].StockUnitId);
         Assert.Equal(sale.CustomerId, result[0].CustomerId);
+        Assert.Equal("SC-260831-1", result[0].BatchNumber);
     }
 
     [Fact]

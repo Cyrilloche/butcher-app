@@ -82,6 +82,11 @@ public class SaleServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifetime
         Assert.Equal(2, sale.Lines.Count);
         Assert.All(sale.Lines, line => Assert.Equal(sale.Id, line.SaleId));
 
+        // Le contexte produit voyage avec la ligne : sans ça, le frontend devrait déduire le produit
+        // du préfixe du numéro de lot.
+        Assert.All(sale.Lines, line => Assert.Equal("Saucisse curry", line.ProductName));
+        Assert.All(sale.Lines, line => Assert.Equal("SC-260831-1", line.BatchNumber));
+
         var refreshed = await dbContext.StockUnits.FindAsync(units[0].Id);
         Assert.Equal(StockUnitStatus.Sold, refreshed!.Status);
     }
@@ -323,6 +328,7 @@ public class SaleServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifetime
 
         Assert.Single(result);
         Assert.Equal(unpaid.Id, result[0].Id);
+        Assert.Equal("Saucisse curry", result[0].Lines[0].ProductName);
     }
 
     [Fact]

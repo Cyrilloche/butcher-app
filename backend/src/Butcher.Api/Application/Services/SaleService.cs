@@ -106,6 +106,7 @@ public class SaleService(AppDbContext dbContext) : ISaleService
                 sale.StockMovements.Add(new StockMovement
                 {
                     StockUnitId = unit.Id,
+                    StockUnit = unit,
                     Type = MovementType.Sale,
                     Date = date,
                     SoldWeight = line.SoldWeight,
@@ -197,7 +198,7 @@ public class SaleService(AppDbContext dbContext) : ISaleService
     private IQueryable<Sale> BaseQuery() =>
         dbContext.Sales
             .Include(s => s.Customer)
-            .Include(s => s.StockMovements);
+            .Include(s => s.StockMovements).ThenInclude(m => m.StockUnit!).ThenInclude(u => u.Batch!).ThenInclude(b => b.Product);
 
     private async Task<Sale> FindOrThrowAsync(int id) =>
         await BaseQuery().FirstOrDefaultAsync(s => s.Id == id)
@@ -239,6 +240,8 @@ public class SaleService(AppDbContext dbContext) : ISaleService
                 {
                     Id = m.Id,
                     StockUnitId = m.StockUnitId,
+                    ProductName = m.StockUnit?.Batch?.Product?.Name,
+                    BatchNumber = m.StockUnit?.Batch?.BatchNumber,
                     Type = m.Type,
                     Date = m.Date,
                     SoldWeight = m.SoldWeight,

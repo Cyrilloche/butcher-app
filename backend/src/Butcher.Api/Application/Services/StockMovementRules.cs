@@ -70,6 +70,8 @@ internal static class StockMovementRules
         {
             Id = movement.Id,
             StockUnitId = movement.StockUnitId,
+            ProductName = movement.StockUnit?.Batch?.Product?.Name,
+            BatchNumber = movement.StockUnit?.Batch?.BatchNumber,
             Type = movement.Type,
             Date = movement.Date,
             SoldWeight = movement.SoldWeight,

@@ -8,6 +8,12 @@ public class StockMovementDto
 
     public int StockUnitId { get; set; }
 
+    // Contexte produit de la ligne, résolu via stock_unit -> production_batch -> product : sans ça,
+    // le frontend n'a d'autre choix que de deviner le produit à partir du préfixe du numéro de lot.
+    public string? ProductName { get; set; }
+
+    public string? BatchNumber { get; set; }
+
     public MovementType Type { get; set; }
 
     public DateTimeOffset Date { get; set; }

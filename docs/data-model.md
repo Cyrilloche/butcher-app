@@ -192,7 +192,7 @@ Toute sortie de stock, rattachée à une **stock_unit précise** (RF-15). Journa
 
 - Le **numéro communicable** est porté par la vente (`sale.sale_number`), pas par la ligne : c'est la vente que l'utilisateur retrouve et cite, pas le mouvement individuel. Un `stock_movement` n'a donc que son `id` technique. *(Écart identifié le 2026-09-04, résolu le jour même par l'ajout de `sale`.)*
 - Un mouvement `personal` ou `loss` n'a **jamais** de `sale_id` (ni d'`amount`) : ce n'est pas une vente.
-- Pour éviter au frontend un aller-retour, l'API expose en lecture seule `saleNumber`, `customerId` et `customerName` sur chaque ligne, résolus via la vente.
+- Pour éviter au frontend un aller-retour, l'API expose en lecture seule, sur chaque ligne : `saleNumber`, `customerId` et `customerName` (résolus via la vente) ainsi que `productName` et `batchNumber` (résolus via `stock_unit → production_batch → product`). Sans ces deux derniers, une vue « détail d'une vente » n'a d'autre choix que de déduire le produit du préfixe du numéro de lot — dérivation fragile, et le préfixe n'est qu'un code, pas un nom.
 
 ---
 

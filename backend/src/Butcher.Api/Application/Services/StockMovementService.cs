@@ -53,6 +53,7 @@ public class StockMovementService(AppDbContext dbContext) : IStockMovementServic
         var movement = new StockMovement
         {
             StockUnitId = unit.Id,
+            StockUnit = unit,
             Type = request.Type,
             Date = sale?.Date ?? DateTimeOffset.UtcNow,
             SoldWeight = request.SoldWeight,
@@ -164,7 +165,9 @@ public class StockMovementService(AppDbContext dbContext) : IStockMovementServic
     }
 
     private IQueryable<StockMovement> BaseQuery() =>
-        dbContext.StockMovements.Include(m => m.Sale!).ThenInclude(s => s.Customer);
+        dbContext.StockMovements
+            .Include(m => m.Sale!).ThenInclude(s => s.Customer)
+            .Include(m => m.StockUnit!).ThenInclude(u => u.Batch!).ThenInclude(b => b.Product);
 
     private async Task<StockMovement> FindOrThrowAsync(int id) =>
         await BaseQuery().FirstOrDefaultAsync(m => m.Id == id)
