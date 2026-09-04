@@ -3,6 +3,12 @@
 Généré à partir des messages de commit ([Conventional Commits](https://www.conventionalcommits.org/fr/)).
 Ne pas éditer à la main : régénérer avec `make changelog`.
 
+## frontend-v0.3.1 — 04/09/2026
+
+### Corrections
+
+- **deploy** : Le Cache-Control de sw.js ne s'appliquait jamais (6294576)
+
 ## frontend-v0.3.0 — 04/09/2026
 
 ### Nouveautés
