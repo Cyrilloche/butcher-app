@@ -17,6 +17,5 @@ export function updateCustomer(id: number, payload: UpdateCustomerRequest): Prom
   return apiFetch<CustomerDto>(`/api/customers/${id}`, { method: 'PUT', json: payload })
 }
 
-export function deleteCustomer(id: number): Promise<void> {
-  return apiFetch<void>(`/api/customers/${id}`, { method: 'DELETE' })
-}
+// Pas de suppression de client côté produit (décision 2026-09-04) — l'historique
+// lot ↔ client (RF-24) prime, cohérent avec le 409 backend si des ventes existent.

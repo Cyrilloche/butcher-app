@@ -28,3 +28,8 @@ export function addStockUnits(
 export function deleteStockUnit(id: number): Promise<void> {
   return apiFetch<void>(`/api/stock-units/${id}`, { method: 'DELETE' })
 }
+
+/** Clôture manuelle (RF-20) : passe une unité `opened` à `sold`. 409 si elle n'est pas `opened`. */
+export function closeStockUnit(id: number): Promise<void> {
+  return apiFetch<void>(`/api/stock-units/${id}/close`, { method: 'POST' })
+}

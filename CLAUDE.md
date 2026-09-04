@@ -14,19 +14,20 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 
 ## 2. État d'avancement & feuille de route
 
-**Phase actuelle : cœur métier backend exposé, spike authentification à venir immédiatement.**
+**Phase actuelle : cœur métier backend + frontend Vague 1 largement construits (Stock, Produits, Clients, Ventes) ; socle de déploiement (ADR-010) reste le prochain spike.**
 
 | Étape | Statut |
 |---|---|
 | Cadrage métier (discovery) | ✅ Terminé |
 | PRD | ✅ Rédigé (v0.4) |
 | Décisions d'architecture (ADR) | ✅ Rédigées (ADR-006 tranché : Vuetify) |
-| Modèle de données | ✅ Rédigé (v0.5, aligné sur l'implémentation) |
-| Maquettes (Claude Design) | ✅ Direction visuelle validée (écran Stock) ; arrêtées volontairement au profit de l'itération en code (voir §10) |
-| Backend — cœur métier (6 entités, CRUD + logique métier) | ✅ Exposé en API, 75 tests |
+| Modèle de données | ✅ Rédigé (v0.7, aligné sur l'implémentation) |
+| Maquettes (Claude Design) | ✅ Toutes vues Vague 1 maquettées (Stock, Produits, Clients, Ventes) ; itération ensuite en code (voir §10) |
+| Backend — cœur métier (8 entités dont `sale`, CRUD + logique métier) | ✅ Exposé en API, 84 tests |
 | Spike authentification (JWT) | ✅ Réalisé et vérifié — ADR-009 accepté (Identity allégé, refresh token rotatif en base, cookie httpOnly/Secure, seed par variable d'environnement) |
-| Frontend — scaffold | 🔄 En cours (branche `frontend-init`, worktree séparé) |
-| Développement Vague 1 | 🔄 Démarré |
+| Frontend — Stock, Produits, Clients, Ventes (dashboard/détail/ajout) | ✅ Branchés sur l'API réelle (branche `frontend-init`, worktree séparé) |
+| Vente à la tranche (RF-19/RF-20) | ✅ Vendre/clôturer une unité entamée ; `allow_partial_sale` par produit, garde-fou poids côté serveur |
+| Développement Vague 1 | 🔄 Quasi complet — reste le socle de déploiement (ADR-010) |
 
 **Méthode : dé-risquage avant développement.** On valide les points techniques risqués par des *spikes* isolés **avant** de construire les fonctionnalités. Spikes prévus, dans l'ordre :
 
@@ -167,7 +168,7 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 
 3. **Vente en une fois vs vente partielle.**
    - *En une fois* (sachet, jambon entier) : un `stock_movement` de type `sale` ; l'unité passe à `sold`.
-   - *Partielle* (jambon à la tranche) : plusieurs `stock_movement` de type `sale` sur la **même** `stock_unit`, qui reste `opened` jusqu'à une **clôture manuelle** en `sold`. Le poids restant **n'est pas suivi**.
+   - *Partielle* (jambon à la tranche) : plusieurs `stock_movement` de type `sale` sur la **même** `stock_unit`, qui reste `opened` jusqu'à une **clôture manuelle** en `sold` (`POST /api/stock-units/{id}/close`, exposé dans Détail Stock). Le poids restant **n'est pas suivi**, mais un garde-fou serveur empêche la somme des `sold_weight` de dépasser le poids pesé de l'unité. Seuls les produits avec `allow_partial_sale = true` (pertinent uniquement en `by_weight`) autorisent ce mode.
 
 4. **Le `status` de `stock_unit` est la source de vérité de l'état de stock.** C'est une dénormalisation assumée : le passage `opened → sold` d'un jambon est une décision manuelle non déductible des mouvements. Le backend maintient la cohérence status ↔ mouvements.
 

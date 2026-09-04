@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { watch } from 'vue'
+import { ref, watch } from 'vue'
 import AppPageHeader from '@/components/base/AppPageHeader.vue'
 import AppCard from '@/components/base/AppCard.vue'
 import StockUnitRow from '@/components/domain/StockUnitRow.vue'
 import { getStockDetail } from '@/composables/useStock'
+import { closeStockUnit } from '@/api/stockUnits'
 import { useAsyncData } from '@/composables/useAsyncData'
+import { ApiError } from '@/api/http'
 
 const props = defineProps<{ code: string }>()
 
@@ -16,6 +18,22 @@ const {
 } = useAsyncData(() => getStockDetail(props.code), null)
 
 watch(() => props.code, reload)
+
+const closingId = ref<number | null>(null)
+const closeError = ref<string | null>(null)
+
+async function close(unitId: number) {
+  closingId.value = unitId
+  closeError.value = null
+  try {
+    await closeStockUnit(unitId)
+    await reload()
+  } catch (err) {
+    closeError.value = err instanceof ApiError ? err.message : 'Erreur, réessaie.'
+  } finally {
+    closingId.value = null
+  }
+}
 </script>
 
 <template>
@@ -29,6 +47,7 @@ watch(() => props.code, reload)
 
   <v-container v-else-if="detail" class="stock-detail-view">
     <AppPageHeader to="/" back-label="Stock" :title="detail.name" :subtitle="detail.summary" />
+    <p v-if="closeError" class="text-error stock-detail-view__close-error">{{ closeError }}</p>
 
     <div class="stock-detail-view__batches">
       <AppCard v-for="batch in detail.batches" :key="batch.batchNumber" class="stock-detail-view__batch">
@@ -37,7 +56,19 @@ watch(() => props.code, reload)
           <span class="text-secondary font-weight-medium">{{ batch.priceLabel }}</span>
         </div>
         <div>
-          <StockUnitRow v-for="unit in batch.units" :key="unit.number" :unit="unit" />
+          <StockUnitRow v-for="unit in batch.units" :key="unit.number" :unit="unit">
+            <template v-if="unit.status === 'opened'" #action>
+              <v-btn
+                size="small"
+                variant="tonal"
+                color="secondary"
+                :loading="closingId === unit.id"
+                @click="close(unit.id)"
+              >
+                Clôturer
+              </v-btn>
+            </template>
+          </StockUnitRow>
         </div>
       </AppCard>
     </div>
@@ -57,6 +88,12 @@ watch(() => props.code, reload)
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.stock-detail-view__close-error {
+  font-size: 14px;
+  font-weight: 500;
+  padding: 0 4px 12px;
 }
 
 .stock-detail-view__batch-header {

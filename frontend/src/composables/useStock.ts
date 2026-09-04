@@ -30,6 +30,7 @@ export interface StockDashboardProduct {
 }
 
 export interface StockDetailUnit {
+  id: number
   number: string
   weightLabel: string | null
   status: StockUnitStatus
@@ -195,6 +196,7 @@ export async function getStockDetail(code: string): Promise<StockDetail | null> 
           const grams = unit.weight != null ? weightToGrams(unit.weight) : 0
           totalGrams += grams
           return {
+            id: unit.id,
             number,
             weightLabel: unit.weight != null ? formatWeight(grams) : null,
             status: unit.status,

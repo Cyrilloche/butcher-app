@@ -10,6 +10,7 @@ defineProps<{ unit: StockDetailUnit }>()
     <span class="stock-unit-row__num">{{ unit.number }}</span>
     <span v-if="unit.weightLabel" class="stock-unit-row__weight text-secondary">{{ unit.weightLabel }}</span>
     <StockStatusBadge :status="unit.status" />
+    <slot name="action" />
   </div>
 </template>
 
