@@ -153,7 +153,7 @@ Toute sortie de stock, rattachée à une **stock_unit précise** (RF-15). Journa
 | `date` | timestamptz | non nul, défaut `now()` | Date de la sortie |
 | `sold_weight` | decimal(10,3) | nullable | Poids concerné (`by_weight`) ; `null` pour `by_piece` |
 | `amount` | decimal(10,2) | nullable | Encaissé — **uniquement** pour `type = sale` |
-| `customer_id` | integer | FK → `customer`, nullable | **Uniquement** pour `type = sale` (RF-17) |
+| `customer_id` | integer | FK → `customer`, **non nul si `type = sale`**, `null` sinon | Obligatoire pour une vente depuis le 2026-09-04 (RF-17/RG-07 modifiés — plus de vente anonyme, V1 = particuliers uniquement) |
 | `notes` | text | nullable | Observations |
 | `created_by` | uuid | FK → `app_user`, nullable | Auteur (RF-27) |
 | `created_at` | timestamptz | | Audit |
@@ -393,7 +393,26 @@ Table stock_movement {
 | QM-01 | **Modélisation des produits `by_piece`** : conserver le mécanisme uniforme (une ligne `stock_unit` par pièce, sans poids) ou un simple compteur sur le lot ? | ✅ Résolu — mécanisme uniforme implémenté : `POST /api/production-batches/{id}/stock-units` génère une `stock_unit` par pièce (`weight = null`) à partir d'une `quantity`, symétrique au cas `by_weight` (une par poids fourni). |
 | QM-02 | Format du numéro de lot | ✅ Résolu (§4.1) |
 | QM-03 | Comptage des tranches de jambon | ✅ Résolu — poids seul, pas de comptage |
-| QM-04 | **Numéro de vente unique** : `stock_movement` n'a aujourd'hui aucun numéro unique communicable (seul `id` technique), alors que chaque vente devrait en avoir un — à l'image de `batch_number` sur `production_batch` (§4.1, §3.7). Format à définir (portée : toutes ventes confondues, ou par jour comme `batch_number` ? réutilise-t-on le format `CODE-YYMMDD-N`, ou un format distinct puisqu'une vente n'est pas liée à un seul produit ?), champ à ajouter au schéma (`stock_movement`) et service de génération à implémenter côté backend (symétrique à celui de `batch_number`). | 🔴 Ouvert — identifié lors du design des vues Vente, pas encore traité côté backend ni frontend. |
+| QM-04 | **Regroupement des ventes** (numéro unique + statut de paiement + plusieurs unités par vente) : voir proposition de schéma ci-dessous. | 🔴 Ouvert — à implémenter côté backend. Décisions déjà actées (2026-09-04) : client obligatoire (RF-17/RG-07 modifiés), V1 = particuliers uniquement. |
+
+### Proposition pour QM-04 — entité `sale` (non implémentée, à confirmer côté backend)
+
+Constat : une "vente" côté utilisateur (un numéro, une date, un client, un statut de paiement, potentiellement plusieurs unités physiques vendues en une fois, un total) n'a **aucun équivalent** dans le modèle actuel — seul `stock_movement` existe, une ligne indépendante par unité vendue, sans regroupement. C'est le pendant, côté vente, de ce qu'est `production_batch` côté production : un parent qui regroupe plusieurs enregistrements enfants (`stock_unit` pour le lot, `stock_movement` pour la vente). Proposition, par symétrie avec ce précédent déjà en place :
+
+| Attribut | Type | Contraintes | Rôle |
+|---|---|---|---|
+| `id` | integer | PK | Identifiant |
+| `sale_number` | varchar | unique, non nul, auto-généré | Numéro communicable (ex. `V-260904-1`, format à confirmer — même logique que `batch_number`, §4.1) |
+| `customer_id` | integer | FK → `customer`, non nul | Obligatoire (RF-17/RG-07 modifiés, V1 = particuliers) |
+| `date` | timestamptz | non nul, défaut `now()` | Date de la vente |
+| `paid` | boolean (ou enum si plus de 2 états utiles) | non nul, défaut à définir | Statut de paiement ("Payée" / "À payer") — notion absente du modèle actuel |
+| `notes` | text | nullable | |
+| `created_by` | uuid | FK → `app_user`, nullable | Audit (RF-27) |
+| `created_at` | timestamptz | | |
+
+Et `stock_movement` gagnerait une FK `sale_id → sale` (non nulle si `type = sale`, `null` sinon — même schéma que `customer_id`/`amount` déjà réservés au type `sale`). Chaque ligne `stock_movement` reste l'enregistrement par unité physique (montant, poids vendu) ; `sale` porte ce qui est commun à toute la transaction (numéro, date, client, paiement).
+
+Ceci est une proposition de conception, pas une décision actée — à confirmer/ajuster avant implémentation backend.
 
 ---
 

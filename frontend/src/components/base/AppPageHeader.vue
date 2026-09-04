@@ -15,7 +15,10 @@ defineProps<{
       <v-icon size="18">phosphor:caret-left</v-icon>
       {{ backLabel }}
     </RouterLink>
-    <h1 class="app-page-header__title text-h4 font-weight-bold">{{ title }}</h1>
+    <div class="app-page-header__title-row">
+      <h1 class="app-page-header__title text-h4 font-weight-bold">{{ title }}</h1>
+      <slot name="badge" />
+    </div>
     <div v-if="subtitle" class="app-page-header__subtitle text-secondary font-weight-medium">{{ subtitle }}</div>
   </header>
 </template>
@@ -36,6 +39,13 @@ defineProps<{
   font-size: 16px;
   font-weight: 500;
   min-height: 44px;
+}
+
+.app-page-header__title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .app-page-header__title {

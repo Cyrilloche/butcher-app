@@ -168,7 +168,7 @@ Le stock n'est pas un compteur abstrait : il représente des **objets physiques 
 |---|---|
 | RF-15 | Toute sortie de stock (vente, usage personnel, perte) est enregistrée comme un **mouvement rattaché à une unité physique précise**. |
 | RF-16 | Un mouvement porte un **type** : `vente`, `perso`, `casse`. |
-| RF-17 | Un mouvement de type `vente` peut être **rattaché optionnellement à un client**. |
+| RF-17 | Un mouvement de type `vente` doit être **rattaché à un client** (décision 2026-09-04 : V1 limitée à la vente à des particuliers, plus de vente anonyme — remplace la version initiale de cette exigence, cf. RG-07). |
 | RF-18 | **Vente d'une unité « en une fois »** (cas standard, ex. sachet de saucisse ou jambon entier) : le montant est calculé (poids × prix/kg du lot, ou prix à la pièce), l'unité passe au statut `vendu`, et le stock diminue automatiquement. |
 | RF-19 | **Vente partielle d'une unité (ex. jambon à la tranche)** : plusieurs mouvements de vente peuvent être rattachés à une même unité physique. L'unité passe au statut `entamé` et **ne quitte pas le stock automatiquement**. Chaque vente est pesée (poids de tranche × prix/kg du lot) et rattachée au client concerné. |
 | RF-20 | L'utilisateur peut clôturer manuellement une unité `entamé` en la passant au statut `vendu` (ou `perdu`) lorsqu'elle est épuisée. Le poids restant n'est pas suivi. |
@@ -202,7 +202,7 @@ Le stock n'est pas un compteur abstrait : il représente des **objets physiques 
 | RG-04 | Une unité physique vendue « en une fois » sort du stock ; une unité vendue en plusieurs fois reste en stock au statut `entamé` jusqu'à clôture manuelle. |
 | RG-05 | Le poids restant d'une unité `entamé` n'est **pas** suivi : seule la somme des ventes rattachées est significative (chiffre d'affaires généré par l'unité). |
 | RG-06 | Les statuts de sortie (`vendu`, `perso`, `perdu`) sont exclusifs et s'appliquent à l'échelle de l'unité physique individuelle. |
-| RG-07 | Un mouvement de vente sans client rattaché reste valide (vente anonyme). |
+| RG-07 | **(Modifié 2026-09-04, remplace la règle initiale)** Un mouvement de vente doit être rattaché à un client — plus de vente anonyme. V1 limitée à la vente à des particuliers (nom + prénom) ; la vente à des professionnels (raison sociale) est reportée à une évolution ultérieure si le besoin se confirme. |
 | RG-08 | Une **unité de mesure** ne peut pas être désactivée tant qu'elle est utilisée comme unité de vente par un **produit actif** (évite qu'un produit en cours de vente référence une unité qu'on retire de l'usage). |
 | RG-09 | La **désactivation d'un produit** n'est jamais bloquée, y compris s'il a déjà des lots de production. Elle n'empêche que la création de **nouveaux** lots pour ce produit à l'avenir ; l'historique (lots, stock, ventes) reste consultable normalement. |
 | RG-10 | Un **lot de production** reste partiellement modifiable après création (prix de vente, référence matière première, DLC, notes), pour corriger une erreur de saisie. Le produit, la date de production et le numéro de lot sont **définitifs** dès la création : ils sont indissociables du numéro de lot lui-même (§4.1 du modèle de données) et de l'identité du lot. Aucune suppression de lot n'est possible. |
@@ -287,6 +287,8 @@ Le stock n'est pas un compteur abstrait : il représente des **objets physiques 
 | Q-01 | Choix de la plateforme d'hébergement et de la stratégie d'authentification (à traiter en phase technique). |
 | Q-02 | Faut-il, à l'usage, passer à deux comptes distincts avec journalisation dès la V1 ou attendre une vague ultérieure ? (décision reportée à la phase de développement). |
 | Q-03 | Existe-t-il des produits futurs (terrines, etc.) dont le mode de vente n'entre pas dans `poids_variable` / `piece_simple` ? (à valider avec les exploitants). |
+| Q-04 | **(2026-09-04)** Statut de paiement de la vente (`payée` / `à payer`) : identifié en concevant les vues Ventes, absent du modèle actuel. À ajouter côté backend — voir proposition de schéma dans `data-model.md` §9 (QM-04). |
+| Q-05 | **(2026-09-04)** Une vente peut regrouper plusieurs unités physiques vendues en une fois à un client (un numéro, une date, un statut de paiement, un total) — le modèle actuel n'a **aucune entité de regroupement** : chaque `stock_movement` est indépendant. Proposition : entité `sale` (miroir de `production_batch` côté vente), `stock_movement.sale_id` en FK. Voir `data-model.md` §9 (QM-04). Implique aussi RF-17/RG-07 (client désormais obligatoire). |
 
 ---
 

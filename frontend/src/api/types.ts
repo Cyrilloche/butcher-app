@@ -91,6 +91,15 @@ export interface AddStockUnitsRequest {
   quantity?: number
 }
 
+// --- UnitOfMeasure -------------------------------------------------------------
+
+export interface UnitOfMeasureDto {
+  id: number
+  label: string
+  abbreviation: string
+  isActive: boolean
+}
+
 // --- Erreurs -------------------------------------------------------------
 
 /** RFC7807 ProblemDetails renvoyé par ExceptionHandlingMiddleware pour les erreurs métier. */
