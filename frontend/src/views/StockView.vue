@@ -1,12 +1,16 @@
 <!-- src/views/StockView.vue -->
 <script setup lang="ts">
-import { computed } from 'vue'
 import AppFab from '@/components/base/AppFab.vue'
 import AppBrandHeader from '@/components/base/AppBrandHeader.vue'
 import StockProductRow from '@/components/domain/StockProductRow.vue'
 import { getStockDashboard } from '@/composables/useStock'
+import { useAsyncData } from '@/composables/useAsyncData'
 
-const dashboard = computed(() => getStockDashboard())
+const {
+  data: dashboard,
+  loading,
+  error,
+} = useAsyncData(getStockDashboard, { products: [], totalAvailableUnits: 0 })
 </script>
 
 <template>
@@ -21,7 +25,10 @@ const dashboard = computed(() => getStockDashboard())
       </div>
     </header>
 
-    <div class="stock-view__list">
+    <p v-if="loading" class="text-secondary">Chargement...</p>
+    <p v-else-if="error" class="text-error">{{ error }}</p>
+
+    <div v-else class="stock-view__list">
       <StockProductRow v-for="product in dashboard.products" :key="product.code" :product="product" />
     </div>
 

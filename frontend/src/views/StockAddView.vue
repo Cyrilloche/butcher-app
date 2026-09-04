@@ -1,14 +1,23 @@
 <script setup lang="ts">
-import { computed, reactive } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AppPageHeader from '@/components/base/AppPageHeader.vue'
 import AppCard from '@/components/base/AppCard.vue'
 import AppStepper from '@/components/base/AppStepper.vue'
 import AppTextField from '@/components/base/AppTextField.vue'
 import AppButton from '@/components/base/AppButton.vue'
-import { productCatalog, formatWeight } from '@/composables/useStock'
+import { listActiveProducts, formatWeight } from '@/composables/useStock'
+import { useAsyncData } from '@/composables/useAsyncData'
+import { createProductionBatch } from '@/api/productionBatches'
+import { addStockUnits } from '@/api/stockUnits'
+import { ApiError } from '@/api/http'
 
 const router = useRouter()
+
+const { data: productCatalog, loading: loadingCatalog, error: catalogError } = useAsyncData(
+  listActiveProducts,
+  [],
+)
 
 const state = reactive({
   productId: null as number | null,
@@ -19,7 +28,7 @@ const state = reactive({
   qty: 1,
 })
 
-const product = computed(() => productCatalog.find((p) => p.id === state.productId) ?? null)
+const product = computed(() => productCatalog.value.find((p) => p.id === state.productId) ?? null)
 const isWeight = computed(() => product.value?.saleMode === 'by_weight')
 const isPiece = computed(() => product.value?.saleMode === 'by_piece')
 
@@ -61,15 +70,40 @@ const weightSummary = computed(() => {
 
 const unitCount = computed(() => (isWeight.value ? state.weights.length : state.qty))
 const canSave = computed(() => !!product.value && Number(state.price) > 0 && unitCount.value > 0)
-const saveLabel = computed(() =>
-  canSave.value
+const saving = ref(false)
+const saveError = ref<string | null>(null)
+const saveLabel = computed(() => {
+  if (saving.value) return 'Enregistrement...'
+  return canSave.value
     ? `Enregistrer — ${unitCount.value} unité${unitCount.value > 1 ? 's' : ''} en stock`
-    : 'Enregistrer',
-)
+    : 'Enregistrer'
+})
 
-function save() {
-  // TODO(branchement API) : POST vers l'endpoint production-batch, puis rediriger.
-  router.push('/')
+async function save() {
+  if (!product.value || !canSave.value) return
+  saving.value = true
+  saveError.value = null
+  try {
+    // Deux appels distincts côté API (création du lot, puis des unités physiques) —
+    // le frontend les enchaîne pour donner l'impression d'un flux unique (PRD RF-10).
+    const batch = await createProductionBatch({
+      productId: product.value.id,
+      productionDate: state.date,
+      salePrice: Number(state.price),
+    })
+    await addStockUnits(
+      batch.id,
+      isWeight.value
+        ? { weights: state.weights.map((grams) => grams / 1000) }
+        : { quantity: state.qty },
+    )
+    await router.push('/')
+  } catch (err) {
+    saveError.value =
+      err instanceof ApiError ? err.message : "Erreur lors de l'enregistrement, réessaie."
+  } finally {
+    saving.value = false
+  }
 }
 </script>
 
@@ -80,7 +114,9 @@ function save() {
     <div class="stock-add-view__sections">
       <AppCard>
         <div class="stock-add-view__section-title text-secondary">1. Quel produit ?</div>
-        <div class="stock-add-view__chips">
+        <p v-if="loadingCatalog" class="text-secondary">Chargement des produits...</p>
+        <p v-else-if="catalogError" class="text-error">{{ catalogError }}</p>
+        <div v-else class="stock-add-view__chips">
           <button
             v-for="p in productCatalog"
             :key="p.id"
@@ -163,11 +199,12 @@ function save() {
     </div>
 
     <div class="stock-add-view__footer">
+      <p v-if="saveError" class="stock-add-view__save-error text-error">{{ saveError }}</p>
       <AppButton
         block
         height="60"
         :color="canSave ? 'primary' : undefined"
-        :disabled="!canSave"
+        :disabled="!canSave || saving"
         @click="save"
       >
         {{ saveLabel }}
@@ -265,6 +302,13 @@ function save() {
   font-size: 16px;
   color: rgb(var(--v-theme-success));
   font-weight: 600;
+}
+
+.stock-add-view__save-error {
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  margin: 0 0 10px;
 }
 
 .stock-add-view__footer {

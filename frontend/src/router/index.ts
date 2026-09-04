@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import StockView from '@/views/StockView.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -17,6 +18,18 @@ const router = createRouter({
     { path: '/products', name: 'products', component: () => import('@/views/ProductsView.vue') },
     { path: '/login', name: 'login', component: () => import('@/views/LoginView.vue') },
   ],
+})
+
+router.beforeEach(async (to) => {
+  const auth = useAuthStore()
+  await auth.ensureReady()
+
+  if (to.name !== 'login' && !auth.isAuthenticated) {
+    return { name: 'login', query: { redirect: to.fullPath } }
+  }
+  if (to.name === 'login' && auth.isAuthenticated) {
+    return { name: 'stock' }
+  }
 })
 
 export default router

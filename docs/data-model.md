@@ -124,6 +124,8 @@ Cœur du suivi de stock : **un objet physique distinct**, suivi individuellement
 
 **Règles complémentaires (implémentation)** : les unités d'un lot sont générées via un appel **distinct** de la création du lot (§ note RF-10 du PRD), pour permettre une pesée étalée dans le temps. Une unité au statut `available` peut être **supprimée** (correction d'une erreur de pesée) uniquement si aucun `stock_movement` n'y est rattaché. Le statut `opened` n'est atteignable que via une vente partielle (`stock_movement` de type `sale`) : il n'existe pas de moyen de créer directement une unité `opened`.
 
+**Numéro affiché par unité (pas une colonne)** : contrairement au lot (`batch_number`, unique et auto-généré, § 4.1), une `stock_unit` individuelle n'a **aucun numéro stocké en base** — seuls `id`, `batch_id`, `weight`, `status` existent. Le libellé affiché à l'utilisateur pour une unité (ex. `SC-260902-1`, `SC-260902-2`...) est le `batch_number` du lot parent, suffixé par le **rang de l'unité dans ce lot** (ordre de pesée/création). C'est un identifiant d'affichage recalculé côté client à partir de l'ordre des unités renvoyées pour un lot donné — pas un identifiant persistant ni garanti stable si des unités sont supprimées puis recréées.
+
 ### 3.6 `customer`
 
 Fiche client pour la vente informelle et la traçabilité (RF-22 à RF-24).
@@ -161,6 +163,8 @@ Toute sortie de stock, rattachée à une **stock_unit précise** (RF-15). Journa
 - Un mouvement peut être marqué `personal` ou `loss` aussi bien depuis `available` que depuis `opened` (RG-12).
 - Aucun mouvement n'est possible sur une unité déjà `sold`, `personal` ou `lost` (statuts terminaux, RG-06).
 - Contrairement à `production_batch`, un `stock_movement` reste **modifiable et supprimable** après création (RG-11). La suppression du dernier mouvement d'une unité la remet `available` ; dans les autres cas, le statut n'est pas recalculé (pas de machine à états inverse complète).
+
+**⚠️ Écart identifié (2026-09-04)** : contrairement à `production_batch` (`batch_number`, unique, format documenté en §4.1), `stock_movement` n'a **aucun numéro unique** — seul `id` (technique, non pensé pour être communiqué). Besoin exprimé : chaque **vente** doit avoir un numéro unique (ex. remis au client, retrouvable). Champ à ajouter et format à définir — voir QM-04 (§9). Tant que ce n'est pas tranché, **ne pas construire de frontend en supposant un tel numéro** (contrairement au cas `stock_unit`, ici il n'y a pas de dérivation client-side raisonnable : un numéro de vente doit être stable et non-collisionnant, donc généré et persisté côté serveur, comme `batch_number`).
 
 ---
 
@@ -389,6 +393,7 @@ Table stock_movement {
 | QM-01 | **Modélisation des produits `by_piece`** : conserver le mécanisme uniforme (une ligne `stock_unit` par pièce, sans poids) ou un simple compteur sur le lot ? | ✅ Résolu — mécanisme uniforme implémenté : `POST /api/production-batches/{id}/stock-units` génère une `stock_unit` par pièce (`weight = null`) à partir d'une `quantity`, symétrique au cas `by_weight` (une par poids fourni). |
 | QM-02 | Format du numéro de lot | ✅ Résolu (§4.1) |
 | QM-03 | Comptage des tranches de jambon | ✅ Résolu — poids seul, pas de comptage |
+| QM-04 | **Numéro de vente unique** : `stock_movement` n'a aujourd'hui aucun numéro unique communicable (seul `id` technique), alors que chaque vente devrait en avoir un — à l'image de `batch_number` sur `production_batch` (§4.1, §3.7). Format à définir (portée : toutes ventes confondues, ou par jour comme `batch_number` ? réutilise-t-on le format `CODE-YYMMDD-N`, ou un format distinct puisqu'une vente n'est pas liée à un seul produit ?), champ à ajouter au schéma (`stock_movement`) et service de génération à implémenter côté backend (symétrique à celui de `batch_number`). | 🔴 Ouvert — identifié lors du design des vues Vente, pas encore traité côté backend ni frontend. |
 
 ---
 

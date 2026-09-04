@@ -1,153 +1,21 @@
-// Données mock pour les vues Stock, en attendant le branchement à l'API
-// (cf. CLAUDE.md §2 — les vues seront d'abord validées visuellement).
-// Les formes ci-dessous suivent volontairement le modèle de données réel
-// (product / production_batch / stock_unit, cf. docs/data-model.md) pour
-// que remplacer ces fonctions par des appels API change peu les vues.
+import { listProducts } from '@/api/products'
+import { listProductionBatches } from '@/api/productionBatches'
+import { listStockUnits } from '@/api/stockUnits'
+import type { ProductDto, ProductionBatchDto, StockUnitDto, SaleMode } from '@/api/types'
 
-export type SaleMode = 'by_weight' | 'by_piece'
-export type StockUnitStatus = 'available' | 'opened' | 'sold' | 'personal' | 'lost'
+export type { SaleMode }
+export type StockUnitStatus = StockUnitDto['status']
 
 export interface Product {
   id: number
   code: string
   name: string
   saleMode: SaleMode
-  /** Libellé d'unité au pluriel, tel qu'affiché à l'utilisateur ("sachets", "pièces"...). */
+  /** Nom d'unité de comptage (référentiel unit_of_measure du produit, ex. "sachets", "entiers", "pièces"). */
   unitLabel: string
-  /** Unité utilisée pour le prix ("kg" ou "pièce"). */
+  /** Unité affichée à côté du prix : toujours "kg" en poids variable (RG-02/03), sinon le nom d'unité du produit. */
   priceUnit: string
 }
-
-export interface StockUnit {
-  id: number
-  number: string
-  weightGrams: number | null
-  status: StockUnitStatus
-}
-
-export interface ProductionBatch {
-  id: number
-  batchNumber: string
-  dateLabel: string
-  priceLabel: string
-  units: StockUnit[]
-}
-
-interface ProductWithBatches extends Product {
-  batches: ProductionBatch[]
-}
-
-const catalog: ProductWithBatches[] = [
-  {
-    id: 1,
-    code: 'SC',
-    name: 'Saucisse curry',
-    saleMode: 'by_weight',
-    unitLabel: 'sachets',
-    priceUnit: 'kg',
-    batches: [
-      {
-        id: 1,
-        batchNumber: 'SC-260902',
-        dateLabel: '2 septembre 2026',
-        priceLabel: '14,50 € / kg',
-        units: [470, 445, 510, 480, 465, 490, 455, 500].map((g, i) => unit(i + 1, 'SC-260902', g, 'available')),
-      },
-      {
-        id: 2,
-        batchNumber: 'SC-260823',
-        dateLabel: '23 août 2026',
-        priceLabel: '14,00 € / kg',
-        units: [430, 460, 445, 475, 450, 440].map((g, i) => unit(i + 1, 'SC-260823', g, 'available')),
-      },
-    ],
-  },
-  {
-    id: 2,
-    code: 'SA',
-    name: 'Saucisse andalouse',
-    saleMode: 'by_weight',
-    unitLabel: 'sachets',
-    priceUnit: 'kg',
-    batches: [
-      {
-        id: 3,
-        batchNumber: 'SA-260902',
-        dateLabel: '2 septembre 2026',
-        priceLabel: '14,50 € / kg',
-        units: [455, 470, 440, 485, 460, 450, 445, 480, 465].map((g, i) =>
-          unit(i + 1, 'SA-260902', g, 'available'),
-        ),
-      },
-    ],
-  },
-  {
-    id: 3,
-    code: 'JS',
-    name: 'Jambon sec',
-    saleMode: 'by_weight',
-    unitLabel: 'entiers',
-    priceUnit: 'kg',
-    batches: [
-      {
-        id: 4,
-        batchNumber: 'JS-260712',
-        dateLabel: '12 juillet 2026',
-        priceLabel: '22,00 € / kg',
-        units: [unit(1, 'JS-260712', 4600, 'available'), unit(2, 'JS-260712', 4850, 'available'), unit(3, 'JS-260712', 4350, 'opened')],
-      },
-    ],
-  },
-  {
-    id: 4,
-    code: 'TC',
-    name: 'Terrine de campagne',
-    saleMode: 'by_piece',
-    unitLabel: 'pièces',
-    priceUnit: 'pièce',
-    batches: [
-      {
-        id: 5,
-        batchNumber: 'TC-260830',
-        dateLabel: '30 août 2026',
-        priceLabel: '6,00 € / pièce',
-        units: Array.from({ length: 7 }, (_, i) => unit(i + 1, 'TC-260830', null, 'available')),
-      },
-    ],
-  },
-  {
-    id: 5,
-    code: 'PT',
-    name: 'Pâté de tête',
-    saleMode: 'by_piece',
-    unitLabel: 'pièces',
-    priceUnit: 'pièce',
-    batches: [],
-  },
-]
-
-function unit(n: number, batchNumber: string, weightGrams: number | null, status: StockUnitStatus): StockUnit {
-  return { id: n, number: `${batchNumber}-${n}`, weightGrams, status }
-}
-
-/** Une unité compte comme "en stock" si elle n'est pas encore sortie (vente/perso/perte). */
-function isInStock(unit: StockUnit) {
-  return unit.status === 'available' || unit.status === 'opened'
-}
-
-export function formatWeight(grams: number): string {
-  return grams >= 1000
-    ? `${(grams / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} kg`
-    : `${grams} g`
-}
-
-/** Accorde un libellé pluriel ("sachets") au singulier quand count <= 1. */
-export function pluralize(label: string, count: number): string {
-  return count > 1 ? label : label.replace(/s$/, '')
-}
-
-/** Catalogue produit "plat", pour les écrans qui n'ont pas besoin des lots (ex. sélecteur d'Ajout Stock). */
-export const productCatalog: Product[] = catalog.map(({ batches: _batches, ...product }) => product)
 
 export interface StockDashboardProduct {
   code: string
@@ -158,34 +26,6 @@ export interface StockDashboardProduct {
   qtyLabel: string
   openedLabel: string | null
   isEmpty: boolean
-}
-
-/** Résumé par produit pour le tableau de bord Stock (Stock Dashboard). */
-export function getStockDashboard(): { products: StockDashboardProduct[]; totalAvailableUnits: number } {
-  const products = catalog.map((product) => {
-    const units = product.batches.flatMap((b) => b.units)
-    const available = units.filter((u) => u.status === 'available')
-    const opened = units.filter((u) => u.status === 'opened')
-    const inStock = available.length + opened.length
-    const totalGrams = units.filter(isInStock).reduce((sum, u) => sum + (u.weightGrams ?? 0), 0)
-
-    const metaParts = [product.saleMode === 'by_weight' ? 'Au poids' : 'À la pièce']
-    if (product.saleMode === 'by_weight' && totalGrams > 0) metaParts.push(`${formatWeight(totalGrams)} au total`)
-
-    return {
-      code: product.code,
-      name: product.name,
-      href: `/stock/${product.code}`,
-      meta: metaParts.join(' · '),
-      qty: available.length,
-      qtyLabel: pluralize(product.unitLabel, available.length),
-      openedLabel: opened.length > 0 ? `${opened.length} entamé${opened.length > 1 ? 's' : ''}` : null,
-      isEmpty: inStock === 0,
-    }
-  })
-
-  const totalAvailableUnits = products.reduce((sum, p) => sum + p.qty, 0)
-  return { products, totalAvailableUnits }
 }
 
 export interface StockDetailUnit {
@@ -207,29 +47,159 @@ export interface StockDetail {
   batches: StockDetailBatch[]
 }
 
+function toProduct(dto: ProductDto): Product {
+  return {
+    id: dto.id,
+    code: dto.code,
+    name: dto.name,
+    saleMode: dto.saleMode,
+    unitLabel: dto.saleUnitLabel,
+    priceUnit: dto.saleMode === 'by_weight' ? 'kg' : dto.saleUnitLabel,
+  }
+}
+
+/** Une unité compte comme "en stock" si elle n'est pas encore sortie (vente/perso/perte). */
+function isInStock(unit: StockUnitDto) {
+  return unit.status === 'available' || unit.status === 'opened'
+}
+
+/** weight (kg, decimal(10,3)) -> grammes entiers, en évitant les artefacts de flottant. */
+function weightToGrams(weightKg: number): number {
+  return Math.round(weightKg * 1000)
+}
+
+export function formatWeight(grams: number): string {
+  return grams >= 1000
+    ? `${(grams / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} kg`
+    : `${grams} g`
+}
+
+/** Accorde un libellé pluriel ("sachets") au singulier quand count <= 1. */
+export function pluralize(label: string, count: number): string {
+  return count > 1 ? label : label.replace(/s$/, '')
+}
+
+function formatDateLabel(dateOnly: string): string {
+  // dateOnly: "YYYY-MM-DD" (System.Text.Json DateOnly).
+  return new Date(`${dateOnly}T00:00:00`).toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
+function formatPriceLabel(salePrice: number, priceUnit: string): string {
+  return `${salePrice.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € / ${priceUnit}`
+}
+
+/** batch_number du lot parent, tri par production_date décroissante (le plus récent en premier). */
+function sortBatchesRecentFirst(batches: ProductionBatchDto[]): ProductionBatchDto[] {
+  return [...batches].sort((a, b) => b.productionDate.localeCompare(a.productionDate))
+}
+
+export async function listActiveProducts(): Promise<Product[]> {
+  const products = await listProducts(false)
+  return products.map(toProduct)
+}
+
+export async function getStockDashboard(): Promise<{
+  products: StockDashboardProduct[]
+  totalAvailableUnits: number
+}> {
+  const [productDtos, batchDtos, unitDtos] = await Promise.all([
+    listProducts(false),
+    listProductionBatches(),
+    listStockUnits(),
+  ])
+
+  const batchesByProduct = new Map<number, ProductionBatchDto[]>()
+  for (const batch of batchDtos) {
+    const list = batchesByProduct.get(batch.productId) ?? []
+    list.push(batch)
+    batchesByProduct.set(batch.productId, list)
+  }
+  const unitsByBatch = new Map<number, StockUnitDto[]>()
+  for (const unit of unitDtos) {
+    const list = unitsByBatch.get(unit.batchId) ?? []
+    list.push(unit)
+    unitsByBatch.set(unit.batchId, list)
+  }
+
+  const products = productDtos.map((productDto) => {
+    const product = toProduct(productDto)
+    const batches = batchesByProduct.get(productDto.id) ?? []
+    const units = batches.flatMap((b) => unitsByBatch.get(b.id) ?? [])
+    const available = units.filter((u) => u.status === 'available')
+    const opened = units.filter((u) => u.status === 'opened')
+    const inStock = available.length + opened.length
+    const totalGrams = units
+      .filter(isInStock)
+      .reduce((sum, u) => sum + (u.weight != null ? weightToGrams(u.weight) : 0), 0)
+
+    const metaParts = [product.saleMode === 'by_weight' ? 'Au poids' : 'À la pièce']
+    if (product.saleMode === 'by_weight' && totalGrams > 0) metaParts.push(`${formatWeight(totalGrams)} au total`)
+
+    return {
+      code: product.code,
+      name: product.name,
+      href: `/stock/${product.code}`,
+      meta: metaParts.join(' · '),
+      qty: available.length,
+      qtyLabel: pluralize(product.unitLabel, available.length),
+      openedLabel: opened.length > 0 ? `${opened.length} entamé${opened.length > 1 ? 's' : ''}` : null,
+      isEmpty: inStock === 0,
+    }
+  })
+
+  const totalAvailableUnits = products.reduce((sum, p) => sum + p.qty, 0)
+  return { products, totalAvailableUnits }
+}
+
 /** Détail d'un produit (Détail Stock) : lots + unités encore en stock (available/opened). */
-export function getStockDetail(code: string): StockDetail | null {
-  const product = catalog.find((p) => p.code === code.toUpperCase())
-  if (!product) return null
+export async function getStockDetail(code: string): Promise<StockDetail | null> {
+  const productDtos = await listProducts(true)
+  const productDto = productDtos.find((p) => p.code.toUpperCase() === code.toUpperCase())
+  if (!productDto) return null
+  const product = toProduct(productDto)
+
+  const [batchDtos, unitDtos] = await Promise.all([
+    listProductionBatches(productDto.id),
+    listStockUnits(),
+  ])
+  const unitsByBatch = new Map<number, StockUnitDto[]>()
+  for (const unit of unitDtos) {
+    const list = unitsByBatch.get(unit.batchId) ?? []
+    list.push(unit)
+    unitsByBatch.set(unit.batchId, list)
+  }
 
   let count = 0
   let totalGrams = 0
-  const batches: StockDetailBatch[] = product.batches.map((batch) => ({
-    batchNumber: batch.batchNumber,
-    dateLabel: batch.dateLabel,
-    priceLabel: batch.priceLabel,
-    units: batch.units
-      .filter(isInStock)
-      .map((u) => {
-        count += 1
-        totalGrams += u.weightGrams ?? 0
-        return {
-          number: u.number,
-          weightLabel: u.weightGrams != null ? formatWeight(u.weightGrams) : null,
-          status: u.status,
-        }
-      }),
-  }))
+  const batches: StockDetailBatch[] = sortBatchesRecentFirst(batchDtos).map((batch) => {
+    // Numéro par unité = batch_number + rang dans le lot (pas une colonne persistée,
+    // cf. docs/data-model.md §3.5) — trié par id pour un ordre stable.
+    // Le rang (donc le numéro affiché) se fixe sur l'ordre complet du lot, y compris
+    // les unités déjà sorties — sinon le numéro d'une unité changerait au fil des ventes.
+    const batchUnits = [...(unitsByBatch.get(batch.id) ?? [])].sort((a, b) => a.id - b.id)
+    return {
+      batchNumber: batch.batchNumber,
+      dateLabel: formatDateLabel(batch.productionDate),
+      priceLabel: formatPriceLabel(batch.salePrice, product.priceUnit),
+      units: batchUnits
+        .map((unit, index) => ({ unit, number: `${batch.batchNumber}-${index + 1}` }))
+        .filter(({ unit }) => isInStock(unit))
+        .map(({ unit, number }) => {
+          count += 1
+          const grams = unit.weight != null ? weightToGrams(unit.weight) : 0
+          totalGrams += grams
+          return {
+            number,
+            weightLabel: unit.weight != null ? formatWeight(grams) : null,
+            status: unit.status,
+          }
+        }),
+    }
+  })
 
   const summaryParts = [`${count} ${pluralize(product.unitLabel, count)} en stock`]
   if (product.saleMode === 'by_weight' && totalGrams > 0) summaryParts.push(formatWeight(totalGrams))

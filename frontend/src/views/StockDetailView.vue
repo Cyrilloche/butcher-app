@@ -1,17 +1,33 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { watch } from 'vue'
 import AppPageHeader from '@/components/base/AppPageHeader.vue'
 import AppCard from '@/components/base/AppCard.vue'
 import StockUnitRow from '@/components/domain/StockUnitRow.vue'
 import { getStockDetail } from '@/composables/useStock'
+import { useAsyncData } from '@/composables/useAsyncData'
 
 const props = defineProps<{ code: string }>()
 
-const detail = computed(() => getStockDetail(props.code))
+const {
+  data: detail,
+  loading,
+  error,
+  reload,
+} = useAsyncData(() => getStockDetail(props.code), null)
+
+watch(() => props.code, reload)
 </script>
 
 <template>
-  <v-container v-if="detail" class="stock-detail-view">
+  <v-container v-if="loading" class="stock-detail-view">
+    <p class="text-secondary">Chargement...</p>
+  </v-container>
+
+  <v-container v-else-if="error" class="stock-detail-view">
+    <p class="text-error">{{ error }}</p>
+  </v-container>
+
+  <v-container v-else-if="detail" class="stock-detail-view">
     <AppPageHeader to="/" back-label="Stock" :title="detail.name" :subtitle="detail.summary" />
 
     <div class="stock-detail-view__batches">
