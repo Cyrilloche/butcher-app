@@ -178,32 +178,36 @@ export async function getStockDetail(code: string): Promise<StockDetail | null> 
 
   let count = 0
   let totalGrams = 0
-  const batches: StockDetailBatch[] = sortBatchesRecentFirst(batchDtos).map((batch) => {
-    // Numéro par unité = batch_number + rang dans le lot (pas une colonne persistée,
-    // cf. docs/data-model.md §3.5) — trié par id pour un ordre stable.
-    // Le rang (donc le numéro affiché) se fixe sur l'ordre complet du lot, y compris
-    // les unités déjà sorties — sinon le numéro d'une unité changerait au fil des ventes.
-    const batchUnits = [...(unitsByBatch.get(batch.id) ?? [])].sort((a, b) => a.id - b.id)
-    return {
-      batchNumber: batch.batchNumber,
-      dateLabel: formatDateLabel(batch.productionDate),
-      priceLabel: formatPriceLabel(batch.salePrice, product.priceUnit),
-      units: batchUnits
-        .map((unit, index) => ({ unit, number: `${batch.batchNumber}-${index + 1}` }))
-        .filter(({ unit }) => isInStock(unit))
-        .map(({ unit, number }) => {
-          count += 1
-          const grams = unit.weight != null ? weightToGrams(unit.weight) : 0
-          totalGrams += grams
-          return {
-            id: unit.id,
-            number,
-            weightLabel: unit.weight != null ? formatWeight(grams) : null,
-            status: unit.status,
-          }
-        }),
-    }
-  })
+  const batches: StockDetailBatch[] = sortBatchesRecentFirst(batchDtos)
+    .map((batch) => {
+      // Numéro par unité = batch_number + rang dans le lot (pas une colonne persistée,
+      // cf. docs/data-model.md §3.5) — trié par id pour un ordre stable.
+      // Le rang (donc le numéro affiché) se fixe sur l'ordre complet du lot, y compris
+      // les unités déjà sorties — sinon le numéro d'une unité changerait au fil des ventes.
+      const batchUnits = [...(unitsByBatch.get(batch.id) ?? [])].sort((a, b) => a.id - b.id)
+      return {
+        batchNumber: batch.batchNumber,
+        dateLabel: formatDateLabel(batch.productionDate),
+        priceLabel: formatPriceLabel(batch.salePrice, product.priceUnit),
+        units: batchUnits
+          .map((unit, index) => ({ unit, number: `${batch.batchNumber}-${index + 1}` }))
+          .filter(({ unit }) => isInStock(unit))
+          .map(({ unit, number }) => {
+            count += 1
+            const grams = unit.weight != null ? weightToGrams(unit.weight) : 0
+            totalGrams += grams
+            return {
+              id: unit.id,
+              number,
+              weightLabel: unit.weight != null ? formatWeight(grams) : null,
+              status: unit.status,
+            }
+          }),
+      }
+    })
+    // Un lot entièrement vendu/perdu ne garde plus aucune unité en stock —
+    // sa carte n'a plus de raison d'apparaître dans le détail.
+    .filter((batch) => batch.units.length > 0)
 
   const summaryParts = [`${count} ${pluralize(product.unitLabel, count)} en stock`]
   if (product.saleMode === 'by_weight' && totalGrams > 0) summaryParts.push(formatWeight(totalGrams))
