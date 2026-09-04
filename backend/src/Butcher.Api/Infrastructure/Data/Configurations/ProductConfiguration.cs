@@ -22,11 +22,5 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(p => p.SaleMode).HasConversion(
             v => EnumSnakeCaseConverter.ToSnakeCase(v),
             v => EnumSnakeCaseConverter.FromSnakeCase<SaleMode>(v));
-
-        builder
-            .HasOne(p => p.SaleUnit)
-            .WithMany()
-            .HasForeignKey(p => p.SaleUnitId)
-            .OnDelete(DeleteBehavior.Restrict);
     }
 }

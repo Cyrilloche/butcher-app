@@ -12,9 +12,5 @@ public class ProductDto
 
     public SaleMode SaleMode { get; set; }
 
-    public int SaleUnitId { get; set; }
-
-    public required string SaleUnitLabel { get; set; }
-
     public bool IsActive { get; set; }
 }

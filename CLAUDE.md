@@ -19,11 +19,11 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 | Étape | Statut |
 |---|---|
 | Cadrage métier (discovery) | ✅ Terminé |
-| PRD | ✅ Rédigé (v0.3) |
+| PRD | ✅ Rédigé (v0.4) |
 | Décisions d'architecture (ADR) | ✅ Rédigées (ADR-006 tranché : Vuetify) |
-| Modèle de données | ✅ Rédigé (v0.4, aligné sur l'implémentation) |
+| Modèle de données | ✅ Rédigé (v0.5, aligné sur l'implémentation) |
 | Maquettes (Claude Design) | ✅ Direction visuelle validée (écran Stock) ; arrêtées volontairement au profit de l'itération en code (voir §10) |
-| Backend — cœur métier (7 entités, CRUD + logique métier) | ✅ Exposé en API, 87 tests |
+| Backend — cœur métier (6 entités, CRUD + logique métier) | ✅ Exposé en API, 75 tests |
 | Spike authentification (JWT) | ✅ Réalisé et vérifié — ADR-009 accepté (Identity allégé, refresh token rotatif en base, cookie httpOnly/Secure, seed par variable d'environnement) |
 | Frontend — scaffold | 🔄 En cours (branche `frontend-init`, worktree séparé) |
 | Développement Vague 1 | 🔄 Démarré |
@@ -36,7 +36,7 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 
 **Vague 1 (MVP) — périmètre visé** (détail dans le PRD §4.1) :
 - Authentification (compte simple partagé).
-- Référentiels : unités de mesure, produits (avec `code`), clients.
+- Référentiels : produits (avec `code`), clients.
 - Production : création de lot → génération des unités physiques → pesée.
 - Tableau de bord stock (disponible par produit).
 - Sorties : vente (unité entière + jambon « entamé » en plusieurs fois), usage perso, perte.
@@ -145,13 +145,12 @@ product → production_batch → stock_unit → stock_movement → sale → cust
 
 | Entité | Rôle |
 |---|---|
-| `product` | Produit fabriqué. Porte un `code` court (ex. `SC`) et un `sale_mode` (`by_weight` / `by_piece`). |
+| `product` | Produit fabriqué. Porte un `code` court (ex. `SC`) et un `sale_mode` (`by_weight` / `by_piece`), qui détermine seul l'affichage du prix (€/kg ou €/pièce). |
 | `production_batch` | Une fabrication datée d'un produit, à un **prix propre au lot**. Identifiée par un `batch_number` auto-généré. |
 | `stock_unit` | **Objet physique individuel** (un sachet, un jambon), avec son `weight` pesé et son `status`. |
 | `stock_movement` | Toute sortie de stock (`sale` / `personal` / `loss`), rattachée à une `stock_unit` — et, pour une vente, à une `sale`. |
 | `sale` | Une **vente** : numéro `V-YYMMDD-N`, date, client (obligatoire), statut de paiement, regroupant ses lignes (`stock_movement`). Pendant de `production_batch` côté vente. |
-| `customer` | Client (vente informelle, traçabilité). |
-| `unit_of_measure` | Référentiel d'unités personnalisables. |
+| `customer` | Client (vente informelle, traçabilité). Non supprimable dès qu'il a une vente. |
 | `app_user` | Compte d'accès (Identity). |
 
 > Détail complet, contraintes et DBML : `docs/data-model.md` (qui fait foi).
@@ -189,6 +188,7 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 - ❌ Afficher des valeurs techniques anglaises à l'utilisateur → passer par la table de correspondance FR.
 - ❌ Recalculer `amount` à la volée en ignorant la valeur saisie → conserver le montant réel.
 - ❌ Modéliser le stock `by_piece` avec un compteur parallèle → garder le mécanisme uniforme.
+- ❌ Réintroduire une unité de mesure sur le produit → supprimée le 2026-09-04 (`sale_mode` suffit, voir `data-model.md` §3.2). Un produit doit rester créable sur une base vierge.
 - ❌ Dupliquer le client sur `stock_movement` (une seule source de vérité : `sale.customer_id`).
 - ❌ Supprimer un client qui a des ventes → refusé (`409`), ça effacerait la traçabilité lot ↔ client (RF-24).
 - ❌ Coupler frontend et backend autrement que par le contrat d'API REST.

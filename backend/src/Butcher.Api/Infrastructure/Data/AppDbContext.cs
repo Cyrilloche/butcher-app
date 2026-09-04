@@ -11,8 +11,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityUser
 
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
-    public DbSet<UnitOfMeasure> UnitsOfMeasure => Set<UnitOfMeasure>();
-
     public DbSet<Product> Products => Set<Product>();
 
     public DbSet<ProductionBatch> ProductionBatches => Set<ProductionBatch>();

@@ -18,11 +18,7 @@ public class StockMovementServiceTests(PostgresDatabaseFixture fixture) : IAsync
     private static async Task<StockUnit> SeedStockUnitAsync(
         AppDbContext dbContext, SaleMode saleMode, decimal? weight, string code = "SC")
     {
-        var unitOfMeasure = new UnitOfMeasure { Label = $"kilogramme-{code}", Abbreviation = $"kg-{code}" };
-        dbContext.UnitsOfMeasure.Add(unitOfMeasure);
-        await dbContext.SaveChangesAsync();
-
-        var product = new Product { Code = code, Name = "Saucisse curry", SaleMode = saleMode, SaleUnitId = unitOfMeasure.Id };
+        var product = new Product { Code = code, Name = "Saucisse curry", SaleMode = saleMode };
         dbContext.Products.Add(product);
         await dbContext.SaveChangesAsync();
 

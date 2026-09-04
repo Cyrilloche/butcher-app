@@ -6,7 +6,4 @@ public class UpdateProductRequest
 {
     [Required, MaxLength(200)]
     public required string Name { get; set; }
-
-    [Required]
-    public int SaleUnitId { get; set; }
 }

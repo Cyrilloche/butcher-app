@@ -18,11 +18,7 @@ public class SaleServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifetime
     private static async Task<List<StockUnit>> SeedStockUnitsAsync(
         AppDbContext dbContext, SaleMode saleMode, int count, decimal? weight, string code = "SC")
     {
-        var unitOfMeasure = new UnitOfMeasure { Label = $"kilogramme-{code}", Abbreviation = $"kg-{code}" };
-        dbContext.UnitsOfMeasure.Add(unitOfMeasure);
-        await dbContext.SaveChangesAsync();
-
-        var product = new Product { Code = code, Name = "Saucisse curry", SaleMode = saleMode, SaleUnitId = unitOfMeasure.Id };
+        var product = new Product { Code = code, Name = "Saucisse curry", SaleMode = saleMode };
         dbContext.Products.Add(product);
         await dbContext.SaveChangesAsync();
 

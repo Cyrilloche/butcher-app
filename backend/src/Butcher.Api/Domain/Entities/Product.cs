@@ -12,10 +12,6 @@ public class Product
 
     public SaleMode SaleMode { get; set; }
 
-    public int SaleUnitId { get; set; }
-
-    public UnitOfMeasure? SaleUnit { get; set; }
-
     public bool IsActive { get; set; } = true;
 
     public DateTimeOffset CreatedAt { get; set; }

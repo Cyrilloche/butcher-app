@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Nom de projet** | Mini-ERP Charcuterie (nom de code : *à définir*) |
-| **Version du document** | 0.3 |
+| **Version du document** | 0.4 |
 | **Date** | 4 septembre 2026 |
 | **Statut** | Cadrage validé, en cours d'implémentation (backend exposé, frontend en cours) |
 | **Auteur** | Cyril, avec assistance à l'architecture |
@@ -15,6 +15,7 @@
 |---|---|---|---|
 | 0.1 | 2026-09-02 | Cyril | Rédaction initiale à partir des ateliers de cadrage métier |
 | 0.2 | 2026-09-03 | Cyril, avec assistance à l'implémentation | Ajout des règles de gestion RG-08 à RG-12, apparues pendant l'implémentation du backend (cœur métier V1 entièrement exposé en API à cette date) ; précision sur RF-10 |
+| 0.4 | 2026-09-04 | Cyril | **Retrait des unités de mesure du périmètre V1** : RF-03, RF-04, RF-05 et RG-08 abandonnés (marqués, non effacés). Le mode de vente suffit à piloter l'affichage du prix (€/kg ou €/pièce) ; l'unité choisie n'avait aucun effet sur le calcul (RG-03) et imposait d'alimenter un référentiel avant de pouvoir créer le moindre produit. |
 | 0.3 | 2026-09-04 | Cyril, avec assistance à l'implémentation | **Q-04 et Q-05 résolus et implémentés** : ajout de l'entité *vente* (numéro unique, statut de paiement, regroupement de plusieurs unités) — nouvelles exigences RF-28 à RF-31 et règles RG-13 à RG-15 ; RF-17/RG-07 (client obligatoire) désormais garantis par le modèle ; §9 mis en cohérence (le client n'est plus optionnel) |
 
 ---
@@ -64,7 +65,7 @@ Un outil simple, accessible depuis un téléphone comme depuis un ordinateur, pe
 
 ### 3.2 Indicateurs de succès
 
-- Les exploitants créent eux-mêmes leurs produits et unités sans assistance.
+- Les exploitants créent eux-mêmes leurs produits sans assistance.
 - 100 % des ventes et sorties sont saisies dans l'outil plutôt que « de tête ».
 - À partir de la V2, l'exploitant peut répondre à la question : *« Combien cette activité m'a-t-elle réellement rapporté sur la période ? »*
 - L'outil est effectivement utilisé sur le terrain (mobilité) et non abandonné au profit du papier.
@@ -78,7 +79,6 @@ Le projet suit une approche **agile par vagues**. Le périmètre ci-dessous dist
 ### 4.1 Dans le périmètre — V1 (noyau)
 
 - Gestion des **produits** et de leur mode de vente.
-- Gestion des **unités de mesure** personnalisables par l'utilisateur.
 - Gestion des **lots de production** (produit, date, prix de vente, référence libre de matière première).
 - Suivi du **stock à l'unité physique** (chaque sachet, chaque jambon), avec poids et statut individuels.
 - Enregistrement des **ventes**, des **sorties personnelles** et des **pertes/casses**.
@@ -96,6 +96,7 @@ Le projet suit une approche **agile par vagues**. Le périmètre ci-dessous dist
 
 ### 4.3 Hors périmètre (à ce stade)
 
+- **Unités de mesure personnalisables** *(retiré du périmètre V1 le 2026-09-04, voir RF-03/RF-04/RF-05)* : le mode de vente du produit détermine seul l'affichage du prix (€/kg ou €/pièce).
 - Facturation légale, comptabilité, obligations fiscales/déclaratives.
 - Vente à des professionnels (B2B), gestion de commandes formelles.
 - Coût du temps de travail, amortissement du matériel, charges indirectes (énergie, etc.).
@@ -125,18 +126,22 @@ Les exigences sont identifiées `RF-xx`. Les règles de gestion associées sont 
 
 | Réf. | Exigence |
 |---|---|
-| RF-01 | L'utilisateur peut créer, modifier et désactiver un produit de manière autonome. |
+| RF-01 | L'utilisateur peut créer, modifier et désactiver un produit de manière autonome, **sans aucun référentiel à alimenter au préalable** (une installation neuve permet de créer un produit immédiatement). |
 | RF-02 | Un produit possède un **mode de vente** défini à la création : `poids_variable` (chaque unité est pesée individuellement, prix calculé au poids) ou `piece_simple` (unité comptée, prix à la pièce). |
-| RF-03 | Un produit possède une **unité d'affichage de vente** (ex. kg, tranche, pièce), choisie parmi les unités disponibles. |
+| ~~RF-03~~ | ~~Un produit possède une **unité d'affichage de vente**~~ — **abandonné le 2026-09-04.** L'unité choisie n'avait aucun effet sur le prix (RG-03 le calcule en €/kg pour `poids_variable`) et son libellé pouvait contredire le calcul réel. L'affichage découle désormais du seul mode de vente : **€ / kg** pour `poids_variable`, **€ / pièce** pour `piece_simple`. |
 
-### 6.2 Unités de mesure
+### 6.2 ~~Unités de mesure~~ — abandonné (2026-09-04)
 
 | Réf. | Exigence |
 |---|---|
-| RF-04 | L'utilisateur peut créer et gérer des **unités de mesure** de manière autonome, sans intervention de développement ni redéploiement. |
-| RF-05 | Une unité comporte au minimum un libellé et une abréviation (ex. « kilogramme » / « kg »). |
+| ~~RF-04~~ | ~~L'utilisateur peut créer et gérer des **unités de mesure** de manière autonome.~~ **Abandonné.** |
+| ~~RF-05~~ | ~~Une unité comporte au minimum un libellé et une abréviation.~~ **Abandonné.** |
 
-> **Note d'architecture** — En V1, les unités sont **déclaratives** (pas de moteur de conversion automatique entre unités hétérogènes). Le modèle de gestion « unité physique pesée » (§6.4) rend la conversion superflue pour le cœur métier : le stock se compte à l'unité physique, et le prix se calcule sur le poids réel de chaque unité. Un moteur de conversion pourra être ajouté ultérieurement si un besoin concret émerge, sans remettre en cause le modèle.
+> **Pourquoi ce retrait.** Ces exigences servaient RF-03 (unité d'affichage du prix), lui-même sans effet réel : le prix d'un produit `poids_variable` se calcule au kg (RG-03), quelle que soit l'unité déclarée. Le référentiel n'apportait donc qu'un libellé décoratif — mais au prix fort côté usage : sur une installation neuve, aucune unité n'existe, et la création du **premier produit** était bloquée tant que l'utilisateur n'avait pas compris qu'il fallait d'abord alimenter un référentiel. Inacceptable pour des utilisateurs non techniques (H-06, RNF-02), et contraire à l'esprit de RNF-03 que ces exigences étaient censées servir.
+>
+> **Ce qu'on perd.** La faculté de nommer l'unité d'un produit `piece_simple` (« pot », « bocal »). En pratique le nom du produit la porte déjà (« Terrine 200 g »). Aucune conversion d'unité n'était prévue en V1 de toute façon.
+>
+> **Réversibilité.** Rien dans la chaîne production → stock → vente n'en dépendait : une réintroduction ultérieure se ferait par simple ajout, sans refonte (RNF-07).
 
 ### 6.3 Lots de production
 
@@ -208,7 +213,7 @@ Le stock n'est pas un compteur abstrait : il représente des **objets physiques 
 | RG-05 | Le poids restant d'une unité `entamé` n'est **pas** suivi : seule la somme des ventes rattachées est significative (chiffre d'affaires généré par l'unité). |
 | RG-06 | Les statuts de sortie (`vendu`, `perso`, `perdu`) sont exclusifs et s'appliquent à l'échelle de l'unité physique individuelle. |
 | RG-07 | **(Modifié 2026-09-04, remplace la règle initiale)** Un mouvement de vente doit être rattaché à un client — plus de vente anonyme. V1 limitée à la vente à des particuliers (nom + prénom) ; la vente à des professionnels (raison sociale) est reportée à une évolution ultérieure si le besoin se confirme. |
-| RG-08 | Une **unité de mesure** ne peut pas être désactivée tant qu'elle est utilisée comme unité de vente par un **produit actif** (évite qu'un produit en cours de vente référence une unité qu'on retire de l'usage). |
+| ~~RG-08~~ | ~~Une **unité de mesure** ne peut pas être désactivée tant qu'elle est utilisée par un produit actif.~~ **Abandonnée le 2026-09-04** avec RF-04/RF-05. Identifiant conservé, non réattribué. |
 | RG-09 | La **désactivation d'un produit** n'est jamais bloquée, y compris s'il a déjà des lots de production. Elle n'empêche que la création de **nouveaux** lots pour ce produit à l'avenir ; l'historique (lots, stock, ventes) reste consultable normalement. |
 | RG-10 | Un **lot de production** reste partiellement modifiable après création (prix de vente, référence matière première, DLC, notes), pour corriger une erreur de saisie. Le produit, la date de production et le numéro de lot sont **définitifs** dès la création : ils sont indissociables du numéro de lot lui-même (§4.1 du modèle de données) et de l'identité du lot. Aucune suppression de lot n'est possible. |
 | RG-11 | Contrairement au lot de production, un **mouvement de stock** (vente, perso, perte) reste **modifiable et supprimable** après création — choix assumé pour une activité amateur sans contrainte comptable formelle, plutôt qu'un principe strict d'immuabilité de l'historique. Supprimer le dernier mouvement rattaché à une unité physique la remet au statut `disponible` ; dans les autres cas (ex. une vente parmi plusieurs sur un jambon entamé), le statut de l'unité n'est pas recalculé automatiquement. |
@@ -240,7 +245,7 @@ Le stock n'est pas un compteur abstrait : il représente des **objets physiques 
 
 **Entités du noyau V1**
 
-- **Produit** — nom, mode de vente, unité de vente.
+- **Produit** — code, nom, mode de vente.
 - **Unité de mesure** — libellé, abréviation.
 - **Lot de production** — produit, date, prix de vente, référence matière première (texte), DLC, auteur de création.
 - **Unité physique** — rattachée à un lot ; poids (si applicable), statut.
@@ -316,4 +321,4 @@ Le stock n'est pas un compteur abstrait : il représente des **objets physiques 
 
 ---
 
-*Fin du document — version 0.3. Ce PRD est un document vivant, appelé à évoluer au fil des vagues de développement.*
+*Fin du document — version 0.4. Ce PRD est un document vivant, appelé à évoluer au fil des vagues de développement.*

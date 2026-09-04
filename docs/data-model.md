@@ -4,7 +4,7 @@
 |---|---|
 | **Projet** | Mini-ERP Charcuterie (repo : `butcher-app`) |
 | **Document** | Modèle de données détaillé (V1) |
-| **Version** | 0.4 |
+| **Version** | 0.5 |
 | **Date** | 4 septembre 2026 |
 | **Statut** | Implémenté (backend, cœur métier V1 complet) |
 | **Documents liés** | PRD v0.2, Journal ADR v0.1 |
@@ -16,6 +16,7 @@
 | 0.1 | 2026-09-02 | Modèle initial (nommage français) |
 | 0.2 | 2026-09-02 | Passage du schéma en **anglais** ; ajout du champ `code` sur `product` ; définition du format de numéro de lot |
 | 0.3 | 2026-09-03 | Documentation des règles apparues pendant l'implémentation du backend : contraintes d'unicité supplémentaires, politiques de mutabilité/suppression par entité, convention de casse des enums dans l'API. QM-01 résolu. |
+| 0.5 | 2026-09-04 | **Entité `unit_of_measure` supprimée** et `product.sale_unit_id` avec elle (décision produit, voir §3.2) : le champ n'avait aucun rôle fonctionnel — RG-03 code le prix en €/kg en dur — et bloquait la création de produit sur une base vide. `sale_mode` suffit à piloter l'affichage. RF-03/RF-04/RF-05 et RG-08 retirés du périmètre V1. |
 | 0.4 | 2026-09-04 | **QM-04 résolu et implémenté** : nouvelle entité `sale` (§3.7) regroupant les lignes d'une vente sous un numéro `V-YYMMDD-N`, un client obligatoire et un statut de paiement ; `stock_movement.customer_id` remplacé par `sale_id` ; suppression d'un client passée en `Restrict`. Répond à Q-04/Q-05 du PRD et aux exigences RF-17/RG-07 modifiées. |
 
 ### Objet du document
@@ -49,7 +50,7 @@ Un **product** est décliné en **production_batch** (fabrication datée, à un 
 
 Le schéma comporte donc **deux couples parent/enfant symétriques** : `production_batch → stock_unit` côté production, `sale → stock_movement` côté vente.
 
-Deux référentiels complètent l'ensemble : `unit_of_measure` (unités personnalisables) et `app_user` (authentification).
+Un référentiel complète l'ensemble : `app_user` (authentification).
 
 ---
 
@@ -65,18 +66,15 @@ Compte d'accès. V1 : compte simple partagé (RF-26). Colonnes d'authentificatio
 | `email` | varchar | unique, non nul | Identifiant de connexion |
 | `created_at` | timestamptz | défaut `now()` | Date de création |
 
-### 3.2 `unit_of_measure`
+### 3.2 ~~`unit_of_measure`~~ — supprimée (2026-09-04)
 
-Référentiel des unités, **créées et gérées par l'utilisateur** sans développement (RF-04, RF-05). Déclaratif, sans conversion en V1.
+**Entité retirée du modèle**, avec `product.sale_unit_id`, ses endpoints (`/api/units-of-measure`) et RG-08.
 
-| Attribut | Type | Contraintes | Rôle |
-|---|---|---|---|
-| `id` | integer | PK | Identifiant |
-| `label` | varchar | non nul | Nom complet (ex. « kilogramme ») |
-| `abbreviation` | varchar | non nul | Forme courte (ex. « kg ») |
-| `is_active` | boolean | non nul, défaut `true` | Retrait de l'usage sans suppression |
+*Pourquoi.* Le champ était documenté comme « unité d'expression du prix » (RF-03), mais RG-03 code le calcul en **€/kg en dur** pour `by_weight` : l'unité choisie n'avait donc aucun effet sur le prix, seulement sur un libellé d'affichage qui pouvait le contredire. L'écart est apparu à l'usage : sur une base vierge, aucune `unit_of_measure` n'existe, donc la création du **premier produit** était impossible — un référentiel obligatoire à alimenter avant de pouvoir rien faire, pour des utilisateurs non techniques (H-06, RNF-02).
 
-**Règles complémentaires (implémentation)** : `label` et `abbreviation` sont chacun **uniques** (évite les doublons accidentels, ex. deux fois « kilogramme »/« kg »). La désactivation (`is_active = false`) est **bloquée** si l'unité est référencée comme unité de vente par un `product` actif (RG-08).
+*Ce qui la remplace.* `sale_mode` seul : `by_weight` → prix affiché en **€ / kg**, `by_piece` → **€ / pièce**. Plus aucun choix à faire à la création d'un produit.
+
+*Ce qu'on perd, assumé.* La possibilité de nommer l'unité d'un produit `by_piece` (« pot », « bocal », « tranche ») — en pratique le **nom du produit** porte déjà cette information (« Terrine 200 g »). Si un besoin concret de conversion ou de libellé d'unité émerge, la réintroduction se fait par simple ajout (nouvelle table + colonne), sans refonte : rien dans la chaîne production → stock → vente n'en dépendait.
 
 ### 3.3 `product`
 
@@ -88,11 +86,10 @@ Un produit fabriqué. Le **mode de vente** est la propriété structurante (RG-0
 | `code` | varchar | unique, non nul | Code court (ex. `SC`), brique du numéro de lot |
 | `name` | varchar | non nul | Désignation |
 | `sale_mode` | enum | non nul | `by_weight` ou `by_piece` (RF-02) |
-| `sale_unit_id` | integer | FK → `unit_of_measure`, non nul | Unité d'expression du prix (RF-03) |
 | `is_active` | boolean | non nul, défaut `true` | Désactivation sans suppression (RF-01) |
 | `created_at` / `updated_at` | timestamptz | | Audit |
 
-**Règles complémentaires (implémentation)** : `code` et `sale_mode` sont **définitifs** après création (RG-01 pour `sale_mode` ; `code` porte le numéro de lot, §4.1, donc figé pour la même raison) — `name` et `sale_unit_id` restent modifiables. `sale_unit_id` doit référencer une `unit_of_measure` **active** (vérifié à la création et à la modification). La **désactivation d'un produit n'est jamais bloquée** (RG-09), même s'il a déjà des lots — asymétrie assumée avec `unit_of_measure` (§3.2), qui elle bloque.
+**Règles complémentaires (implémentation)** : `code` et `sale_mode` sont **définitifs** après création (RG-01 pour `sale_mode` ; `code` porte le numéro de lot, §4.1, donc figé pour la même raison) — seul `name` reste modifiable. La **désactivation d'un produit n'est jamais bloquée** (RG-09), même s'il a déjà des lots. Un produit se crée sur une base entièrement vide : aucun référentiel préalable à alimenter (§3.2).
 
 ### 3.4 `production_batch`
 
@@ -235,6 +232,8 @@ Les valeurs techniques sont en anglais ; l'interface les affiche en français. C
 |---|---|---|
 | Mode de vente — au poids | `by_weight` | Au poids |
 | Mode de vente — à la pièce | `by_piece` | À la pièce |
+| Prix d'un produit au poids | `by_weight` | € / kg |
+| Prix d'un produit à la pièce | `by_piece` | € / pièce |
 | Statut unité — disponible | `available` | Disponible |
 | Statut unité — entamé | `opened` | Entamé |
 | Statut unité — vendu | `sold` | Vendu |
@@ -258,8 +257,8 @@ Certaines règles sont **garanties par la logique applicative** et, si pertinent
 | C-04 | **Vente partielle** (jambon à la tranche) : plusieurs `stock_movement` de type `sale` sur une même `stock_unit`, qui reste au statut `opened` jusqu'à clôture manuelle en `sold` (RF-19, RF-20). Le poids restant n'est pas suivi (RG-05). |
 | C-05 | `batch_number` et `product.code` sont uniques. |
 | C-06 | Les statuts de sortie (`sold`/`personal`/`lost`) sont exclusifs, posés à l'échelle de l'unité individuelle (RG-06). |
-| C-07 | `unit_of_measure.label` et `unit_of_measure.abbreviation` sont uniques. |
-| C-08 | `product.sale_unit_id` doit référencer une `unit_of_measure` active ; une unité utilisée par un `product` actif ne peut pas être désactivée (RG-08). |
+| ~~C-07~~ | ~~Unicité de `unit_of_measure.label` / `abbreviation`~~ — sans objet, entité supprimée (§3.2). Identifiant conservé, non réattribué. |
+| ~~C-08~~ | ~~`product.sale_unit_id` doit référencer une unité active (RG-08)~~ — sans objet, champ supprimé (§3.2). Identifiant conservé, non réattribué. |
 | C-09 | `product.code` et `product.sale_mode` sont définitifs après création ; `production_batch.product_id`, `production_date` et `batch_number` sont définitifs après création (RG-10). Aucune suppression n'est possible sur `product` ni `production_batch`. |
 | C-10 | Une `stock_unit` n'est supprimable que si `status = available` et qu'aucun `stock_movement` ne lui est rattaché. |
 | C-11 | Les enums (`sale_mode`, `status`, `type`) sont sérialisés et stockés en **snake_case** (`by_weight`, `available`, `sale`...), jamais en `PascalCase` — cohérent avec la table de correspondance FR (§4.2) et le reste du schéma. |
@@ -278,8 +277,6 @@ Le champ `status` est une **dénormalisation assumée** : l'état pourrait, pour
 
 | Table | Index | Justification |
 |---|---|---|
-| `unit_of_measure` | `label` (unique) | Évite les doublons de libellé (C-07) |
-| `unit_of_measure` | `abbreviation` (unique) | Évite les doublons d'abréviation (C-07) |
 | `product` | `code` (unique) | Unicité, génération du numéro de lot |
 | `production_batch` | `batch_number` (unique) | Recherche, unicité |
 | `production_batch` | `product_id` | Lister les lots d'un produit |
@@ -327,19 +324,11 @@ Table app_user {
   Note: 'Authentication handled by ASP.NET Core Identity'
 }
 
-Table unit_of_measure {
-  id integer [pk, increment]
-  label varchar [not null]
-  abbreviation varchar [not null]
-  is_active boolean [not null, default: true]
-}
-
 Table product {
   id integer [pk, increment]
   code varchar [unique, not null, note: 'short code, e.g. SC — used in batch_number']
   name varchar [not null]
   sale_mode sale_mode [not null]
-  sale_unit_id integer [not null, ref: > unit_of_measure.id]
   is_active boolean [not null, default: true]
   created_at timestamptz [default: `now()`]
   updated_at timestamptz
@@ -463,4 +452,4 @@ Deux points tranchés à l'implémentation, non couverts par la proposition :
 
 ---
 
-*Fin du document — version 0.4. Le schéma physique est matérialisé par les migrations Entity Framework Core (`backend/src/Butcher.Api/Infrastructure/Data/Migrations/`), déjà appliquées pour l'ensemble du cœur métier V1.*
+*Fin du document — version 0.5. Le schéma physique est matérialisé par les migrations Entity Framework Core (`backend/src/Butcher.Api/Infrastructure/Data/Migrations/`), déjà appliquées pour l'ensemble du cœur métier V1.*

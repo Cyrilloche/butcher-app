@@ -4,10 +4,9 @@ import AppPageHeader from '@/components/base/AppPageHeader.vue'
 import AppCard from '@/components/base/AppCard.vue'
 import AppTextField from '@/components/base/AppTextField.vue'
 import AppButton from '@/components/base/AppButton.vue'
-import AppChip from '@/components/base/AppChip.vue'
+import UnitOfMeasurePicker from '@/components/domain/UnitOfMeasurePicker.vue'
 import ProductStatusBadge from '@/components/domain/ProductStatusBadge.vue'
 import { listProducts, updateProduct, deactivateProduct, reactivateProduct } from '@/api/products'
-import { listUnitsOfMeasure } from '@/api/unitsOfMeasure'
 import { getStockDetail } from '@/composables/useStock'
 import { useAsyncData } from '@/composables/useAsyncData'
 import { ApiError } from '@/api/http'
@@ -21,7 +20,6 @@ async function loadProduct(): Promise<ProductDto | null> {
 }
 
 const { data: product, loading, error, reload } = useAsyncData(loadProduct, null)
-const { data: units } = useAsyncData(() => listUnitsOfMeasure(false), [])
 const { data: stockSummary } = useAsyncData(async () => (await getStockDetail(props.code))?.summary ?? null, null)
 
 watch(() => props.code, reload)
@@ -97,17 +95,7 @@ async function toggleStatus() {
         <AppTextField :model-value="product.code" label="Code (numéros de lot)" disabled style="max-width: 110px" />
 
         <label class="product-detail-view__units-label mt-3">Unité de vente</label>
-        <div class="product-detail-view__chips">
-          <AppChip
-            v-for="unit in units"
-            :key="unit.id"
-            :selected="unit.id === state.saleUnitId"
-            :disabled="!product.isActive"
-            @click="state.saleUnitId = unit.id"
-          >
-            {{ unit.label }}
-          </AppChip>
-        </div>
+        <UnitOfMeasurePicker v-model="state.saleUnitId" :disabled="!product.isActive" />
       </AppCard>
 
       <AppCard>
@@ -179,12 +167,6 @@ async function toggleStatus() {
   font-size: 15px;
   font-weight: 500;
   margin-bottom: 6px;
-}
-
-.product-detail-view__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
 }
 
 .product-detail-view__mode {

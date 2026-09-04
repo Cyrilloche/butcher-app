@@ -6,23 +6,13 @@ import AppCard from '@/components/base/AppCard.vue'
 import AppTextField from '@/components/base/AppTextField.vue'
 import AppButton from '@/components/base/AppButton.vue'
 import AppHintBox from '@/components/base/AppHintBox.vue'
-import AppChip from '@/components/base/AppChip.vue'
+import UnitOfMeasurePicker from '@/components/domain/UnitOfMeasurePicker.vue'
 import SaleModeToggle from '@/components/domain/SaleModeToggle.vue'
 import { createProduct } from '@/api/products'
-import { listUnitsOfMeasure } from '@/api/unitsOfMeasure'
-import { useAsyncData } from '@/composables/useAsyncData'
 import { ApiError } from '@/api/http'
 import type { SaleMode } from '@/api/types'
 
 const router = useRouter()
-
-// Écart maquette : "Ajout Produit.dc.html" ne propose aucun choix d'unité de vente,
-// alors que le backend l'exige (CreateProductRequest.SaleUnitId, requis). Ajout
-// nécessaire, absent de la maquette — cf. docs/data-model.md / plan de session.
-const { data: units, loading: loadingUnits, error: unitsError } = useAsyncData(
-  () => listUnitsOfMeasure(false),
-  [],
-)
 
 const state = reactive({
   name: '',
@@ -83,20 +73,9 @@ async function save() {
           </span>
         </div>
 
-        <p v-if="loadingUnits" class="text-secondary mt-3 mb-0">Chargement des unités...</p>
-        <p v-else-if="unitsError" class="text-error mt-3 mb-0">{{ unitsError }}</p>
-        <div v-else class="product-add-view__units mt-3">
+        <div class="product-add-view__units mt-3">
           <label class="product-add-view__units-label">Unité de vente</label>
-          <div class="product-add-view__chips">
-            <AppChip
-              v-for="unit in units"
-              :key="unit.id"
-              :selected="unit.id === state.saleUnitId"
-              @click="state.saleUnitId = unit.id"
-            >
-              {{ unit.label }}
-            </AppChip>
-          </div>
+          <UnitOfMeasurePicker v-model="state.saleUnitId" />
         </div>
       </AppCard>
 
@@ -148,12 +127,6 @@ async function save() {
   font-size: 15px;
   font-weight: 500;
   margin-bottom: 6px;
-}
-
-.product-add-view__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
 }
 
 .product-add-view__save-error {

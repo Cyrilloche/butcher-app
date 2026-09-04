@@ -3,7 +3,6 @@ using Butcher.Api.Application.Services;
 using Butcher.Api.Common.Exceptions;
 using Butcher.Api.Domain.Entities;
 using Butcher.Api.Domain.Enums;
-using Butcher.Api.Infrastructure.Data;
 using Butcher.Api.Tests.Support;
 
 namespace Butcher.Api.Tests.Application.Services;
@@ -15,20 +14,12 @@ public class ProductServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifeti
 
     public Task DisposeAsync() => Task.CompletedTask;
 
-    private static async Task<UnitOfMeasure> SeedUnitOfMeasureAsync(
-        AppDbContext dbContext, bool isActive = true, string label = "kilogramme", string abbreviation = "kg")
-    {
-        var unit = new UnitOfMeasure { Label = label, Abbreviation = abbreviation, IsActive = isActive };
-        dbContext.UnitsOfMeasure.Add(unit);
-        await dbContext.SaveChangesAsync();
-        return unit;
-    }
-
+    // Un produit se réduit à code / name / sale_mode / is_active : l'unité de vente a été retirée
+    // du périmètre V1 (décision 2026-09-04), le mode de vente suffit à piloter l'affichage du prix.
     [Fact]
-    public async Task CreateAsync_WithActiveSaleUnit_CreatesProduct()
+    public async Task CreateAsync_CreatesProduct()
     {
         await using var dbContext = fixture.CreateDbContext();
-        var unit = await SeedUnitOfMeasureAsync(dbContext);
         var service = new ProductService(dbContext);
 
         var result = await service.CreateAsync(new CreateProductRequest
@@ -36,21 +27,37 @@ public class ProductServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifeti
             Code = "SC",
             Name = "Saucisse curry",
             SaleMode = SaleMode.ByWeight,
-            SaleUnitId = unit.Id,
         });
 
         Assert.True(result.Id > 0);
         Assert.Equal("SC", result.Code);
+        Assert.Equal("Saucisse curry", result.Name);
         Assert.Equal(SaleMode.ByWeight, result.SaleMode);
-        Assert.Equal("kilogramme", result.SaleUnitLabel);
         Assert.True(result.IsActive);
+    }
+
+    // Création possible sur une base entièrement vide : plus aucun référentiel à alimenter d'abord.
+    [Fact]
+    public async Task CreateAsync_OnEmptyDatabase_Succeeds()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var service = new ProductService(dbContext);
+
+        var result = await service.CreateAsync(new CreateProductRequest
+        {
+            Code = "TR",
+            Name = "Terrine",
+            SaleMode = SaleMode.ByPiece,
+        });
+
+        Assert.True(result.Id > 0);
+        Assert.Equal(SaleMode.ByPiece, result.SaleMode);
     }
 
     [Fact]
     public async Task CreateAsync_WithLowercaseCode_NormalizesToUppercase()
     {
         await using var dbContext = fixture.CreateDbContext();
-        var unit = await SeedUnitOfMeasureAsync(dbContext);
         var service = new ProductService(dbContext);
 
         var result = await service.CreateAsync(new CreateProductRequest
@@ -58,7 +65,6 @@ public class ProductServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifeti
             Code = "sc",
             Name = "Saucisse curry",
             SaleMode = SaleMode.ByWeight,
-            SaleUnitId = unit.Id,
         });
 
         Assert.Equal("SC", result.Code);
@@ -68,33 +74,11 @@ public class ProductServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifeti
     public async Task CreateAsync_WithDuplicateCode_ThrowsConflictException()
     {
         await using var dbContext = fixture.CreateDbContext();
-        var unit = await SeedUnitOfMeasureAsync(dbContext);
         var service = new ProductService(dbContext);
-        await service.CreateAsync(new CreateProductRequest { Code = "SC", Name = "Saucisse curry", SaleMode = SaleMode.ByWeight, SaleUnitId = unit.Id });
+        await service.CreateAsync(new CreateProductRequest { Code = "SC", Name = "Saucisse curry", SaleMode = SaleMode.ByWeight });
 
         await Assert.ThrowsAsync<ConflictException>(() =>
-            service.CreateAsync(new CreateProductRequest { Code = "SC", Name = "Autre produit", SaleMode = SaleMode.ByWeight, SaleUnitId = unit.Id }));
-    }
-
-    [Fact]
-    public async Task CreateAsync_WithUnknownSaleUnit_ThrowsConflictException()
-    {
-        await using var dbContext = fixture.CreateDbContext();
-        var service = new ProductService(dbContext);
-
-        await Assert.ThrowsAsync<ConflictException>(() =>
-            service.CreateAsync(new CreateProductRequest { Code = "SC", Name = "Saucisse curry", SaleMode = SaleMode.ByWeight, SaleUnitId = 999 }));
-    }
-
-    [Fact]
-    public async Task CreateAsync_WithInactiveSaleUnit_ThrowsConflictException()
-    {
-        await using var dbContext = fixture.CreateDbContext();
-        var unit = await SeedUnitOfMeasureAsync(dbContext, isActive: false);
-        var service = new ProductService(dbContext);
-
-        await Assert.ThrowsAsync<ConflictException>(() =>
-            service.CreateAsync(new CreateProductRequest { Code = "SC", Name = "Saucisse curry", SaleMode = SaleMode.ByWeight, SaleUnitId = unit.Id }));
+            service.CreateAsync(new CreateProductRequest { Code = "SC", Name = "Autre produit", SaleMode = SaleMode.ByWeight }));
     }
 
     [Fact]
@@ -110,10 +94,9 @@ public class ProductServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifeti
     public async Task GetAllAsync_ByDefault_ReturnsOnlyActiveProducts()
     {
         await using var dbContext = fixture.CreateDbContext();
-        var unit = await SeedUnitOfMeasureAsync(dbContext);
         var service = new ProductService(dbContext);
-        var active = await service.CreateAsync(new CreateProductRequest { Code = "SC", Name = "Saucisse curry", SaleMode = SaleMode.ByWeight, SaleUnitId = unit.Id });
-        var inactive = await service.CreateAsync(new CreateProductRequest { Code = "JB", Name = "Jambon", SaleMode = SaleMode.ByWeight, SaleUnitId = unit.Id });
+        var active = await service.CreateAsync(new CreateProductRequest { Code = "SC", Name = "Saucisse curry", SaleMode = SaleMode.ByWeight });
+        var inactive = await service.CreateAsync(new CreateProductRequest { Code = "JB", Name = "Jambon", SaleMode = SaleMode.ByWeight });
         await service.DeactivateAsync(inactive.Id);
 
         var result = await service.GetAllAsync(includeInactive: false);
@@ -126,10 +109,9 @@ public class ProductServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifeti
     public async Task GetAllAsync_WithIncludeInactive_ReturnsAllProducts()
     {
         await using var dbContext = fixture.CreateDbContext();
-        var unit = await SeedUnitOfMeasureAsync(dbContext);
         var service = new ProductService(dbContext);
-        await service.CreateAsync(new CreateProductRequest { Code = "SC", Name = "Saucisse curry", SaleMode = SaleMode.ByWeight, SaleUnitId = unit.Id });
-        var inactive = await service.CreateAsync(new CreateProductRequest { Code = "JB", Name = "Jambon", SaleMode = SaleMode.ByWeight, SaleUnitId = unit.Id });
+        await service.CreateAsync(new CreateProductRequest { Code = "SC", Name = "Saucisse curry", SaleMode = SaleMode.ByWeight });
+        var inactive = await service.CreateAsync(new CreateProductRequest { Code = "JB", Name = "Jambon", SaleMode = SaleMode.ByWeight });
         await service.DeactivateAsync(inactive.Id);
 
         var result = await service.GetAllAsync(includeInactive: true);
@@ -137,46 +119,28 @@ public class ProductServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifeti
         Assert.Equal(2, result.Count);
     }
 
+    // RG-01 + §4.1 : le mode de vente et le code sont définitifs (le code porte le numéro de lot) ;
+    // seul le nom reste modifiable.
     [Fact]
-    public async Task UpdateAsync_UpdatesNameAndSaleUnit_ButNotCodeOrSaleMode()
+    public async Task UpdateAsync_UpdatesName_ButNotCodeOrSaleMode()
     {
         await using var dbContext = fixture.CreateDbContext();
-        var unit = await SeedUnitOfMeasureAsync(dbContext);
-        var otherUnit = new UnitOfMeasure { Label = "piece", Abbreviation = "pc", IsActive = true };
-        dbContext.UnitsOfMeasure.Add(otherUnit);
-        await dbContext.SaveChangesAsync();
-
         var service = new ProductService(dbContext);
-        var created = await service.CreateAsync(new CreateProductRequest { Code = "SC", Name = "Saucisse curry", SaleMode = SaleMode.ByWeight, SaleUnitId = unit.Id });
+        var created = await service.CreateAsync(new CreateProductRequest { Code = "SC", Name = "Saucisse curry", SaleMode = SaleMode.ByWeight });
 
-        var updated = await service.UpdateAsync(created.Id, new UpdateProductRequest { Name = "Saucisse au curry", SaleUnitId = otherUnit.Id });
+        var updated = await service.UpdateAsync(created.Id, new UpdateProductRequest { Name = "Saucisse au curry" });
 
         Assert.Equal("Saucisse au curry", updated.Name);
-        Assert.Equal(otherUnit.Id, updated.SaleUnitId);
         Assert.Equal("SC", updated.Code);
         Assert.Equal(SaleMode.ByWeight, updated.SaleMode);
-    }
-
-    [Fact]
-    public async Task UpdateAsync_WithInactiveSaleUnit_ThrowsConflictException()
-    {
-        await using var dbContext = fixture.CreateDbContext();
-        var unit = await SeedUnitOfMeasureAsync(dbContext);
-        var inactiveUnit = await SeedUnitOfMeasureAsync(dbContext, isActive: false, label: "piece", abbreviation: "pc");
-        var service = new ProductService(dbContext);
-        var created = await service.CreateAsync(new CreateProductRequest { Code = "SC", Name = "Saucisse curry", SaleMode = SaleMode.ByWeight, SaleUnitId = unit.Id });
-
-        await Assert.ThrowsAsync<ConflictException>(() =>
-            service.UpdateAsync(created.Id, new UpdateProductRequest { Name = "Saucisse curry", SaleUnitId = inactiveUnit.Id }));
     }
 
     [Fact]
     public async Task DeactivateAsync_SetsInactive_EvenWithExistingBatches()
     {
         await using var dbContext = fixture.CreateDbContext();
-        var unit = await SeedUnitOfMeasureAsync(dbContext);
         var service = new ProductService(dbContext);
-        var created = await service.CreateAsync(new CreateProductRequest { Code = "SC", Name = "Saucisse curry", SaleMode = SaleMode.ByWeight, SaleUnitId = unit.Id });
+        var created = await service.CreateAsync(new CreateProductRequest { Code = "SC", Name = "Saucisse curry", SaleMode = SaleMode.ByWeight });
 
         dbContext.ProductionBatches.Add(new ProductionBatch
         {
@@ -197,9 +161,8 @@ public class ProductServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifeti
     public async Task ReactivateAsync_SetsActive()
     {
         await using var dbContext = fixture.CreateDbContext();
-        var unit = await SeedUnitOfMeasureAsync(dbContext);
         var service = new ProductService(dbContext);
-        var created = await service.CreateAsync(new CreateProductRequest { Code = "SC", Name = "Saucisse curry", SaleMode = SaleMode.ByWeight, SaleUnitId = unit.Id });
+        var created = await service.CreateAsync(new CreateProductRequest { Code = "SC", Name = "Saucisse curry", SaleMode = SaleMode.ByWeight });
         await service.DeactivateAsync(created.Id);
 
         await service.ReactivateAsync(created.Id);

@@ -17,16 +17,11 @@ public class ProductionBatchServiceTests(PostgresDatabaseFixture fixture) : IAsy
 
     private static async Task<Product> SeedProductAsync(AppDbContext dbContext, string code = "SC", bool isActive = true)
     {
-        var unit = new UnitOfMeasure { Label = $"kilogramme-{code}", Abbreviation = $"kg-{code}" };
-        dbContext.UnitsOfMeasure.Add(unit);
-        await dbContext.SaveChangesAsync();
-
         var product = new Product
         {
             Code = code,
             Name = "Saucisse curry",
             SaleMode = SaleMode.ByWeight,
-            SaleUnitId = unit.Id,
             IsActive = isActive,
         };
         dbContext.Products.Add(product);

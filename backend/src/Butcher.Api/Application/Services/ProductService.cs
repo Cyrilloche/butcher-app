@@ -10,7 +10,7 @@ public class ProductService(AppDbContext dbContext) : IProductService
 {
     public async Task<List<ProductDto>> GetAllAsync(bool includeInactive)
     {
-        var query = dbContext.Products.Include(p => p.SaleUnit).AsQueryable();
+        var query = dbContext.Products.AsQueryable();
 
         if (!includeInactive)
         {
@@ -30,15 +30,12 @@ public class ProductService(AppDbContext dbContext) : IProductService
     {
         var code = request.Code.ToUpperInvariant();
         await EnsureCodeIsUniqueAsync(code, excludingId: null);
-        var saleUnit = await FindActiveSaleUnitOrThrowAsync(request.SaleUnitId);
 
         var product = new Product
         {
             Code = code,
             Name = request.Name,
             SaleMode = request.SaleMode,
-            SaleUnitId = request.SaleUnitId,
-            SaleUnit = saleUnit,
         };
 
         dbContext.Products.Add(product);
@@ -50,11 +47,8 @@ public class ProductService(AppDbContext dbContext) : IProductService
     public async Task<ProductDto> UpdateAsync(int id, UpdateProductRequest request)
     {
         var product = await FindOrThrowAsync(id);
-        var saleUnit = await FindActiveSaleUnitOrThrowAsync(request.SaleUnitId);
 
         product.Name = request.Name;
-        product.SaleUnitId = request.SaleUnitId;
-        product.SaleUnit = saleUnit;
         await dbContext.SaveChangesAsync();
 
         return ToDto(product);
@@ -75,7 +69,7 @@ public class ProductService(AppDbContext dbContext) : IProductService
     }
 
     private async Task<Product> FindOrThrowAsync(int id) =>
-        await dbContext.Products.Include(p => p.SaleUnit).FirstOrDefaultAsync(p => p.Id == id)
+        await dbContext.Products.FirstOrDefaultAsync(p => p.Id == id)
             ?? throw new NotFoundException($"Produit {id} introuvable.");
 
     private async Task EnsureCodeIsUniqueAsync(string code, int? excludingId)
@@ -90,19 +84,6 @@ public class ProductService(AppDbContext dbContext) : IProductService
         }
     }
 
-    private async Task<UnitOfMeasure> FindActiveSaleUnitOrThrowAsync(int saleUnitId)
-    {
-        var unit = await dbContext.UnitsOfMeasure.FindAsync(saleUnitId)
-            ?? throw new ConflictException($"L'unité de mesure {saleUnitId} n'existe pas.");
-
-        if (!unit.IsActive)
-        {
-            throw new ConflictException($"L'unité de mesure « {unit.Label} » est désactivée et ne peut pas être utilisée.");
-        }
-
-        return unit;
-    }
-
     private static ProductDto ToDto(Product product) =>
         new()
         {
@@ -110,8 +91,6 @@ public class ProductService(AppDbContext dbContext) : IProductService
             Code = product.Code,
             Name = product.Name,
             SaleMode = product.SaleMode,
-            SaleUnitId = product.SaleUnitId,
-            SaleUnitLabel = product.SaleUnit?.Label ?? string.Empty,
             IsActive = product.IsActive,
         };
 }

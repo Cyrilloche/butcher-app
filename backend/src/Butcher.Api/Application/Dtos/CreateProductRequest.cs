@@ -13,7 +13,4 @@ public class CreateProductRequest
 
     [Required]
     public SaleMode SaleMode { get; set; }
-
-    [Required]
-    public int SaleUnitId { get; set; }
 }

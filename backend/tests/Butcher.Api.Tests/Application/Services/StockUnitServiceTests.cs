@@ -18,11 +18,7 @@ public class StockUnitServiceTests(PostgresDatabaseFixture fixture) : IAsyncLife
     private static async Task<ProductionBatch> SeedBatchAsync(
         AppDbContext dbContext, SaleMode saleMode, string code = "SC")
     {
-        var unit = new UnitOfMeasure { Label = $"kilogramme-{code}", Abbreviation = $"kg-{code}" };
-        dbContext.UnitsOfMeasure.Add(unit);
-        await dbContext.SaveChangesAsync();
-
-        var product = new Product { Code = code, Name = "Saucisse curry", SaleMode = saleMode, SaleUnitId = unit.Id };
+        var product = new Product { Code = code, Name = "Saucisse curry", SaleMode = saleMode };
         dbContext.Products.Add(product);
         await dbContext.SaveChangesAsync();
 

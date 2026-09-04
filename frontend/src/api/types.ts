@@ -202,6 +202,11 @@ export interface UnitOfMeasureDto {
   isActive: boolean
 }
 
+export interface CreateUnitOfMeasureRequest {
+  label: string
+  abbreviation: string
+}
+
 // --- Erreurs -------------------------------------------------------------
 
 /** RFC7807 ProblemDetails renvoyé par ExceptionHandlingMiddleware pour les erreurs métier. */

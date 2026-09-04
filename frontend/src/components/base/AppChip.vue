@@ -17,6 +17,9 @@ defineEmits<{ click: [] }>()
 
 <style scoped>
 .app-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: 2px solid rgb(var(--v-theme-field-border));
   background: rgb(var(--v-theme-field-surface));
   color: rgb(var(--v-theme-on-surface));
@@ -27,6 +30,11 @@ defineEmits<{ click: [] }>()
   border-radius: 12px;
   cursor: pointer;
   min-height: 48px;
+}
+
+.app-chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .app-chip--selected {
