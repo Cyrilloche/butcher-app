@@ -4,6 +4,10 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Web API pure, aucun fichier Razor — mais Sdk.Web déclenche quand même la
+         compilation Razor, dont la table de versions ne connaît pas encore net10.0
+         (RZ3600). "Latest" court-circuite cette vérification. -->
+    <RazorLangVersion>Latest</RazorLangVersion>
   </PropertyGroup>
 
   <ItemGroup>
