@@ -93,6 +93,15 @@ export interface AddStockUnitsRequest {
 
 // --- StockMovement -------------------------------------------------------------
 
+export interface CreateStockMovementRequest {
+  type: MovementType
+  isFullSale?: boolean
+  soldWeight?: number
+  amount?: number
+  customerId?: number
+  notes?: string
+}
+
 export interface StockMovementDto {
   id: number
   stockUnitId: number
