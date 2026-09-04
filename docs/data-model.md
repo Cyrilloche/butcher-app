@@ -7,7 +7,7 @@
 | **Version** | 0.7 |
 | **Date** | 4 septembre 2026 |
 | **Statut** | Implémenté (backend, cœur métier V1 complet) |
-| **Documents liés** | PRD v0.2, Journal ADR v0.1 |
+| **Documents liés** | PRD v0.5, Journal ADR (10 décisions, ADR-010 accepté), `docs/etat-des-lieux.md` |
 
 ### Historique des révisions
 

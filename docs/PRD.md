@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | **Nom de projet** | Mini-ERP Charcuterie (nom de code : *à définir*) |
-| **Version du document** | 0.4 |
+| **Version du document** | 0.5 |
 | **Date** | 4 septembre 2026 |
-| **Statut** | Cadrage validé, en cours d'implémentation (backend exposé, frontend en cours) |
+| **Statut** | En cours d'implémentation — backend V1 complet, déploiement livré (ADR-010), frontend en rattrapage sur quelques parcours V1 (voir `docs/etat-des-lieux.md`) |
 | **Auteur** | Cyril, avec assistance à l'architecture |
 | **Destinataires** | Utilisateurs finaux (exploitants), équipe de développement |
 
@@ -16,6 +16,7 @@
 | 0.1 | 2026-09-02 | Cyril | Rédaction initiale à partir des ateliers de cadrage métier |
 | 0.2 | 2026-09-03 | Cyril, avec assistance à l'implémentation | Ajout des règles de gestion RG-08 à RG-12, apparues pendant l'implémentation du backend (cœur métier V1 entièrement exposé en API à cette date) ; précision sur RF-10 |
 | 0.4 | 2026-09-04 | Cyril | **Retrait des unités de mesure du périmètre V1** : RF-03, RF-04, RF-05 et RG-08 abandonnés (marqués, non effacés). Le mode de vente suffit à piloter l'affichage du prix (€/kg ou €/pièce) ; l'unité choisie n'avait aucun effet sur le calcul (RG-03) et imposait d'alimenter un référentiel avant de pouvoir créer le moindre produit. |
+| 0.5 | 2026-09-04 | Cyril, avec assistance à l'implémentation | Statut réaligné sur la réalité après analyse d'écart (`docs/etat-des-lieux.md`) : aucune exigence modifiée, mais RF-21 (sorties `perso`/`perte`) et RF-08/RF-09 (DLC, matière première) sont implémentés côté API sans être atteignables depuis l'interface — écarts tracés, Vague 1 non close tant que RF-21 ne l'est pas. |
 | 0.3 | 2026-09-04 | Cyril, avec assistance à l'implémentation | **Q-04 et Q-05 résolus et implémentés** : ajout de l'entité *vente* (numéro unique, statut de paiement, regroupement de plusieurs unités) — nouvelles exigences RF-28 à RF-31 et règles RG-13 à RG-15 ; RF-17/RG-07 (client obligatoire) désormais garantis par le modèle ; §9 mis en cohérence (le client n'est plus optionnel) |
 
 ---

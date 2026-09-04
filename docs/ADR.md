@@ -306,7 +306,7 @@ Par ailleurs, l'API adopte une **politique d'autorisation par défaut fail-close
 
 **Négatives / à surveiller**
 - Le cookie `Secure` impose HTTPS **même en développement local**, ce qui a nécessité un profil `https` dédié et le certificat de développement .NET (`dotnet dev-certs https --trust`) — un peu de friction locale en échange de la sécurité en production.
-- `SameSite` du cookie de refresh est fixé à `Lax` par défaut (configurable via `Auth:RefreshCookieSameSite`) ; cette valeur devra être revue une fois la topologie de déploiement définitivement tranchée par l'ADR-010 (même domaine via reverse proxy vs sous-domaines séparés, ce qui influe directement sur le comportement `SameSite` requis).
+- `SameSite` du cookie de refresh est fixé à `Lax` par défaut (configurable via `Auth:RefreshCookieSameSite`). **Point tranché le 2026-09-04** : la topologie retenue par l'ADR-010 place le frontend et `/api/*` derrière le même reverse proxy Caddy, donc sur **la même origine** — les appels d'authentification sont same-origin et `Lax` convient sans réserve. Le réglage reste configurable au cas où une topologie en sous-domaines séparés serait un jour adoptée, ce qui imposerait alors `None` + `Secure`.
 - La politique de mot de passe d'ASP.NET Core Identity utilisée est celle par défaut (non personnalisée) — à revisiter à l'usage réel par les deux utilisateurs finaux, non-techniques.
 - Les tables Identity annexes (`app_user_claim`, `app_user_login`, `app_user_token`) sont créées mais **inutilisées** en V1 (pas de login externe, pas de claims personnalisées) — conservées telles quelles car standard et inoffensif, sans nettoyage particulier.
 

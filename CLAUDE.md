@@ -14,7 +14,7 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 
 ## 2. État d'avancement & feuille de route
 
-**Phase actuelle : cœur métier backend + frontend Vague 1 largement construits (Stock, Produits, Clients, Ventes) ; socle de déploiement (ADR-010) reste le prochain spike.**
+**Phase actuelle : backend Vague 1 complet, socle de déploiement livré (ADR-010), frontend en rattrapage — quelques parcours du périmètre V1 restent à exposer dans l'interface (voir `docs/etat-des-lieux.md`).**
 
 | Étape | Statut |
 |---|---|
@@ -26,13 +26,16 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 | Backend — cœur métier (8 entités dont `sale`, CRUD + logique métier) | ✅ Exposé en API, 84 tests |
 | Spike authentification (JWT) | ✅ Réalisé et vérifié — ADR-009 accepté (Identity allégé, refresh token rotatif en base, cookie httpOnly/Secure, seed par variable d'environnement) |
 | Frontend — Stock, Produits, Clients, Ventes (dashboard/détail/ajout) | ✅ Branchés sur l'API réelle (branche `frontend-init`, worktree séparé) |
+| Socle de déploiement (ADR-010) | ✅ **Livré** : Docker Compose de prod, Caddy en reverse proxy, tunnel Cloudflare, images versionnées poussées par la CI, déploiement sur VPS déclenché par tag |
+| Chaîne de release | ✅ Tags `backend-v*` / `frontend-v*`, changelog et notes de release générés par git-cliff (§13) |
 | Vente à la tranche (RF-19/RF-20) | ✅ Vendre/clôturer une unité entamée ; `allow_partial_sale` par produit, garde-fou poids côté serveur |
-| Développement Vague 1 | 🔄 Quasi complet — reste le socle de déploiement (ADR-010) |
+| Développement Vague 1 | 🔄 Quasi complet — reste, côté interface, les sorties `perso`/`perte` (RF-21), la correction d'une vente (RG-14) et la saisie DLC/matière première d'un lot (RF-08/RF-09) |
+| Analyse d'écart doc ↔ code | ✅ `docs/etat-des-lieux.md` (04/09/2026) |
 
 **Méthode : dé-risquage avant développement.** On valide les points techniques risqués par des *spikes* isolés **avant** de construire les fonctionnalités. Spikes prévus, dans l'ordre :
 
 1. ~~**Authentification** (JWT + refresh + stockage sécurisé du jeton côté PWA)~~ — ✅ **fait**, voir ADR-009 (accepté).
-2. **Socle de déploiement** : Docker Compose (backend + frontend + PostgreSQL) derrière un reverse proxy HTTPS (Caddy/Nginx). Voir ADR-010. **Prochain spike.**
+2. ~~**Socle de déploiement** : Docker Compose (backend + frontend + PostgreSQL) derrière un reverse proxy HTTPS~~ — ✅ **fait**, voir ADR-010 (accepté) : Caddy sert le frontend et `/api/*` sur la même origine, exposé par un tunnel Cloudflare.
 3. **Fondations données** : EF Core + Npgsql, première migration, connexion Postgres. ✅ **déjà en place** (utilisé par toutes les entités et par l'authentification).
 
 **Vague 1 (MVP) — périmètre visé** (détail dans le PRD §4.1) :
@@ -56,6 +59,8 @@ La documentation de référence vit dans `docs/`. **En cas de doute, ces documen
 | `docs/PRD.md` | Le *quoi* : contexte, objectifs, périmètre par vagues, exigences fonctionnelles (`RF-xx`), règles de gestion (`RG-xx`), exigences non fonctionnelles (`RNF-xx`), risques. |
 | `docs/ADR.md` | Le *avec quoi* : les 10 décisions d'architecture, chacune avec son contexte, ses conséquences et les alternatives écartées. |
 | `docs/data-model.md` | Le modèle de données détaillé (entités, contraintes, format du numéro de lot, DBML, table de correspondance FR/EN, points d'extension V2+). |
+| `docs/etat-des-lieux.md` | Le *où on en est* : analyse d'écart entre ce qui était prévu et ce qui tourne, datée. Photographie, pas référence — les décisions qu'elle appelle redescendent dans les documents ci-dessus. |
+| `CHANGELOG.md` | Journal des versions publiées, **généré** depuis les messages de commit (`make changelog`). Ne jamais l'éditer à la main. |
 
 > Les exigences sont référencées par identifiant (`RF-07`, `RG-02`, `ADR-005`…). Utiliser ces références dans le code, les commits et les discussions pour la traçabilité.
 
@@ -79,16 +84,25 @@ La documentation de référence vit dans `docs/`. **En cas de doute, ces documen
 
 ---
 
-## 5. Structure du dépôt (cible)
+## 5. Structure du dépôt
 
 ```
 butcher-app/
 ├── CLAUDE.md              # ce fichier
+├── CHANGELOG.md           # généré (git-cliff) — ne pas éditer à la main
+├── cliff.toml             # configuration du changelog
+├── Makefile               # base de dev, build/test, migrations, releases
 ├── docs/
 │   ├── PRD.md
 │   ├── ADR.md
-│   └── data-model.md
+│   ├── data-model.md
+│   └── etat-des-lieux.md
+├── design/                # exports Claude Design (style-guide.html)
+├── development/           # compose Postgres + pgAdmin et .env de dev (non commité)
+├── .github/workflows/     # CI (tests) + release-backend / release-frontend
 ├── backend/               # ASP.NET Core Web API (C#)
+│   ├── src/Butcher.Api/
+│   ├── tests/Butcher.Api.Tests/
 │   └── Dockerfile
 ├── frontend/              # Vue 3 + TS (PWA)
 │   ├── src/
@@ -96,13 +110,16 @@ butcher-app/
 │   │   │   ├── base/      # wrappers Vuetify (AppButton, AppCard...)
 │   │   │   └── domain/    # composants métier (StockUnitCard, WeighInput...)
 │   │   ├── composables/   # logique réutilisable (useAuth, useStock...)
-│   │   ├── api/           # client généré depuis le Swagger backend
+│   │   ├── api/           # client HTTP typé, aligné sur le Swagger backend
 │   │   ├── layouts/       # AppLayout.vue (navigation bas d'écran)
+│   │   ├── stores/        # Pinia (auth)
 │   │   ├── views/         # StockView, SalesView, CustomersView, ProductsView, LoginView
 │   │   └── router/
 │   └── Dockerfile
-├── docker-compose.yml
-└── README.md
+├── Caddyfile              # reverse proxy : frontend + /api/* sur la même origine
+├── docker-compose.yml     # pile locale complète
+├── docker-compose.prod.yml# pile de production (images versionnées + tunnel Cloudflare)
+└── .env.example
 ```
 
 Monorepo, deux applications indépendantes avec chacune son cycle de vie et son conteneur, orchestrées par Docker Compose.
@@ -211,10 +228,11 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 
 | Réf. | Question | Statut |
 |---|---|---|
-| ADR-009 | `SameSite` du cookie de refresh token, actuellement `Lax` par défaut | À retrancher une fois la topologie de prod tranchée par ADR-010 |
+| ADR-009 | `SameSite` du cookie de refresh token | ✅ **Close (2026-09-04)** : Caddy sert le frontend et `/api/*` sur la même origine (ADR-010), les requêtes sont same-origin — `Lax` est le bon réglage et reste la valeur par défaut. |
 | RF-27 | `created_by` existe sur `production_batch`, `sale` et `stock_movement` mais **n'est jamais renseigné** : le champ prépare la journalisation V2, il ne la fait pas | Ouvert, non bloquant (compte partagé en V1) |
 | — | Politique de mot de passe Identity (valeurs par défaut, non revues pour 2 utilisateurs non techniques) | Ouvert, non bloquant |
-| — | Choix du VPS, stratégie de sauvegarde PostgreSQL | Phase de mise en place |
+| — | Stratégie de sauvegarde PostgreSQL (le VPS et le déploiement sont en place) | Ouvert — seul point d'exploitation non traité par ADR-010 |
+| RF-21 | Sorties `perso` / `perte` : implémentées côté API, non déclenchables depuis l'interface | Ouvert, **bloquant pour clore la Vague 1** (voir `docs/etat-des-lieux.md`, E-01) |
 
 ---
 
@@ -259,6 +277,24 @@ Documenté en commentaire dans `vuetify.ts`, à respecter dans tous les composan
 ### Icônes
 
 Iconset **Phosphor** (`@phosphor-icons/vue`), enregistré comme iconset Vuetify custom nommé `phosphor` dans `frontend/src/plugins/phosphor-iconset.ts` (utilisation : `<v-icon>phosphor:nom-icone</v-icon>`). Les icônes sont importées explicitement une à une (pas d'`import *`) pour rester tree-shakées. `mdi` reste le set par défaut (icônes internes Vuetify — pagination, cases à cocher, etc.) ; seules les icônes de navigation métier (`AppLayout.vue`) sont passées en Phosphor pour l'instant. Composants `base/` et `domain/` non encore migrés.
+
+---
+
+## 13. Versions et releases
+
+Backend et frontend ont des **cycles de vie indépendants**, chacun avec son préfixe de tag.
+
+| Geste | Commande |
+|---|---|
+| Publier le frontend | `make release-frontend version=0.2.0` puis `git push origin frontend-v0.2.0` |
+| Publier le backend | `make release-backend version=0.3.0` puis `git push origin backend-v0.3.0` |
+| Régénérer le changelog seul | `make changelog` |
+
+Ce que le tag déclenche (`.github/workflows/release-*.yaml`) : construction de l'image Docker, publication sur Docker Hub (version **et** SHA, jamais `latest`), déploiement sur le VPS, puis création d'une **GitHub Release** dont les notes couvrent la plage depuis le tag précédent du même composant.
+
+**Le changelog est dérivé des messages de commit**, d'où la règle : les commits suivent [Conventional Commits](https://www.conventionalcommits.org/fr/) (`feat(frontend): ...`, `fix(backend): ...`, `!` pour une rupture). Un `chore:` n'apparaît pas dans le journal — c'est voulu. Écrire le message du commit, c'est écrire le changelog.
+
+La version du frontend est **injectée au build** depuis le tag (`APP_VERSION` → `__APP_VERSION__`) et affichée sur l'écran de connexion : un `-dev` en suffixe signale un build local, jamais une image publiée.
 
 ---
 
