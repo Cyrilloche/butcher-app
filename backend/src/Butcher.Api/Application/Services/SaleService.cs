@@ -247,7 +247,7 @@ public class SaleService(AppDbContext dbContext) : ISaleService
                     Id = m.Id,
                     StockUnitId = m.StockUnitId,
                     ProductName = m.StockUnit?.Batch?.Product?.Name,
-                    BatchNumber = m.StockUnit?.Batch?.BatchNumber,
+                    UnitNumber = m.StockUnit?.UnitNumber,
                     Type = m.Type,
                     Date = m.Date,
                     SoldWeight = m.SoldWeight,

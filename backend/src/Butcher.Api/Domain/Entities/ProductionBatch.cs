@@ -4,8 +4,6 @@ public class ProductionBatch
 {
     public int Id { get; set; }
 
-    public required string BatchNumber { get; set; }
-
     public int ProductId { get; set; }
 
     public Product? Product { get; set; }

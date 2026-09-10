@@ -18,7 +18,11 @@ public class StockMovementDto
     /// </summary>
     public bool ProductIsActive { get; set; }
 
-    public string? BatchNumber { get; set; }
+    /// <summary>
+    /// Le numéro de l'unité sortie, tel qu'il est écrit sur son étiquette. C'est par lui que
+    /// l'utilisateur reconnaît l'objet dont il est question (FR-009).
+    /// </summary>
+    public string? UnitNumber { get; set; }
 
     public MovementType Type { get; set; }
 

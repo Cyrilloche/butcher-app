@@ -3,7 +3,6 @@ using Butcher.Api.Common.Exceptions;
 using Butcher.Api.Domain.Entities;
 using Butcher.Api.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace Butcher.Api.Application.Services;
 
@@ -35,13 +34,11 @@ public class ProductionBatchService(AppDbContext dbContext) : IProductionBatchSe
     {
         var product = await FindActiveProductOrThrowAsync(request.ProductId);
 
-        await using var transaction = await dbContext.Database.BeginTransactionAsync();
-
-        var batchNumber = await NextBatchNumberAsync(product, request.ProductionDate);
-
+        // Une fabrication ne porte plus de numéro : c'est l'unité physique qui en porte un, attribué
+        // au moment où elle est générée (voir StockUnitService). Enregistrer une fournée est donc
+        // redevenu une écriture simple, sans registre ni transaction propre.
         var batch = new ProductionBatch
         {
-            BatchNumber = batchNumber,
             ProductId = product.Id,
             Product = product,
             ProductionDate = request.ProductionDate,
@@ -52,17 +49,7 @@ public class ProductionBatchService(AppDbContext dbContext) : IProductionBatchSe
         };
 
         dbContext.ProductionBatches.Add(batch);
-
-        try
-        {
-            await dbContext.SaveChangesAsync();
-            await transaction.CommitAsync();
-        }
-        catch (DbUpdateException exception) when (IsBatchNumberConflict(exception))
-        {
-            // L'index unique reste en filet : le registre est censé rendre le cas impossible.
-            throw new ConflictException("Impossible de générer un numéro de lot unique, réessayez.");
-        }
+        await dbContext.SaveChangesAsync();
 
         return ToDto(batch);
     }
@@ -75,7 +62,8 @@ public class ProductionBatchService(AppDbContext dbContext) : IProductionBatchSe
     /// Les unités sont supprimées explicitement, dans la même transaction, plutôt que par une cascade
     /// déclarée en base : le <c>Restrict</c> de <c>StockUnitConfiguration</c> reste en filet, de sorte
     /// qu'un contournement de cette vérification ferait échouer l'écriture au lieu de détruire de
-    /// l'historique. Le numéro de lot n'est pas libéré, le registre de séquences n'étant pas touché.
+    /// l'historique. Les numéros des unités supprimées ne sont pas libérés : le registre de séquences
+/// n'est pas touché ici, et ne doit jamais l'être (FR-004).
     /// </remarks>
     public async Task DeleteAsync(int id)
     {
@@ -139,43 +127,10 @@ public class ProductionBatchService(AppDbContext dbContext) : IProductionBatchSe
         return product;
     }
 
-    /// <summary>
-    /// Prend le prochain numéro de séquence dans le registre, en créant la ligne au besoin.
-    /// </summary>
-    /// <remarks>
-    /// Le registre survit à la suppression d'un lot : un numéro émis n'est donc jamais réattribué
-    /// (FR-013). C'est la raison d'être de la table, un simple comptage des lots existants
-    /// réémettrait le numéro d'un lot supprimé.
-    /// </remarks>
-    private async Task<string> NextBatchNumberAsync(Product product, DateOnly productionDate)
-    {
-        var sequence = await dbContext.BatchNumberSequences
-            .FirstOrDefaultAsync(s => s.ProductId == product.Id && s.ProductionDate == productionDate);
-
-        if (sequence is null)
-        {
-            sequence = new BatchNumberSequence
-            {
-                ProductId = product.Id,
-                ProductionDate = productionDate,
-                LastSequence = 0,
-            };
-
-            dbContext.BatchNumberSequences.Add(sequence);
-        }
-
-        sequence.LastSequence++;
-        return $"{product.Code}-{productionDate:yyMMdd}-{sequence.LastSequence}";
-    }
-
-    private static bool IsBatchNumberConflict(DbUpdateException exception) =>
-        exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation, ConstraintName: "ix_production_batch_batch_number" };
-
     private static ProductionBatchDto ToDto(ProductionBatch batch) =>
         new()
         {
             Id = batch.Id,
-            BatchNumber = batch.BatchNumber,
             ProductId = batch.ProductId,
             ProductName = batch.Product?.Name ?? string.Empty,
             ProductionDate = batch.ProductionDate,

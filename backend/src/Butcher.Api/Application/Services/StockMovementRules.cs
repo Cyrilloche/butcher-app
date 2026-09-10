@@ -133,7 +133,7 @@ internal static class StockMovementRules
             StockUnitId = movement.StockUnitId,
             ProductName = movement.StockUnit?.Batch?.Product?.Name,
             ProductIsActive = movement.StockUnit?.Batch?.Product?.IsActive ?? true,
-            BatchNumber = movement.StockUnit?.Batch?.BatchNumber,
+            UnitNumber = movement.StockUnit?.UnitNumber,
             Type = movement.Type,
             Date = movement.Date,
             SoldWeight = movement.SoldWeight,

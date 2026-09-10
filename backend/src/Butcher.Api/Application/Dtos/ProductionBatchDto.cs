@@ -4,8 +4,6 @@ public class ProductionBatchDto
 {
     public int Id { get; set; }
 
-    public required string BatchNumber { get; set; }
-
     public int ProductId { get; set; }
 
     public required string ProductName { get; set; }

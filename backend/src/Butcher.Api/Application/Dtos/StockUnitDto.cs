@@ -8,7 +8,8 @@ public class StockUnitDto
 
     public int BatchId { get; set; }
 
-    public required string BatchNumber { get; set; }
+    /// <summary>Le numéro écrit sur l'étiquette de cet objet, au format CODE-YYMMDD-N.</summary>
+    public required string UnitNumber { get; set; }
 
     public decimal? Weight { get; set; }
 

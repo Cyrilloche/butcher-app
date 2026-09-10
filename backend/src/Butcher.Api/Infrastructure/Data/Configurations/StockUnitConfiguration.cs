@@ -14,6 +14,9 @@ public class StockUnitConfiguration : IEntityTypeConfiguration<StockUnit>
 
         builder.HasKey(u => u.Id);
 
+        builder.Property(u => u.UnitNumber).IsRequired();
+        builder.HasIndex(u => u.UnitNumber).IsUnique();
+
         builder.Property(u => u.Weight).HasPrecision(10, 3);
 
         builder.Property(u => u.Status).HasConversion(

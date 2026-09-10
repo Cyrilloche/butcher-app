@@ -25,7 +25,6 @@ public class StockMovementServiceTests(PostgresDatabaseFixture fixture) : IAsync
 
         var batch = new ProductionBatch
         {
-            BatchNumber = $"{code}-260831-1",
             ProductId = product.Id,
             ProductionDate = new DateOnly(2026, 8, 31),
             SalePrice = 12.5m,
@@ -33,7 +32,7 @@ public class StockMovementServiceTests(PostgresDatabaseFixture fixture) : IAsync
         dbContext.ProductionBatches.Add(batch);
         await dbContext.SaveChangesAsync();
 
-        var stockUnit = new StockUnit { BatchId = batch.Id, Weight = weight };
+        var stockUnit = new StockUnit { UnitNumber = TestUnitNumber.Next(), BatchId = batch.Id, Weight = weight };
         dbContext.StockUnits.Add(stockUnit);
         await dbContext.SaveChangesAsync();
         return stockUnit;
@@ -89,7 +88,8 @@ public class StockMovementServiceTests(PostgresDatabaseFixture fixture) : IAsync
         Assert.Equal("V-260904-1", result.SaleNumber);
         Assert.Equal("Jean Dupont", result.CustomerName);
         Assert.Equal("Saucisse curry", result.ProductName);
-        Assert.Equal("SC-260831-1", result.BatchNumber);
+        // Le mouvement nomme l'unité par l'étiquette que l'utilisateur a sous les yeux (FR-009).
+        Assert.Equal(unit.UnitNumber, result.UnitNumber);
 
         var updatedUnit = await dbContext.StockUnits.FindAsync(unit.Id);
         Assert.Equal(StockUnitStatus.Sold, updatedUnit!.Status);
@@ -431,7 +431,7 @@ public class StockMovementServiceTests(PostgresDatabaseFixture fixture) : IAsync
         Assert.Single(result);
         Assert.Equal(unit1.Id, result[0].StockUnitId);
         Assert.Equal(sale.CustomerId, result[0].CustomerId);
-        Assert.Equal("SC-260831-1", result[0].BatchNumber);
+        Assert.Equal(unit1.UnitNumber, result[0].UnitNumber);
     }
 
     [Fact]

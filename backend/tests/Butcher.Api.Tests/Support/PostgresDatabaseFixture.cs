@@ -49,7 +49,7 @@ public class PostgresDatabaseFixture : IAsyncLifetime
                 sale,
                 stock_unit,
                 production_batch,
-                batch_number_sequence,
+                unit_number_sequence,
                 product,
                 customer,
                 refresh_token,

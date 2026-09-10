@@ -358,10 +358,10 @@ public class ProductServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifeti
         var created = await service.CreateAsync(new CreateProductRequest { Code = "SC", Name = "Saucisson", SaleMode = SaleMode.ByWeight });
         var batch = await AddBatchAsync(dbContext, created.Id);
         dbContext.StockUnits.AddRange(
-            new StockUnit { BatchId = batch.Id, Weight = 1m, Status = StockUnitStatus.Available },
-            new StockUnit { BatchId = batch.Id, Weight = 1m, Status = StockUnitStatus.Opened },
-            new StockUnit { BatchId = batch.Id, Weight = 1m, Status = StockUnitStatus.Sold },
-            new StockUnit { BatchId = batch.Id, Weight = 1m, Status = StockUnitStatus.Lost });
+            new StockUnit { UnitNumber = TestUnitNumber.Next(), BatchId = batch.Id, Weight = 1m, Status = StockUnitStatus.Available },
+            new StockUnit { UnitNumber = TestUnitNumber.Next(), BatchId = batch.Id, Weight = 1m, Status = StockUnitStatus.Opened },
+            new StockUnit { UnitNumber = TestUnitNumber.Next(), BatchId = batch.Id, Weight = 1m, Status = StockUnitStatus.Sold },
+            new StockUnit { UnitNumber = TestUnitNumber.Next(), BatchId = batch.Id, Weight = 1m, Status = StockUnitStatus.Lost });
         await dbContext.SaveChangesAsync();
 
         var result = await service.GetByIdAsync(created.Id);
@@ -379,7 +379,6 @@ public class ProductServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifeti
 
         dbContext.ProductionBatches.Add(new ProductionBatch
         {
-            BatchNumber = "SC-260101-1",
             ProductId = created.Id,
             ProductionDate = DateOnly.FromDateTime(DateTime.UtcNow),
             SalePrice = 12.5m,
@@ -411,7 +410,6 @@ public class ProductServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifeti
     {
         var batch = new ProductionBatch
         {
-            BatchNumber = batchNumber,
             ProductId = productId,
             ProductionDate = new DateOnly(2026, 1, 1),
             SalePrice = 12.5m,
@@ -445,7 +443,7 @@ public class ProductServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifeti
         var service = new ProductService(dbContext);
         var created = await service.CreateAsync(new CreateProductRequest { Code = "SC", Name = "Saucisson", SaleMode = SaleMode.ByWeight });
         var batch = await AddBatchAsync(dbContext, created.Id);
-        dbContext.StockUnits.Add(new StockUnit { BatchId = batch.Id, Weight = 1m, Status = StockUnitStatus.Available });
+        dbContext.StockUnits.Add(new StockUnit { UnitNumber = TestUnitNumber.Next(), BatchId = batch.Id, Weight = 1m, Status = StockUnitStatus.Available });
         await dbContext.SaveChangesAsync();
 
         await Assert.ThrowsAsync<ConflictException>(() => service.DeactivateAsync(created.Id));
@@ -460,7 +458,7 @@ public class ProductServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifeti
         var service = new ProductService(dbContext);
         var created = await service.CreateAsync(new CreateProductRequest { Code = "SC", Name = "Saucisson", SaleMode = SaleMode.ByWeight });
         var batch = await AddBatchAsync(dbContext, created.Id);
-        dbContext.StockUnits.Add(new StockUnit { BatchId = batch.Id, Weight = 1m, Status = StockUnitStatus.Sold });
+        dbContext.StockUnits.Add(new StockUnit { UnitNumber = TestUnitNumber.Next(), BatchId = batch.Id, Weight = 1m, Status = StockUnitStatus.Sold });
         await dbContext.SaveChangesAsync();
 
         await service.DeactivateAsync(created.Id);
@@ -488,7 +486,7 @@ public class ProductServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifeti
         var service = new ProductService(dbContext);
         var created = await service.CreateAsync(new CreateProductRequest { Code = "SC", Name = "Saucisson", SaleMode = SaleMode.ByWeight });
         var batch = await AddBatchAsync(dbContext, created.Id);
-        var unit = new StockUnit { BatchId = batch.Id, Weight = 1.250m, Status = StockUnitStatus.Available };
+        var unit = new StockUnit { UnitNumber = TestUnitNumber.Next(), BatchId = batch.Id, Weight = 1.250m, Status = StockUnitStatus.Available };
         dbContext.StockUnits.Add(unit);
         await dbContext.SaveChangesAsync();
 
@@ -510,7 +508,7 @@ public class ProductServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifeti
         var service = new ProductService(dbContext);
         var created = await service.CreateAsync(new CreateProductRequest { Code = "SC", Name = "Saucisson", SaleMode = SaleMode.ByWeight });
         var batch = await AddBatchAsync(dbContext, created.Id);
-        var unit = new StockUnit { BatchId = batch.Id, Weight = 5m, Status = StockUnitStatus.Opened };
+        var unit = new StockUnit { UnitNumber = TestUnitNumber.Next(), BatchId = batch.Id, Weight = 5m, Status = StockUnitStatus.Opened };
         dbContext.StockUnits.Add(unit);
         await dbContext.SaveChangesAsync();
         dbContext.StockMovements.Add(new StockMovement
@@ -538,7 +536,7 @@ public class ProductServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifeti
         var service = new ProductService(dbContext);
         var created = await service.CreateAsync(new CreateProductRequest { Code = "SC", Name = "Saucisson", SaleMode = SaleMode.ByWeight });
         var batch = await AddBatchAsync(dbContext, created.Id);
-        var unit = new StockUnit { BatchId = batch.Id, Weight = 4m, Status = StockUnitStatus.Opened };
+        var unit = new StockUnit { UnitNumber = TestUnitNumber.Next(), BatchId = batch.Id, Weight = 4m, Status = StockUnitStatus.Opened };
         dbContext.StockUnits.Add(unit);
         await dbContext.SaveChangesAsync();
         dbContext.StockMovements.Add(new StockMovement
@@ -565,7 +563,7 @@ public class ProductServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifeti
         var service = new ProductService(dbContext);
         var created = await service.CreateAsync(new CreateProductRequest { Code = "TR", Name = "Terrine", SaleMode = SaleMode.ByPiece });
         var batch = await AddBatchAsync(dbContext, created.Id, "TR-260101-1");
-        var unit = new StockUnit { BatchId = batch.Id, Weight = null, Status = StockUnitStatus.Available };
+        var unit = new StockUnit { UnitNumber = TestUnitNumber.Next(), BatchId = batch.Id, Weight = null, Status = StockUnitStatus.Available };
         dbContext.StockUnits.Add(unit);
         await dbContext.SaveChangesAsync();
 
@@ -586,9 +584,9 @@ public class ProductServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifeti
         var batch = await AddBatchAsync(dbContext, created.Id);
         var units = new[]
         {
-            new StockUnit { BatchId = batch.Id, Weight = 1m, Status = StockUnitStatus.Available },
-            new StockUnit { BatchId = batch.Id, Weight = 1m, Status = StockUnitStatus.Available },
-            new StockUnit { BatchId = batch.Id, Weight = 1m, Status = StockUnitStatus.Available },
+            new StockUnit { UnitNumber = TestUnitNumber.Next(), BatchId = batch.Id, Weight = 1m, Status = StockUnitStatus.Available },
+            new StockUnit { UnitNumber = TestUnitNumber.Next(), BatchId = batch.Id, Weight = 1m, Status = StockUnitStatus.Available },
+            new StockUnit { UnitNumber = TestUnitNumber.Next(), BatchId = batch.Id, Weight = 1m, Status = StockUnitStatus.Available },
         };
         dbContext.StockUnits.AddRange(units);
         await dbContext.SaveChangesAsync();
@@ -620,8 +618,8 @@ public class ProductServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifeti
         var service = new ProductService(dbContext);
         var created = await service.CreateAsync(new CreateProductRequest { Code = "SC", Name = "Saucisson", SaleMode = SaleMode.ByWeight });
         var batch = await AddBatchAsync(dbContext, created.Id);
-        var sold = new StockUnit { BatchId = batch.Id, Weight = 1m, Status = StockUnitStatus.Sold };
-        var available = new StockUnit { BatchId = batch.Id, Weight = 1m, Status = StockUnitStatus.Available };
+        var sold = new StockUnit { UnitNumber = TestUnitNumber.Next(), BatchId = batch.Id, Weight = 1m, Status = StockUnitStatus.Sold };
+        var available = new StockUnit { UnitNumber = TestUnitNumber.Next(), BatchId = batch.Id, Weight = 1m, Status = StockUnitStatus.Available };
         dbContext.StockUnits.AddRange(sold, available);
         await dbContext.SaveChangesAsync();
 
@@ -639,7 +637,7 @@ public class ProductServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifeti
         var target = await service.CreateAsync(new CreateProductRequest { Code = "SC", Name = "Saucisson", SaleMode = SaleMode.ByWeight });
         var other = await service.CreateAsync(new CreateProductRequest { Code = "JB", Name = "Jambon", SaleMode = SaleMode.ByWeight });
         var otherBatch = await AddBatchAsync(dbContext, other.Id, "JB-260101-1");
-        var otherUnit = new StockUnit { BatchId = otherBatch.Id, Weight = 1m, Status = StockUnitStatus.Available };
+        var otherUnit = new StockUnit { UnitNumber = TestUnitNumber.Next(), BatchId = otherBatch.Id, Weight = 1m, Status = StockUnitStatus.Available };
         dbContext.StockUnits.Add(otherUnit);
         await dbContext.SaveChangesAsync();
 

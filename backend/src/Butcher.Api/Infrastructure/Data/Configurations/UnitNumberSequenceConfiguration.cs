@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Butcher.Api.Infrastructure.Data.Configurations;
 
-public class BatchNumberSequenceConfiguration : IEntityTypeConfiguration<BatchNumberSequence>
+public class UnitNumberSequenceConfiguration : IEntityTypeConfiguration<UnitNumberSequence>
 {
-    public void Configure(EntityTypeBuilder<BatchNumberSequence> builder)
+    public void Configure(EntityTypeBuilder<UnitNumberSequence> builder)
     {
-        builder.ToTable("batch_number_sequence");
+        builder.ToTable("unit_number_sequence");
 
         builder.HasKey(s => new { s.ProductId, s.ProductionDate });
 

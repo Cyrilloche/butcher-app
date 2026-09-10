@@ -37,24 +37,105 @@ public class StockUnitService(AppDbContext dbContext) : IStockUnitService
         return ToDto(unit);
     }
 
+    /// <summary>
+    /// Génère les unités physiques d'une fournée et leur attribue leur numéro d'étiquette.
+    /// </summary>
+    /// <remarks>
+    /// C'est ici, et non à la création de la fournée, que les numéros sont émis : c'est le geste qui
+    /// produit les objets à étiqueter. Une fournée enregistrée puis jamais pesée ne consomme donc
+    /// aucun numéro. Les rangs sont réservés en une fois pour toute la demande, dans la transaction
+    /// qui écrit les unités : si l'écriture échoue, aucun numéro n'est perdu.
+    /// </remarks>
     public async Task<List<StockUnitDto>> AddUnitsAsync(int batchId, AddStockUnitsRequest request)
     {
         var batch = await dbContext.ProductionBatches.Include(b => b.Product).FirstOrDefaultAsync(b => b.Id == batchId)
             ?? throw new NotFoundException($"Lot de production {batchId} introuvable.");
 
-        var units = batch.Product!.SaleMode switch
+        var weights = batch.Product!.SaleMode switch
         {
-            SaleMode.ByWeight => BuildWeightedUnits(batch, request),
-            SaleMode.ByPiece => BuildCountedUnits(batch, request),
+            SaleMode.ByWeight => ValidateWeightedRequest(request),
+            SaleMode.ByPiece => ValidateCountedRequest(request),
             _ => throw new BadRequestException("Mode de vente du produit inconnu."),
         };
 
+        await using var transaction = await dbContext.Database.BeginTransactionAsync();
+
+        var firstSequence = await ReserveUnitNumbersAsync(batch, weights.Count);
+
+        var units = weights
+            .Select((weight, index) => new StockUnit
+            {
+                BatchId = batch.Id,
+                Batch = batch,
+                Weight = weight,
+                UnitNumber = FormatUnitNumber(batch.Product!.Code, batch.ProductionDate, firstSequence + index),
+            })
+            .ToList();
+
         dbContext.StockUnits.AddRange(units);
         await dbContext.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         return units.Select(ToDto).ToList();
     }
 
+    /// <summary>
+    /// Réserve <paramref name="count"/> rangs consécutifs pour le produit et la date de production de
+    /// la fournée, et retourne le premier.
+    /// </summary>
+    /// <remarks>
+    /// Deux gestes, tous deux à l'épreuve de la concurrence. La ligne du registre est d'abord créée
+    /// si elle manque, en absorbant le conflit si quelqu'un vient de la créer ; elle est ensuite lue
+    /// sous verrou de ligne, de sorte que deux générations simultanées sortent l'une après l'autre au
+    /// lieu de calculer le même rang. Sans ce verrou, l'index unique sur le numéro d'unité
+    /// rattraperait le coup, mais en renvoyant une erreur à l'utilisateur au lieu du numéro suivant.
+    ///
+    /// Le registre n'est jamais décrémenté ni purgé : c'est ce qui garantit qu'un numéro déjà écrit
+    /// sur une étiquette ne soit jamais réémis (FR-004, FR-012).
+    /// </remarks>
+    private async Task<int> ReserveUnitNumbersAsync(ProductionBatch batch, int count)
+    {
+        await dbContext.Database.ExecuteSqlAsync(
+            $"""
+            INSERT INTO unit_number_sequence (product_id, production_date, last_sequence)
+            VALUES ({batch.ProductId}, {batch.ProductionDate}, 0)
+            ON CONFLICT (product_id, production_date) DO NOTHING
+            """);
+
+        // Pas d'opérateur LINQ après FromSql : la requête doit partir telle quelle, le verrou ne
+        // survivrait pas à son encapsulation dans une sous-requête.
+        var rows = await dbContext.UnitNumberSequences
+            .FromSql(
+                $"""
+                SELECT product_id, production_date, last_sequence
+                FROM unit_number_sequence
+                WHERE product_id = {batch.ProductId} AND production_date = {batch.ProductionDate}
+                FOR UPDATE
+                """)
+            .ToListAsync();
+
+        var sequence = rows[0];
+        var firstSequence = sequence.LastSequence + 1;
+        sequence.LastSequence += count;
+
+        return firstSequence;
+    }
+
+    /// <summary>
+    /// Compose le numéro écrit sur l'étiquette : le code du produit, la date de production de la
+    /// fournée, le rang. Trois segments, pas un de plus (FR-002, FR-015).
+    /// </summary>
+    private static string FormatUnitNumber(string productCode, DateOnly productionDate, int sequence) =>
+        $"{productCode}-{productionDate:yyMMdd}-{sequence}";
+
+    /// <summary>
+    /// Supprime une unité disponible, pour corriger une erreur de pesée.
+    /// </summary>
+    /// <remarks>
+    /// Le registre de numérotation n'est pas touché, et ne doit jamais l'être : le rang de l'unité
+    /// supprimée reste consommé, faute de quoi la prochaine unité générée porterait un numéro déjà
+    /// recopié sur une étiquette (FR-004).
+    /// </remarks>
     public async Task DeleteAsync(int id)
     {
         var unit = await FindOrThrowAsync(id);
@@ -74,7 +155,8 @@ public class StockUnitService(AppDbContext dbContext) : IStockUnitService
         await dbContext.SaveChangesAsync();
     }
 
-    private static List<StockUnit> BuildWeightedUnits(ProductionBatch batch, AddStockUnitsRequest request)
+    /// <summary>Valide une demande au poids et retourne les poids pesés, dans l'ordre de saisie.</summary>
+    private static List<decimal?> ValidateWeightedRequest(AddStockUnitsRequest request)
     {
         if (request.Quantity is not null)
         {
@@ -91,12 +173,14 @@ public class StockUnitService(AppDbContext dbContext) : IStockUnitService
             throw new BadRequestException("Tous les poids doivent être strictement positifs.");
         }
 
-        return request.Weights
-            .Select(weight => new StockUnit { BatchId = batch.Id, Batch = batch, Weight = weight })
-            .ToList();
+        return request.Weights.Select(weight => (decimal?)weight).ToList();
     }
 
-    private static List<StockUnit> BuildCountedUnits(ProductionBatch batch, AddStockUnitsRequest request)
+    /// <summary>
+    /// Valide une demande à la pièce et retourne autant de poids nuls que de pièces : même
+    /// mécanisme de stock que pour un produit au poids, numérotation comprise (CLAUDE.md §8 règle 2).
+    /// </summary>
+    private static List<decimal?> ValidateCountedRequest(AddStockUnitsRequest request)
     {
         if (request.Weights is not null)
         {
@@ -108,9 +192,7 @@ public class StockUnitService(AppDbContext dbContext) : IStockUnitService
             throw new BadRequestException("« Quantity » doit être un nombre strictement positif.");
         }
 
-        return Enumerable.Range(0, request.Quantity.Value)
-            .Select(_ => new StockUnit { BatchId = batch.Id, Batch = batch, Weight = null })
-            .ToList();
+        return Enumerable.Range(0, request.Quantity.Value).Select(_ => (decimal?)null).ToList();
     }
 
     private async Task<StockUnit> FindOrThrowAsync(int id) =>
@@ -122,7 +204,7 @@ public class StockUnitService(AppDbContext dbContext) : IStockUnitService
         {
             Id = unit.Id,
             BatchId = unit.BatchId,
-            BatchNumber = unit.Batch?.BatchNumber ?? string.Empty,
+            UnitNumber = unit.UnitNumber,
             Weight = unit.Weight,
             Status = unit.Status,
         };

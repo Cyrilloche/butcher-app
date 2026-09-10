@@ -30,69 +30,6 @@ public class ProductionBatchServiceTests(PostgresDatabaseFixture fixture) : IAsy
     }
 
     [Fact]
-    public async Task CreateAsync_GeneratesBatchNumberWithExpectedFormat()
-    {
-        await using var dbContext = fixture.CreateDbContext();
-        var product = await SeedProductAsync(dbContext);
-        var service = new ProductionBatchService(dbContext);
-        var productionDate = new DateOnly(2026, 8, 31);
-
-        var result = await service.CreateAsync(new CreateProductionBatchRequest
-        {
-            ProductId = product.Id,
-            ProductionDate = productionDate,
-            SalePrice = 12.5m,
-        });
-
-        Assert.Equal("SC-260831-1", result.BatchNumber);
-    }
-
-    [Fact]
-    public async Task CreateAsync_SameProductSameDay_IncrementsSequence()
-    {
-        await using var dbContext = fixture.CreateDbContext();
-        var product = await SeedProductAsync(dbContext);
-        var service = new ProductionBatchService(dbContext);
-        var productionDate = new DateOnly(2026, 8, 31);
-
-        var first = await service.CreateAsync(new CreateProductionBatchRequest { ProductId = product.Id, ProductionDate = productionDate, SalePrice = 12.5m });
-        var second = await service.CreateAsync(new CreateProductionBatchRequest { ProductId = product.Id, ProductionDate = productionDate, SalePrice = 12.5m });
-
-        Assert.Equal("SC-260831-1", first.BatchNumber);
-        Assert.Equal("SC-260831-2", second.BatchNumber);
-    }
-
-    [Fact]
-    public async Task CreateAsync_DifferentDay_RestartsSequenceAtOne()
-    {
-        await using var dbContext = fixture.CreateDbContext();
-        var product = await SeedProductAsync(dbContext);
-        var service = new ProductionBatchService(dbContext);
-
-        var first = await service.CreateAsync(new CreateProductionBatchRequest { ProductId = product.Id, ProductionDate = new DateOnly(2026, 8, 31), SalePrice = 12.5m });
-        var second = await service.CreateAsync(new CreateProductionBatchRequest { ProductId = product.Id, ProductionDate = new DateOnly(2026, 9, 1), SalePrice = 12.5m });
-
-        Assert.Equal("SC-260831-1", first.BatchNumber);
-        Assert.Equal("SC-260901-1", second.BatchNumber);
-    }
-
-    [Fact]
-    public async Task CreateAsync_DifferentProductSameDay_RestartsSequenceAtOne()
-    {
-        await using var dbContext = fixture.CreateDbContext();
-        var product1 = await SeedProductAsync(dbContext, code: "SC");
-        var product2 = await SeedProductAsync(dbContext, code: "JB");
-        var service = new ProductionBatchService(dbContext);
-        var productionDate = new DateOnly(2026, 8, 31);
-
-        var first = await service.CreateAsync(new CreateProductionBatchRequest { ProductId = product1.Id, ProductionDate = productionDate, SalePrice = 12.5m });
-        var second = await service.CreateAsync(new CreateProductionBatchRequest { ProductId = product2.Id, ProductionDate = productionDate, SalePrice = 8m });
-
-        Assert.Equal("SC-260831-1", first.BatchNumber);
-        Assert.Equal("JB-260831-1", second.BatchNumber);
-    }
-
-    [Fact]
     public async Task CreateAsync_WithUnknownProduct_ThrowsConflictException()
     {
         await using var dbContext = fixture.CreateDbContext();
@@ -140,7 +77,7 @@ public class ProductionBatchServiceTests(PostgresDatabaseFixture fixture) : IAsy
     }
 
     [Fact]
-    public async Task UpdateAsync_UpdatesMutableFields_ButNotProductOrDateOrBatchNumber()
+    public async Task UpdateAsync_UpdatesMutableFields_ButNotProductOrDate()
     {
         await using var dbContext = fixture.CreateDbContext();
         var product = await SeedProductAsync(dbContext);
@@ -164,62 +101,35 @@ public class ProductionBatchServiceTests(PostgresDatabaseFixture fixture) : IAsy
         Assert.Equal("Porc — grossiste X", updated.RawMaterialRef);
         Assert.Equal(new DateOnly(2026, 9, 30), updated.ExpiryDate);
         Assert.Equal("Cuisson plus longue", updated.Notes);
-        Assert.Equal(created.BatchNumber, updated.BatchNumber);
         Assert.Equal(created.ProductionDate, updated.ProductionDate);
         Assert.Equal(created.ProductId, updated.ProductId);
     }
 
-    // --- Registre de numérotation : un numéro émis n'est jamais réémis (FR-013, SC-004) ----------
-
-    [Fact]
-    public async Task CreateAsync_TwoBatchesSameDay_NumbersThemInSequence()
-    {
-        await using var dbContext = fixture.CreateDbContext();
-        var product = await SeedProductAsync(dbContext);
-        var service = new ProductionBatchService(dbContext);
-        var day = new DateOnly(2026, 8, 31);
-
-        var first = await service.CreateAsync(new CreateProductionBatchRequest { ProductId = product.Id, ProductionDate = day, SalePrice = 12.5m });
-        var second = await service.CreateAsync(new CreateProductionBatchRequest { ProductId = product.Id, ProductionDate = day, SalePrice = 12.5m });
-
-        Assert.Equal("SC-260831-1", first.BatchNumber);
-        Assert.Equal("SC-260831-2", second.BatchNumber);
-    }
-
     // Le point le plus exposé aux régressions : un comptage des lots existants réémettrait « 2 »
     // sur une seconde série d'étiquettes manuscrites, indiscernable de la première.
+    // Une fabrication ne porte plus de numéro : c'est l'unité physique qui en porte un (FR-007).
+    // Le test le dit du seul endroit où il peut le dire, la forme de la ressource renvoyée.
     [Fact]
-    public async Task CreateAsync_AfterDeletingLastBatchOfTheDay_NeverReissuesItsNumber()
+    public async Task CreateAsync_ReturnsABatchWithoutAnyNumberOfItsOwn()
     {
         await using var dbContext = fixture.CreateDbContext();
         var product = await SeedProductAsync(dbContext);
         var service = new ProductionBatchService(dbContext);
-        var day = new DateOnly(2026, 8, 31);
-        await service.CreateAsync(new CreateProductionBatchRequest { ProductId = product.Id, ProductionDate = day, SalePrice = 12.5m });
-        var second = await service.CreateAsync(new CreateProductionBatchRequest { ProductId = product.Id, ProductionDate = day, SalePrice = 12.5m });
 
-        await service.DeleteAsync(second.Id);
-        var third = await service.CreateAsync(new CreateProductionBatchRequest { ProductId = product.Id, ProductionDate = day, SalePrice = 12.5m });
+        var result = await service.CreateAsync(new CreateProductionBatchRequest
+        {
+            ProductId = product.Id,
+            ProductionDate = new DateOnly(2026, 8, 31),
+            SalePrice = 12.5m,
+        });
 
-        Assert.Equal("SC-260831-3", third.BatchNumber);
+        Assert.DoesNotContain(
+            typeof(ProductionBatchDto).GetProperties(),
+            property => property.Name.Contains("Number", StringComparison.Ordinal));
+        Assert.Equal(product.Id, result.ProductId);
     }
 
-    [Fact]
-    public async Task CreateAsync_AfterDeletingTheOnlyBatchOfTheDay_StartsAtTwo()
-    {
-        await using var dbContext = fixture.CreateDbContext();
-        var product = await SeedProductAsync(dbContext);
-        var service = new ProductionBatchService(dbContext);
-        var day = new DateOnly(2026, 8, 31);
-        var only = await service.CreateAsync(new CreateProductionBatchRequest { ProductId = product.Id, ProductionDate = day, SalePrice = 12.5m });
-
-        await service.DeleteAsync(only.Id);
-        var next = await service.CreateAsync(new CreateProductionBatchRequest { ProductId = product.Id, ProductionDate = day, SalePrice = 12.5m });
-
-        Assert.Equal("SC-260831-2", next.BatchNumber);
-    }
-
-    // --- Suppression d'un lot (FR-010 à FR-012, FR-015, SC-006) ----------------------------------
+    // --- Suppression d'un lot (FR-010 à FR-012, SC-003) -----------------------------------------
 
     [Fact]
     public async Task DeleteAsync_OnIntactBatch_RemovesBatchAndItsStockUnits()
@@ -234,8 +144,8 @@ public class ProductionBatchServiceTests(PostgresDatabaseFixture fixture) : IAsy
             SalePrice = 12.5m,
         });
         dbContext.StockUnits.AddRange(
-            new StockUnit { BatchId = created.Id, Weight = 1.2m },
-            new StockUnit { BatchId = created.Id, Weight = 1.4m });
+            new StockUnit { UnitNumber = TestUnitNumber.Next(), BatchId = created.Id, Weight = 1.2m },
+            new StockUnit { UnitNumber = TestUnitNumber.Next(), BatchId = created.Id, Weight = 1.4m });
         await dbContext.SaveChangesAsync();
 
         await service.DeleteAsync(created.Id);
@@ -277,7 +187,7 @@ public class ProductionBatchServiceTests(PostgresDatabaseFixture fixture) : IAsy
             ProductionDate = new DateOnly(2026, 8, 31),
             SalePrice = 12.5m,
         });
-        var unit = new StockUnit { BatchId = created.Id, Weight = 1.2m };
+        var unit = new StockUnit { UnitNumber = TestUnitNumber.Next(), BatchId = created.Id, Weight = 1.2m };
         dbContext.StockUnits.Add(unit);
         await dbContext.SaveChangesAsync();
         dbContext.StockMovements.Add(new StockMovement
@@ -342,5 +252,46 @@ public class ProductionBatchServiceTests(PostgresDatabaseFixture fixture) : IAsy
         await batchService.DeleteAsync(first.Id);
 
         Assert.True((await productService.GetByIdAsync(product.Id)).IsUsed);
+    }
+    // --- La suppression d'une fournée ne libère aucun numéro (FR-004, FR-010, FR-012) -------------
+
+    // Le point le plus exposé aux régressions. Un comptage des unités existantes réémettrait les
+    // rangs de la fournée supprimée sur une seconde série d'étiquettes manuscrites.
+    [Fact]
+    public async Task DeleteAsync_ThenCreatingABatchTheSameDay_NeverReissuesTheFreedNumbers()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var product = await SeedProductAsync(dbContext);
+        var service = new ProductionBatchService(dbContext);
+        var units = new StockUnitService(dbContext);
+        var day = new DateOnly(2026, 8, 31);
+        var morning = await service.CreateAsync(new CreateProductionBatchRequest { ProductId = product.Id, ProductionDate = day, SalePrice = 12.5m });
+        await units.AddUnitsAsync(morning.Id, new AddStockUnitsRequest { Weights = [1m, 1m, 1m] });
+
+        await service.DeleteAsync(morning.Id);
+        var afternoon = await service.CreateAsync(new CreateProductionBatchRequest { ProductId = product.Id, ProductionDate = day, SalePrice = 13m });
+        var result = await units.AddUnitsAsync(afternoon.Id, new AddStockUnitsRequest { Weights = [1m, 1m] });
+
+        Assert.Equal(["SC-260831-4", "SC-260831-5"], result.Select(u => u.UnitNumber));
+    }
+
+    // La ligne du registre est ce qui porte la mémoire des rangs émis : elle doit survivre à la
+    // disparition de toutes les fournées du jour.
+    [Fact]
+    public async Task DeleteAsync_OnTheOnlyBatchOfTheDay_KeepsItsNumberingRegistryRow()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var product = await SeedProductAsync(dbContext);
+        var service = new ProductionBatchService(dbContext);
+        var units = new StockUnitService(dbContext);
+        var day = new DateOnly(2026, 8, 31);
+        var only = await service.CreateAsync(new CreateProductionBatchRequest { ProductId = product.Id, ProductionDate = day, SalePrice = 12.5m });
+        await units.AddUnitsAsync(only.Id, new AddStockUnitsRequest { Weights = [1m, 1m] });
+
+        await service.DeleteAsync(only.Id);
+
+        var sequence = await dbContext.UnitNumberSequences.FindAsync(product.Id, day);
+        Assert.NotNull(sequence);
+        Assert.Equal(2, sequence.LastSequence);
     }
 }

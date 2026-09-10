@@ -25,7 +25,6 @@ public class SaleServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifetime
 
         var batch = new ProductionBatch
         {
-            BatchNumber = $"{code}-260831-1",
             ProductId = product.Id,
             ProductionDate = new DateOnly(2026, 8, 31),
             SalePrice = 12.5m,
@@ -34,7 +33,7 @@ public class SaleServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifetime
         await dbContext.SaveChangesAsync();
 
         var units = Enumerable.Range(0, count)
-            .Select(_ => new StockUnit { BatchId = batch.Id, Weight = weight })
+            .Select(_ => new StockUnit { UnitNumber = TestUnitNumber.Next(), BatchId = batch.Id, Weight = weight })
             .ToList();
         dbContext.StockUnits.AddRange(units);
         await dbContext.SaveChangesAsync();
@@ -80,15 +79,19 @@ public class SaleServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifetime
         Assert.All(sale.Lines, line => Assert.Equal(sale.Id, line.SaleId));
 
         // Le contexte produit voyage avec la ligne : sans ça, le frontend devrait déduire le produit
-        // du préfixe du numéro de lot.
+        // du préfixe du numéro d'étiquette.
         Assert.All(sale.Lines, line => Assert.Equal("Saucisse curry", line.ProductName));
-        Assert.All(sale.Lines, line => Assert.Equal("SC-260831-1", line.BatchNumber));
+
+        // Chaque ligne nomme son unité par le numéro écrit sur son étiquette (FR-009).
+        Assert.Equal(
+            units.Take(2).Select(u => u.UnitNumber).Order(),
+            sale.Lines.Select(l => l.UnitNumber).Order());
 
         var refreshed = await dbContext.StockUnits.FindAsync(units[0].Id);
         Assert.Equal(StockUnitStatus.Sold, refreshed!.Status);
     }
 
-    // Format `V-YYMMDD-N`, séquence remise à zéro chaque jour (même logique que le numéro de lot).
+    // Format `V-YYMMDD-N`, séquence remise à zéro chaque jour (même logique que le numéro d'unité).
     [Fact]
     public async Task CreateAsync_SameDay_IncrementsSaleNumberSequence()
     {

@@ -12,9 +12,6 @@ public class ProductionBatchConfiguration : IEntityTypeConfiguration<ProductionB
 
         builder.HasKey(b => b.Id);
 
-        builder.Property(b => b.BatchNumber).IsRequired();
-        builder.HasIndex(b => b.BatchNumber).IsUnique();
-
         builder.Property(b => b.SalePrice).HasPrecision(10, 2);
 
         builder
