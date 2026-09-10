@@ -14,5 +14,7 @@ public interface IProductService
 
     Task DeactivateAsync(int id);
 
+    Task<WriteOffProductStockResult> WriteOffStockAsync(int id, WriteOffProductStockRequest request);
+
     Task ReactivateAsync(int id);
 }

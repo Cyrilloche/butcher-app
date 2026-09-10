@@ -11,4 +11,6 @@ public interface IProductionBatchService
     Task<ProductionBatchDto> CreateAsync(CreateProductionBatchRequest request);
 
     Task<ProductionBatchDto> UpdateAsync(int id, UpdateProductionBatchRequest request);
+
+    Task DeleteAsync(int id);
 }

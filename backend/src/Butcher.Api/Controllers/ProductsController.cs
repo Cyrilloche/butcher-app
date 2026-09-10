@@ -40,6 +40,13 @@ public class ProductsController(IProductService productService) : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("{id:int}/write-off")]
+    public async Task<ActionResult<WriteOffProductStockResult>> WriteOffStock(
+        int id, WriteOffProductStockRequest request)
+    {
+        return Ok(await productService.WriteOffStockAsync(id, request));
+    }
+
     [HttpPost("{id:int}/reactivate")]
     public async Task<IActionResult> Reactivate(int id)
     {

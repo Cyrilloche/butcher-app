@@ -12,6 +12,12 @@ public class StockMovementDto
     // le frontend n'a d'autre choix que de deviner le produit à partir du préfixe du numéro de lot.
     public string? ProductName { get; set; }
 
+    /// <summary>
+    /// Faux si le produit a été désactivé depuis. Le mouvement reste affiché dans l'historique,
+    /// simplement signalé (FR-024).
+    /// </summary>
+    public bool ProductIsActive { get; set; }
+
     public string? BatchNumber { get; set; }
 
     public MovementType Type { get; set; }

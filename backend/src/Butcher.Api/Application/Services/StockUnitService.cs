@@ -9,13 +9,18 @@ namespace Butcher.Api.Application.Services;
 
 public class StockUnitService(AppDbContext dbContext) : IStockUnitService
 {
-    public async Task<List<StockUnitDto>> GetAllAsync(int? batchId, StockUnitStatus? status)
+    public async Task<List<StockUnitDto>> GetAllAsync(int? batchId, StockUnitStatus? status, int? productId)
     {
         var query = dbContext.StockUnits.Include(u => u.Batch).AsQueryable();
 
         if (batchId is not null)
         {
             query = query.Where(u => u.BatchId == batchId);
+        }
+
+        if (productId is not null)
+        {
+            query = query.Where(u => u.Batch!.ProductId == productId);
         }
 
         if (status is not null)

@@ -71,6 +71,33 @@ internal static class StockMovementRules
         }
     }
 
+    /// <summary>
+    /// Poids à enregistrer sur une sortie qui n'est pas une vente (usage perso ou perte) : le poids
+    /// pesé si l'unité est intacte, le restant estimé si elle est entamée, <c>null</c> si l'unité n'a
+    /// pas de poids. Une unité au poids pas encore pesée n'offre aucune base de calcul : l'appelant
+    /// retombe alors sur le poids fourni par l'utilisateur.
+    /// </summary>
+    /// <remarks>
+    /// Sur une unité entamée, repartir du poids pesé compterait deux fois la part déjà vendue : on
+    /// retranche donc <paramref name="soldWeightSoFar"/>, la somme des poids déjà vendus (RG-05).
+    /// Un restant nul signifie que l'unité a été vendue en totalité : il n'y a plus rien à sortir,
+    /// l'appelant doit la clôturer plutôt que d'enregistrer une perte de poids nul, que
+    /// <see cref="ValidateSoldWeight"/> rejetterait.
+    ///
+    /// Cette règle vit ici, et non dans le client : le principe II de la constitution fait du backend
+    /// le garant des règles métier, et deux implémentations de celle-ci finiraient par diverger.
+    /// </remarks>
+    public static decimal? ComputeOutcomeWeight(StockUnit unit, decimal soldWeightSoFar)
+    {
+        if (unit.Weight is null)
+        {
+            return null;
+        }
+
+        var remaining = unit.Weight.Value - soldWeightSoFar;
+        return remaining > 0 ? remaining : 0m;
+    }
+
     public static void ValidateAmount(MovementType type, decimal? amount)
     {
         if (type == MovementType.Sale)
@@ -105,6 +132,7 @@ internal static class StockMovementRules
             Id = movement.Id,
             StockUnitId = movement.StockUnitId,
             ProductName = movement.StockUnit?.Batch?.Product?.Name,
+            ProductIsActive = movement.StockUnit?.Batch?.Product?.IsActive ?? true,
             BatchNumber = movement.StockUnit?.Batch?.BatchNumber,
             Type = movement.Type,
             Date = movement.Date,

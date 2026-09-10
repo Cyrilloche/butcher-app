@@ -23,6 +23,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityUser
 
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
 
+    public DbSet<BatchNumberSequence> BatchNumberSequences => Set<BatchNumberSequence>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

@@ -11,9 +11,11 @@ public class StockUnitsController(IStockUnitService stockUnitService) : Controll
 {
     [HttpGet]
     public async Task<ActionResult<List<StockUnitDto>>> GetAll(
-        [FromQuery] int? batchId = null, [FromQuery] StockUnitStatus? status = null)
+        [FromQuery] int? batchId = null,
+        [FromQuery] StockUnitStatus? status = null,
+        [FromQuery] int? productId = null)
     {
-        return Ok(await stockUnitService.GetAllAsync(batchId, status));
+        return Ok(await stockUnitService.GetAllAsync(batchId, status, productId));
     }
 
     [HttpGet("{id:int}")]

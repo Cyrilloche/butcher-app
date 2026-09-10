@@ -46,14 +46,26 @@ public class StockMovementService(AppDbContext dbContext) : IStockMovementServic
             ?? throw new NotFoundException($"Unité de stock {stockUnitId} introuvable.");
 
         StockMovementRules.EnsureCanReceiveMovement(unit);
-        StockMovementRules.ValidateSoldWeight(unit, request.SoldWeight);
+
+        // Le poids d'une sortie perso ou perte est une règle métier, pas une saisie : le serveur le
+        // calcule et ignore ce que le client a pu envoyer. Une vente, elle, porte un poids réellement
+        // pesé, que seul l'utilisateur connaît.
+        //
+        // Exception : une unité au poids qui n'a pas encore été pesée n'offre aucune base de calcul.
+        // Le poids fourni par le client reste alors la seule information disponible.
+        var soldWeight = request.Type == MovementType.Sale || unit.Weight is null
+            ? request.SoldWeight
+            : StockMovementRules.ComputeOutcomeWeight(
+                unit, await SumSoldWeightForSaleMovementsAsync(unit.Id, excludingMovementId: null));
+
+        StockMovementRules.ValidateSoldWeight(unit, soldWeight);
         StockMovementRules.ValidateAmount(request.Type, request.Amount);
         StockMovementRules.EnsurePartialSaleIsAllowed(unit, request.Type, request.IsFullSale);
 
         if (request.Type == MovementType.Sale)
         {
             var existingSoldWeight = await SumSoldWeightForSaleMovementsAsync(unit.Id, excludingMovementId: null);
-            StockMovementRules.EnsureSoldWeightWithinUnitCapacity(unit, existingSoldWeight, request.SoldWeight);
+            StockMovementRules.EnsureSoldWeightWithinUnitCapacity(unit, existingSoldWeight, soldWeight);
         }
 
         var sale = await ValidateAndResolveSaleAsync(request.Type, request.SaleId);
@@ -64,7 +76,7 @@ public class StockMovementService(AppDbContext dbContext) : IStockMovementServic
             StockUnit = unit,
             Type = request.Type,
             Date = sale?.Date ?? DateTimeOffset.UtcNow,
-            SoldWeight = request.SoldWeight,
+            SoldWeight = soldWeight,
             Amount = request.Amount,
             SaleId = sale?.Id,
             Sale = sale,

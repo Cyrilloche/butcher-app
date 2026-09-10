@@ -9,8 +9,6 @@ namespace Butcher.Api.Application.Services;
 
 public class ProductionBatchService(AppDbContext dbContext) : IProductionBatchService
 {
-    private const int MaxBatchNumberAttempts = 3;
-
     public async Task<List<ProductionBatchDto>> GetAllAsync(int? productId)
     {
         var query = dbContext.ProductionBatches.Include(b => b.Product).AsQueryable();
@@ -37,36 +35,78 @@ public class ProductionBatchService(AppDbContext dbContext) : IProductionBatchSe
     {
         var product = await FindActiveProductOrThrowAsync(request.ProductId);
 
-        for (var attempt = 1; attempt <= MaxBatchNumberAttempts; attempt++)
+        await using var transaction = await dbContext.Database.BeginTransactionAsync();
+
+        var batchNumber = await NextBatchNumberAsync(product, request.ProductionDate);
+
+        var batch = new ProductionBatch
         {
-            var batchNumber = await GenerateBatchNumberAsync(product, request.ProductionDate);
+            BatchNumber = batchNumber,
+            ProductId = product.Id,
+            Product = product,
+            ProductionDate = request.ProductionDate,
+            SalePrice = request.SalePrice,
+            RawMaterialRef = request.RawMaterialRef,
+            ExpiryDate = request.ExpiryDate,
+            Notes = request.Notes,
+        };
 
-            var batch = new ProductionBatch
-            {
-                BatchNumber = batchNumber,
-                ProductId = product.Id,
-                Product = product,
-                ProductionDate = request.ProductionDate,
-                SalePrice = request.SalePrice,
-                RawMaterialRef = request.RawMaterialRef,
-                ExpiryDate = request.ExpiryDate,
-                Notes = request.Notes,
-            };
+        dbContext.ProductionBatches.Add(batch);
 
-            dbContext.ProductionBatches.Add(batch);
-
-            try
-            {
-                await dbContext.SaveChangesAsync();
-                return ToDto(batch);
-            }
-            catch (DbUpdateException exception) when (IsBatchNumberConflict(exception) && attempt < MaxBatchNumberAttempts)
-            {
-                dbContext.ProductionBatches.Remove(batch);
-            }
+        try
+        {
+            await dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch (DbUpdateException exception) when (IsBatchNumberConflict(exception))
+        {
+            // L'index unique reste en filet : le registre est censé rendre le cas impossible.
+            throw new ConflictException("Impossible de générer un numéro de lot unique, réessayez.");
         }
 
-        throw new ConflictException("Impossible de générer un numéro de lot unique, réessayez.");
+        return ToDto(batch);
+    }
+
+    /// <summary>
+    /// Supprime un lot et les unités de stock qu'il a générées, tant qu'aucune de ces unités n'a fait
+    /// l'objet d'une sortie (FR-010 à FR-012).
+    /// </summary>
+    /// <remarks>
+    /// Les unités sont supprimées explicitement, dans la même transaction, plutôt que par une cascade
+    /// déclarée en base : le <c>Restrict</c> de <c>StockUnitConfiguration</c> reste en filet, de sorte
+    /// qu'un contournement de cette vérification ferait échouer l'écriture au lieu de détruire de
+    /// l'historique. Le numéro de lot n'est pas libéré, le registre de séquences n'étant pas touché.
+    /// </remarks>
+    public async Task DeleteAsync(int id)
+    {
+        var batch = await dbContext.ProductionBatches
+            .Include(b => b.StockUnits)
+            .FirstOrDefaultAsync(b => b.Id == id)
+            ?? throw new NotFoundException($"Lot de production {id} introuvable.");
+
+        var unitIds = batch.StockUnits.Select(u => u.Id).ToList();
+
+        var unitsWithMovements = await dbContext.StockMovements
+            .Where(m => unitIds.Contains(m.StockUnitId))
+            .Select(m => m.StockUnitId)
+            .Distinct()
+            .CountAsync();
+
+        if (unitsWithMovements > 0)
+        {
+            throw new ConflictException(
+                $"Ce lot ne peut plus être supprimé : {unitsWithMovements} "
+                + (unitsWithMovements > 1 ? "unités sont déjà sorties du stock" : "unité est déjà sortie du stock")
+                + " (vente, perso ou perte).");
+        }
+
+        await using var transaction = await dbContext.Database.BeginTransactionAsync();
+
+        dbContext.StockUnits.RemoveRange(batch.StockUnits);
+        dbContext.ProductionBatches.Remove(batch);
+        await dbContext.SaveChangesAsync();
+
+        await transaction.CommitAsync();
     }
 
     public async Task<ProductionBatchDto> UpdateAsync(int id, UpdateProductionBatchRequest request)
@@ -99,13 +139,33 @@ public class ProductionBatchService(AppDbContext dbContext) : IProductionBatchSe
         return product;
     }
 
-    private async Task<string> GenerateBatchNumberAsync(Product product, DateOnly productionDate)
+    /// <summary>
+    /// Prend le prochain numéro de séquence dans le registre, en créant la ligne au besoin.
+    /// </summary>
+    /// <remarks>
+    /// Le registre survit à la suppression d'un lot : un numéro émis n'est donc jamais réattribué
+    /// (FR-013). C'est la raison d'être de la table, un simple comptage des lots existants
+    /// réémettrait le numéro d'un lot supprimé.
+    /// </remarks>
+    private async Task<string> NextBatchNumberAsync(Product product, DateOnly productionDate)
     {
-        var existingCount = await dbContext.ProductionBatches
-            .CountAsync(b => b.ProductId == product.Id && b.ProductionDate == productionDate);
+        var sequence = await dbContext.BatchNumberSequences
+            .FirstOrDefaultAsync(s => s.ProductId == product.Id && s.ProductionDate == productionDate);
 
-        var sequence = existingCount + 1;
-        return $"{product.Code}-{productionDate:yyMMdd}-{sequence}";
+        if (sequence is null)
+        {
+            sequence = new BatchNumberSequence
+            {
+                ProductId = product.Id,
+                ProductionDate = productionDate,
+                LastSequence = 0,
+            };
+
+            dbContext.BatchNumberSequences.Add(sequence);
+        }
+
+        sequence.LastSequence++;
+        return $"{product.Code}-{productionDate:yyMMdd}-{sequence.LastSequence}";
     }
 
     private static bool IsBatchNumberConflict(DbUpdateException exception) =>

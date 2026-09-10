@@ -442,4 +442,88 @@ public class StockMovementServiceTests(PostgresDatabaseFixture fixture) : IAsync
 
         await Assert.ThrowsAsync<NotFoundException>(() => service.GetByIdAsync(999));
     }
+
+    // --- Poids d'une sortie perso ou perte : calculé par le serveur (FR-020) ---------------------
+
+    [Fact]
+    public async Task CreateAsync_LossOnAvailableUnit_RecordsFullWeighedWeight()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var unit = await SeedStockUnitAsync(dbContext, SaleMode.ByWeight, weight: 1.250m);
+        var service = new StockMovementService(dbContext);
+
+        var result = await service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Loss });
+
+        Assert.Equal(1.250m, result.SoldWeight);
+    }
+
+    // Sur une unité entamée, repartir du poids pesé compterait deux fois la part déjà vendue.
+    [Fact]
+    public async Task CreateAsync_PersonalOnOpenedUnit_RecordsRemainingWeightOnly()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var unit = await SeedStockUnitAsync(dbContext, SaleMode.ByWeight, weight: 5m);
+        var sale = await SeedSaleAsync(dbContext);
+        var service = new StockMovementService(dbContext);
+        await service.CreateAsync(unit.Id, new CreateStockMovementRequest
+        {
+            Type = MovementType.Sale,
+            SoldWeight = 2m,
+            Amount = 30m,
+            SaleId = sale.Id,
+            IsFullSale = false,
+        });
+
+        var result = await service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Personal });
+
+        Assert.Equal(3m, result.SoldWeight);
+    }
+
+    [Fact]
+    public async Task CreateAsync_LossOnUnitWithoutWeight_RecordsNoWeight()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var unit = await SeedStockUnitAsync(dbContext, SaleMode.ByPiece, weight: null);
+        var service = new StockMovementService(dbContext);
+
+        var result = await service.CreateAsync(unit.Id, new CreateStockMovementRequest { Type = MovementType.Loss });
+
+        Assert.Null(result.SoldWeight);
+    }
+
+    // Le client n'est plus l'auteur de ce poids : ce qu'il envoie sur une sortie perso ou perte est
+    // ignoré au profit du calcul serveur.
+    [Fact]
+    public async Task CreateAsync_LossWithClientSuppliedWeight_IgnoresItAndUsesServerRule()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var unit = await SeedStockUnitAsync(dbContext, SaleMode.ByWeight, weight: 1.250m);
+        var service = new StockMovementService(dbContext);
+
+        var result = await service.CreateAsync(unit.Id, new CreateStockMovementRequest
+        {
+            Type = MovementType.Loss,
+            SoldWeight = 99m,
+        });
+
+        Assert.Equal(1.250m, result.SoldWeight);
+    }
+
+    // Une unité au poids pas encore pesée : le serveur n'a rien à calculer, le poids saisi par
+    // l'utilisateur reste la seule information disponible.
+    [Fact]
+    public async Task CreateAsync_LossOnUnweighedByWeightUnit_KeepsUserSuppliedWeight()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var unit = await SeedStockUnitAsync(dbContext, SaleMode.ByWeight, weight: null);
+        var service = new StockMovementService(dbContext);
+
+        var result = await service.CreateAsync(unit.Id, new CreateStockMovementRequest
+        {
+            Type = MovementType.Loss,
+            SoldWeight = 0.900m,
+        });
+
+        Assert.Equal(0.900m, result.SoldWeight);
+    }
 }

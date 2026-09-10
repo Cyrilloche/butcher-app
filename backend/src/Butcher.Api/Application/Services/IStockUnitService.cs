@@ -5,7 +5,7 @@ namespace Butcher.Api.Application.Services;
 
 public interface IStockUnitService
 {
-    Task<List<StockUnitDto>> GetAllAsync(int? batchId, StockUnitStatus? status);
+    Task<List<StockUnitDto>> GetAllAsync(int? batchId, StockUnitStatus? status, int? productId);
 
     Task<StockUnitDto> GetByIdAsync(int id);
 

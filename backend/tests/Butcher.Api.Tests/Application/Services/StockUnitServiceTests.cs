@@ -115,7 +115,7 @@ public class StockUnitServiceTests(PostgresDatabaseFixture fixture) : IAsyncLife
         await service.AddUnitsAsync(batch1.Id, new AddStockUnitsRequest { Quantity = 2 });
         await service.AddUnitsAsync(batch2.Id, new AddStockUnitsRequest { Quantity = 3 });
 
-        var result = await service.GetAllAsync(batch1.Id, status: null);
+        var result = await service.GetAllAsync(batch1.Id, status: null, productId: null);
 
         Assert.Equal(2, result.Count);
         Assert.All(result, u => Assert.Equal(batch1.Id, u.BatchId));
@@ -156,5 +156,21 @@ public class StockUnitServiceTests(PostgresDatabaseFixture fixture) : IAsyncLife
         await dbContext.SaveChangesAsync();
 
         await Assert.ThrowsAsync<ConflictException>(() => service.DeleteAsync(created[0].Id));
+    }
+
+    // Filtre par produit : alimente la sélection d'unités du solde, depuis la fiche produit.
+    [Fact]
+    public async Task GetAllAsync_FilteredByProductId_ReturnsUnitsOfEveryBatchOfThatProduct()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var batch1 = await SeedBatchAsync(dbContext, SaleMode.ByPiece, code: "SC");
+        var batch2 = await SeedBatchAsync(dbContext, SaleMode.ByPiece, code: "JB");
+        var service = new StockUnitService(dbContext);
+        await service.AddUnitsAsync(batch1.Id, new AddStockUnitsRequest { Quantity = 2 });
+        await service.AddUnitsAsync(batch2.Id, new AddStockUnitsRequest { Quantity = 3 });
+
+        var result = await service.GetAllAsync(batchId: null, status: null, productId: batch1.ProductId);
+
+        Assert.Equal(2, result.Count);
     }
 }

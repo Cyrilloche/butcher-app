@@ -32,4 +32,11 @@ public class ProductionBatchesController(IProductionBatchService productionBatch
     {
         return Ok(await productionBatchService.UpdateAsync(id, request));
     }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        await productionBatchService.DeleteAsync(id);
+        return NoContent();
+    }
 }
