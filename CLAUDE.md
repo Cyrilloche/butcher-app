@@ -23,7 +23,7 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 | Décisions d'architecture (ADR) | ✅ Rédigées (ADR-006 tranché : Vuetify) |
 | Modèle de données | ✅ Rédigé (v0.7, aligné sur l'implémentation) |
 | Maquettes (Claude Design) | ✅ Toutes vues Vague 1 maquettées (Stock, Produits, Clients, Ventes) ; itération ensuite en code (voir §10) |
-| Backend — cœur métier (9 entités dont `sale`, CRUD + logique métier) | ✅ Exposé en API, 123 tests |
+| Backend — cœur métier (9 entités dont `sale`, CRUD + logique métier) | ✅ Exposé en API, 127 tests |
 | Spike authentification (JWT) | ✅ Réalisé et vérifié — ADR-009 accepté (Identity allégé, refresh token rotatif en base, cookie httpOnly/Secure, seed par variable d'environnement) |
 | Frontend — Stock, Produits, Clients, Ventes (dashboard/détail/ajout) | ✅ Branchés sur l'API réelle (branche `frontend-init`, worktree séparé) |
 | Socle de déploiement (ADR-010) | ✅ **Livré** : Docker Compose de prod, Caddy en reverse proxy, tunnel Cloudflare, images versionnées poussées par la CI, déploiement sur VPS déclenché par tag |
@@ -31,6 +31,7 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 | Vente à la tranche (RF-19/RF-20) | ✅ Vendre/clôturer une unité entamée ; `allow_partial_sale` par produit, garde-fou poids côté serveur |
 | Sorties perso / perte (RF-21, RG-12) | ✅ Menu d'actions par unité dans Détail Stock, avec confirmation ; le poids enregistré est le restant estimé |
 | Modification et fin de vie d'un produit | ✅ Un produit sans lot se corrige entièrement ; code et mode de vente se figent au premier lot ; un lot intact se supprime ; la désactivation exige un stock écoulé, avec solde en perte des unités restantes (`specs/001-product-edit-lifecycle/`) |
+| Numéro d'étiquette porté par l'unité | ✅ Le numéro `CODE-YYMMDD-N` identifie le sachet et non la fabrication ; registre `unit_number_sequence` sous verrou, aucun numéro jamais réémis (`specs/002-unit-numbering/`) |
 | Développement Vague 1 | 🔄 Quasi complet — reste, côté interface, la correction d'une vente (RG-14) et la saisie DLC/matière première d'un lot (RF-08/RF-09) |
 | Analyse d'écart doc ↔ code | ✅ `docs/etat-des-lieux.md` (04/09/2026) |
 
@@ -199,7 +200,7 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 
 8. **Champs réservés à la vente.** `amount` et `sale_id` ne sont renseignés que si `type = sale`. `null` pour `personal` / `loss`. Le client vient de `sale.customer_id`, jamais dupliqué sur le mouvement.
 
-9. **Numéro de lot** `CODE-YYMMDD-N` (ex. `SC-250831-1`) : auto-généré, `N` réinitialisé par produit et par jour, unicité garantie. Format pensé pour être **recopié à la main** sur l'étiquette → rester court et lisible.
+9. **Numéro d'étiquette porté par l'unité, pas par la fabrication.** `CODE-YYMMDD-N` (ex. `SC-250831-1`) identifie **un sachet, un jambon** : auto-généré, `N` court par produit et par jour, unicité garantie. Dix sachets fabriqués le matin portent `-1` à `-10`, une seconde fournée le même jour continue à `-11`. Une fabrication n'a **aucun numéro** ; elle s'annonce par sa date, son prix et son rang dans la journée. Format pensé pour être **recopié à la main** sur l'étiquette → rester court et lisible, trois segments et pas un de plus.
 
 ---
 
@@ -215,7 +216,8 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 - ❌ Supprimer un client qui a des ventes → refusé (`409`), ça effacerait la traçabilité lot ↔ client (RF-24).
 - ❌ Coupler frontend et backend autrement que par le contrat d'API REST.
 - ❌ Traiter l'authentification à la légère (service exposé) → suivre le spike auth avant tout.
-- ❌ Dériver un numéro de lot d'un comptage des lots existants → passer par `batch_number_sequence`. Depuis qu'un lot peut être supprimé, un comptage réémettrait son numéro sur une seconde série d'étiquettes manuscrites, indiscernable de la première (`data-model.md` §3.9, C-12).
+- ❌ Dériver un numéro d'étiquette d'un comptage des unités existantes → passer par `unit_number_sequence`, sous verrou de ligne. Depuis qu'une unité et une fournée peuvent être supprimées, un comptage réémettrait un numéro déjà écrit sur une seconde série d'étiquettes manuscrites, indiscernable de la première (`data-model.md` §3.9, C-12).
+- ❌ Recomposer un numéro d'unité côté client, en suffixant un numéro de lot par un rang → le numéro vient du serveur. C'est ce double numéro, `SC-260910-2-1`, qui a été lu comme un sous-lot et supprimé le 2026-09-10.
 - ❌ Calculer côté client le poids d'une sortie perso ou perte → le serveur en est le seul auteur depuis le solde groupé. Le frontend n'affiche qu'une prévision (`data-model.md` §3.8).
 - ❌ Sérialiser/stocker les enums en `PascalCase` (`ByWeight`) → toujours `snake_case` (`by_weight`), cohérent avec la table de correspondance FR et le reste du schéma (bug réel rencontré et corrigé, cf. `data-model.md` C-11).
 
