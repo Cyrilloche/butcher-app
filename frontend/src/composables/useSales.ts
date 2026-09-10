@@ -56,15 +56,14 @@ export async function listSellableLots(): Promise<SellableLot[]> {
   for (const batch of batches) {
     const product = productById.get(batch.productId)
     if (!product) continue
-    // Le rang tient sur l'ensemble du lot (pas seulement les unités dispo), pour rester
-    // stable au fil des ventes — cf. docs/data-model.md §3.5.
+    // L'unité est nommée par le numéro écrit sur son étiquette, tel que le serveur le donne.
     const sortedAll = [...(unitsByBatch.get(batch.id) ?? [])].sort((a, b) => a.id - b.id)
-    sortedAll.forEach((unit, index) => {
+    sortedAll.forEach((unit) => {
       if (unit.status !== 'available' && unit.status !== 'opened') return
       lots.push({
         stockUnitId: unit.id,
         productName: product.name,
-        label: `${batch.batchNumber}-${index + 1}`,
+        label: unit.unitNumber,
         detail: unitDetail(unit, batch),
         status: unit.status,
         price: unitPrice(unit, batch),

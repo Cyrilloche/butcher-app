@@ -31,7 +31,7 @@ function toggleAll() {
 function unitLabel(unit: StockUnitDto): string {
   const weight = unit.weight != null ? ` · ${formatWeight(Math.round(unit.weight * 1000))}` : ''
   const opened = unit.status === 'opened' ? ' · entamée' : ''
-  return `${unit.batchNumber}${weight}${opened}`
+  return `${unit.unitNumber}${weight}${opened}`
 }
 
 watch(

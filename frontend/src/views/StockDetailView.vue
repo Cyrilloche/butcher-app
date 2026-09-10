@@ -48,9 +48,14 @@ async function onOutcomeDone() {
     <p v-if="outcomeError" class="text-error stock-detail-view__outcome-error">{{ outcomeError }}</p>
 
     <div class="stock-detail-view__batches">
-      <AppCard v-for="batch in detail.batches" :key="batch.batchNumber" class="stock-detail-view__batch">
+      <AppCard v-for="batch in detail.batches" :key="batch.id" class="stock-detail-view__batch">
         <div class="stock-detail-view__batch-header">
-          <span class="font-weight-medium">Fabriqué le {{ batch.dateLabel }}</span>
+          <span class="font-weight-medium">
+            Fabriqué le {{ batch.dateLabel }}
+            <span v-if="batch.dayRankLabel" class="text-secondary stock-detail-view__batch-rank">
+              · {{ batch.dayRankLabel }}
+            </span>
+          </span>
           <div class="stock-detail-view__batch-actions">
             <span class="text-secondary font-weight-medium">{{ batch.priceLabel }}</span>
             <BatchDeleteAction
@@ -95,6 +100,10 @@ async function onOutcomeDone() {
   font-size: 14px;
   font-weight: 500;
   padding: 0 4px 12px;
+}
+
+.stock-detail-view__batch-rank {
+  font-weight: 500;
 }
 
 .stock-detail-view__batch-actions {

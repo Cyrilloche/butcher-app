@@ -66,7 +66,6 @@ export interface UpdateProductRequest {
 
 export interface ProductionBatchDto {
   id: number
-  batchNumber: string
   productId: number
   productName: string
   productionDate: string
@@ -97,7 +96,11 @@ export interface UpdateProductionBatchRequest {
 export interface StockUnitDto {
   id: number
   batchId: number
-  batchNumber: string
+  /**
+   * Le numéro écrit à la main sur l'étiquette de cet objet, au format CODE-YYMMDD-N. C'est son
+   * identité pour l'utilisateur : ne jamais le recomposer côté client, il vient du serveur.
+   */
+  unitNumber: string
   /** Kilogrammes, decimal(10,3) côté backend — pas des grammes. */
   weight: number | null
   status: StockUnitStatus
@@ -144,7 +147,8 @@ export interface StockMovementDto {
   productName: string
   /** Faux si le produit a été désactivé depuis : le mouvement reste dans l'historique. */
   productIsActive: boolean
-  batchNumber: string
+  /** Le numéro de l'unité sortie, tel qu'il est écrit sur son étiquette. */
+  unitNumber: string
   notes: string | null
 }
 

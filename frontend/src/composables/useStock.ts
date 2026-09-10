@@ -40,9 +40,13 @@ export interface StockDetailUnit {
 }
 
 export interface StockDetailBatch {
-  /** Identifiant du lot — nécessaire pour le supprimer depuis le détail stock. */
+  /** Identifiant de la fournée — nécessaire pour la supprimer depuis le détail stock. */
   id: number
-  batchNumber: string
+  /**
+   * « 2ᵉ fournée » quand plusieurs fabrications partagent la même date, `null` sinon. Libellé
+   * d'affichage calculé à la lecture : une fournée n'a pas de numéro, c'est l'unité qui en porte un.
+   */
+  dayRankLabel: string | null
   dateLabel: string
   priceLabel: string
   units: StockDetailUnit[]
@@ -105,6 +109,28 @@ function formatPriceLabel(salePrice: number, priceUnit: string): string {
 /** batch_number du lot parent, tri par production_date décroissante (le plus récent en premier). */
 function sortBatchesRecentFirst(batches: ProductionBatchDto[]): ProductionBatchDto[] {
   return [...batches].sort((a, b) => b.productionDate.localeCompare(a.productionDate))
+}
+
+/**
+ * Distingue les fournées d'un même jour par leur rang, faute de numéro à leur donner.
+ * Une seule fabrication ce jour-là ne mérite aucun rang : « Fabriqué le 10/09 » suffit.
+ */
+function dayRankLabels(batches: ProductionBatchDto[]): Map<number, string | null> {
+  const byDate = new Map<string, ProductionBatchDto[]>()
+  for (const batch of batches) {
+    const list = byDate.get(batch.productionDate) ?? []
+    list.push(batch)
+    byDate.set(batch.productionDate, list)
+  }
+
+  const labels = new Map<number, string | null>()
+  for (const sameDay of byDate.values()) {
+    const chronological = [...sameDay].sort((a, b) => a.id - b.id)
+    chronological.forEach((batch, index) => {
+      labels.set(batch.id, sameDay.length > 1 ? `${index + 1}${index === 0 ? 'ʳᵉ' : 'ᵉ'} fournée` : null)
+    })
+  }
+  return labels
 }
 
 export async function listActiveProducts(): Promise<Product[]> {
@@ -183,30 +209,30 @@ export async function getStockDetail(code: string): Promise<StockDetail | null> 
     unitsByBatch.set(unit.batchId, list)
   }
 
+  const rankLabels = dayRankLabels(batchDtos)
+
   let count = 0
   let totalGrams = 0
   const batches: StockDetailBatch[] = sortBatchesRecentFirst(batchDtos)
     .map((batch) => {
-      // Numéro par unité = batch_number + rang dans le lot (pas une colonne persistée,
-      // cf. docs/data-model.md §3.5) — trié par id pour un ordre stable.
-      // Le rang (donc le numéro affiché) se fixe sur l'ordre complet du lot, y compris
-      // les unités déjà sorties — sinon le numéro d'une unité changerait au fil des ventes.
+      // Le numéro d'une unité vient du serveur : il est écrit sur son étiquette et ne se
+      // recompose pas ici, sous peine de changer au fil des ventes alors que le papier, lui,
+      // ne change pas. Tri par id pour un ordre d'affichage stable.
       const batchUnits = [...(unitsByBatch.get(batch.id) ?? [])].sort((a, b) => a.id - b.id)
       return {
         id: batch.id,
-        batchNumber: batch.batchNumber,
+        dayRankLabel: rankLabels.get(batch.id) ?? null,
         dateLabel: formatDateLabel(batch.productionDate),
         priceLabel: formatPriceLabel(batch.salePrice, product.priceUnit),
         units: batchUnits
-          .map((unit, index) => ({ unit, number: `${batch.batchNumber}-${index + 1}` }))
-          .filter(({ unit }) => isInStock(unit))
-          .map(({ unit, number }) => {
+          .filter((unit) => isInStock(unit))
+          .map((unit) => {
             count += 1
             const grams = unit.weight != null ? weightToGrams(unit.weight) : 0
             totalGrams += grams
             return {
               id: unit.id,
-              number,
+              number: unit.unitNumber,
               weightKg: unit.weight,
               weightLabel: unit.weight != null ? formatWeight(grams) : null,
               status: unit.status,
@@ -214,7 +240,7 @@ export async function getStockDetail(code: string): Promise<StockDetail | null> 
           }),
       }
     })
-    // Un lot entièrement vendu/perdu ne garde plus aucune unité en stock —
+    // Une fournée entièrement vendue ou perdue ne garde plus aucune unité en stock —
     // sa carte n'a plus de raison d'apparaître dans le détail.
     .filter((batch) => batch.units.length > 0)
 

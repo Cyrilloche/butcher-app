@@ -16,7 +16,7 @@ const lineViews = computed(
   () =>
     sale.value?.lines.map((movement) => ({
       movement,
-      detail: `${movement.batchNumber} · ${movement.soldWeight != null ? formatWeight(Math.round(movement.soldWeight * 1000)) : 'À la pièce'}`,
+      detail: `${movement.unitNumber} · ${movement.soldWeight != null ? formatWeight(Math.round(movement.soldWeight * 1000)) : 'À la pièce'}`,
     })) ?? [],
 )
 
