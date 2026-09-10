@@ -30,6 +30,7 @@ produit à son état d'origine.
 
 - Q: Quel poids est enregistré sur la sortie de type perte produite par le solde des unités restantes ? → A: Le poids pesé de l'unité si elle est disponible, le restant estimé (poids pesé moins ce qui a déjà été vendu) si elle est entamée — même convention que le menu de sortie unité par unité de Détail Stock.
 - Q: Le solde porte-t-il sur toutes les unités restantes en bloc, ou sur une sélection, et le type de sortie est-il choisi ? → A: Sélection des unités par l'utilisatrice, type de sortie toujours « perte ». Le choix d'un autre type sur l'action groupée est écarté pour cette version et rouvrable si l'usage le demande.
+- Q: L'horodatage des mises à jour fait-il partie de cette fonctionnalité ? → A: Non, hors périmètre. Le champ existe mais n'est renseigné par aucun service, pour aucune entité : le manque est antérieur et transverse, à reprendre avec `created_by` et RF-27.
 - Q: Comment sont traitées deux modifications concurrentes d'une même fiche produit ? → A: Dernière écriture gagnante, aucun jeton de version. Les garde-fous métier (verrouillage, stock restant, unicité du code) étant revérifiés au moment de l'enregistrement, un formulaire périmé ne peut produire qu'une saisie perdue, jamais un état illégal.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -183,6 +184,9 @@ vérifier son absence des écrans de saisie et sa présence dans l'historique.
   reste sans effet plutôt que d'échouer.
 - L'action de solde est confirmée sans qu'aucune unité n'ait été sélectionnée : elle reste sans
   effet plutôt que d'échouer.
+- Une unité entamée dont les ventes couvrent déjà la totalité du poids pesé est soldée : son restant
+  est nul, aucune perte de poids nul n'est enregistrée, l'unité est simplement clôturée comme
+  vendue. Elle sort ainsi du stock et cesse de bloquer la désactivation du produit.
 - Une unité sort du stock par une autre voie entre l'affichage de la liste de solde et la
   confirmation : les unités déjà sorties sont ignorées sans faire échouer le solde des autres.
 
@@ -256,14 +260,12 @@ vérifier son absence des écrans de saisie et sa présence dans l'historique.
 
 #### Transverse
 
-- **FR-027**: Toute modification, désactivation ou réactivation MUST horodater la mise à jour du
-  produit.
-- **FR-028**: Le système MUST revérifier au moment de l'enregistrement l'état de verrouillage du
+- **FR-027**: Le système MUST revérifier au moment de l'enregistrement l'état de verrouillage du
   produit, l'unicité de son code, l'absence de sortie sur les unités d'un lot supprimé et le stock
   restant avant désactivation, sans se fier à l'état affiché au chargement de l'écran.
-- **FR-029**: Aucune détection de conflit d'édition concurrente n'est requise : sur deux écritures
+- **FR-028**: Aucune détection de conflit d'édition concurrente n'est requise : sur deux écritures
   simultanées d'une même fiche, la dernière l'emporte.
-- **FR-030**: Les messages d'erreur et de refus MUST être rédigés en français et décrire l'action à
+- **FR-029**: Les messages d'erreur et de refus MUST être rédigés en français et décrire l'action à
   entreprendre, sans exposer de vocabulaire technique anglais.
 
 ### Key Entities
@@ -336,3 +338,7 @@ vérifier son absence des écrans de saisie et sa présence dans l'historique.
   plus ; aucune contrainte de volumétrie ou de recherche n'est en jeu.
 - La fonctionnalité s'inscrit dans la Vague 1 et ne préjuge pas des évolutions de Vague 2 sur les
   matières premières ou les recettes.
+- L'horodatage des mises à jour est **hors périmètre**. Le champ `updated_at` existe mais n'est
+  renseigné par aucun service, pour aucune entité : le manque est antérieur et transverse. Le traiter
+  ici ne couvrirait que le produit et laisserait l'incohérence partout ailleurs. À reprendre comme
+  sujet transverse, avec `created_by` et RF-27.

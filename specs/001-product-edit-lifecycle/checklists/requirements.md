@@ -2,7 +2,7 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-09-09
-**Last validated**: 2026-09-09 (after /speckit-clarify, session 1)
+**Last validated**: 2026-09-09 (after /speckit-analyze, remédiation appliquée)
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
@@ -52,7 +52,7 @@
 |---|---|
 | Poids de la sortie produite par le solde | Poids pesé si l'unité est disponible, restant estimé si elle est entamée — convention identique au menu de sortie unité par unité (FR-020, FR-021) |
 | Portée et type de l'action de solde | Sélection des unités par l'utilisatrice, type toujours « perte » ; autre type rouvrable si l'usage le demande (FR-018, FR-019) |
-| Édition concurrente | Dernière écriture gagnante, aucun jeton de version, garde-fous revérifiés à l'enregistrement (FR-028, FR-029) |
+| Édition concurrente | Dernière écriture gagnante, aucun jeton de version, garde-fous revérifiés à l'enregistrement (FR-027, FR-028) |
 
 ## Notes
 
@@ -61,6 +61,10 @@
 - Two behaviours in the spec contradict what the code does today and are deliberate changes, not
   descriptions: batch numbering currently counts existing rows, which would reissue a deleted
   number (FR-013), and deactivation currently has no stock guard (FR-016).
-- Functional requirements were renumbered FR-001 to FR-030 after the clarification session, so the
-  lettered identifiers (FR-017a and the like) no longer exist. Nothing outside the spec cites them yet.
-- Spec is ready for `/speckit-plan`.
+- Functional requirements run FR-001 to FR-029. They were renumbered twice: after the clarification
+  session to remove lettered identifiers, then after `/speckit-analyze` when timestamping was taken
+  out of scope. Every citing artifact was remapped.
+- `/speckit-analyze` found no critical issue. Three high findings were remediated: the remaining-weight
+  rule moves to the server for both outcome paths, the partial-sale validation now reads the requested
+  sale mode, and timestamping left the feature as pre-existing transverse debt.
+- Spec, plan and tasks are ready for `/speckit-implement`.

@@ -23,13 +23,14 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 | Décisions d'architecture (ADR) | ✅ Rédigées (ADR-006 tranché : Vuetify) |
 | Modèle de données | ✅ Rédigé (v0.7, aligné sur l'implémentation) |
 | Maquettes (Claude Design) | ✅ Toutes vues Vague 1 maquettées (Stock, Produits, Clients, Ventes) ; itération ensuite en code (voir §10) |
-| Backend — cœur métier (8 entités dont `sale`, CRUD + logique métier) | ✅ Exposé en API, 84 tests |
+| Backend — cœur métier (9 entités dont `sale`, CRUD + logique métier) | ✅ Exposé en API, 123 tests |
 | Spike authentification (JWT) | ✅ Réalisé et vérifié — ADR-009 accepté (Identity allégé, refresh token rotatif en base, cookie httpOnly/Secure, seed par variable d'environnement) |
 | Frontend — Stock, Produits, Clients, Ventes (dashboard/détail/ajout) | ✅ Branchés sur l'API réelle (branche `frontend-init`, worktree séparé) |
 | Socle de déploiement (ADR-010) | ✅ **Livré** : Docker Compose de prod, Caddy en reverse proxy, tunnel Cloudflare, images versionnées poussées par la CI, déploiement sur VPS déclenché par tag |
 | Chaîne de release | ✅ Tags `backend-v*` / `frontend-v*`, changelog et notes de release générés par git-cliff (§13) |
 | Vente à la tranche (RF-19/RF-20) | ✅ Vendre/clôturer une unité entamée ; `allow_partial_sale` par produit, garde-fou poids côté serveur |
 | Sorties perso / perte (RF-21, RG-12) | ✅ Menu d'actions par unité dans Détail Stock, avec confirmation ; le poids enregistré est le restant estimé |
+| Modification et fin de vie d'un produit | ✅ Un produit sans lot se corrige entièrement ; code et mode de vente se figent au premier lot ; un lot intact se supprime ; la désactivation exige un stock écoulé, avec solde en perte des unités restantes (`specs/001-product-edit-lifecycle/`) |
 | Développement Vague 1 | 🔄 Quasi complet — reste, côté interface, la correction d'une vente (RG-14) et la saisie DLC/matière première d'un lot (RF-08/RF-09) |
 | Analyse d'écart doc ↔ code | ✅ `docs/etat-des-lieux.md` (04/09/2026) |
 
@@ -184,19 +185,21 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 
 2. **Mécanisme uniforme, y compris `by_piece`.** *(QM-01, résolu et implémenté.)* Même les produits à la pièce (futures terrines) génèrent une ligne `stock_unit` par pièce (sans poids), plutôt qu'un compteur. Objectif : une seule logique de stock, pas deux.
 
-3. **Vente en une fois vs vente partielle.**
+3. **Mutabilité du produit selon son usage.** Tant qu'aucun lot n'est rattaché, les quatre champs descriptifs se corrigent. Dès le premier lot, `code` et `sale_mode` sont figés : le code est recopié à la main sur des étiquettes existantes. L'état « utilisé » est dérivé, jamais stocké. Supprimer le dernier lot rend au produit sa modifiabilité.
+
+4. **Vente en une fois vs vente partielle.**
    - *En une fois* (sachet, jambon entier) : un `stock_movement` de type `sale` ; l'unité passe à `sold`.
    - *Partielle* (jambon à la tranche) : plusieurs `stock_movement` de type `sale` sur la **même** `stock_unit`, qui reste `opened` jusqu'à une **clôture manuelle** en `sold` (`POST /api/stock-units/{id}/close`, exposé dans Détail Stock). Le poids restant **n'est pas suivi**, mais un garde-fou serveur empêche la somme des `sold_weight` de dépasser le poids pesé de l'unité. Seuls les produits avec `allow_partial_sale = true` (pertinent uniquement en `by_weight`) autorisent ce mode.
 
-4. **Le `status` de `stock_unit` est la source de vérité de l'état de stock.** C'est une dénormalisation assumée : le passage `opened → sold` d'un jambon est une décision manuelle non déductible des mouvements. Le backend maintient la cohérence status ↔ mouvements.
+5. **Le `status` de `stock_unit` est la source de vérité de l'état de stock.** C'est une dénormalisation assumée : le passage `opened → sold` d'un jambon est une décision manuelle non déductible des mouvements. Le backend maintient la cohérence status ↔ mouvements.
 
-5. **Une vente est une entité, pas une ligne isolée.** Une `sale` regroupe les unités vendues en une fois au même client, et porte le numéro, la date, le client (**obligatoire** — plus de vente anonyme, RF-17/RG-07) et le statut de paiement. Chaque unité vendue reste une ligne (`stock_movement`). Contrairement au lot de production, une vente est créée **avec ses lignes en un seul appel** (`POST /api/sales`) : c'est un instant unique, pas une saisie étalée.
+6. **Une vente est une entité, pas une ligne isolée.** Une `sale` regroupe les unités vendues en une fois au même client, et porte le numéro, la date, le client (**obligatoire** — plus de vente anonyme, RF-17/RG-07) et le statut de paiement. Chaque unité vendue reste une ligne (`stock_movement`). Contrairement au lot de production, une vente est créée **avec ses lignes en un seul appel** (`POST /api/sales`) : c'est un instant unique, pas une saisie étalée.
 
-6. **Le montant de vente (`amount`) est stocké, pas recalculé.** Vente informelle en espèces : le montant réellement encaissé peut différer du théorique (`sold_weight × sale_price`). On pré-remplit avec le calcul, on conserve la valeur réelle saisie.
+7. **Le montant de vente (`amount`) est stocké, pas recalculé.** Vente informelle en espèces : le montant réellement encaissé peut différer du théorique (`sold_weight × sale_price`). On pré-remplit avec le calcul, on conserve la valeur réelle saisie.
 
-7. **Champs réservés à la vente.** `amount` et `sale_id` ne sont renseignés que si `type = sale`. `null` pour `personal` / `loss`. Le client vient de `sale.customer_id`, jamais dupliqué sur le mouvement.
+8. **Champs réservés à la vente.** `amount` et `sale_id` ne sont renseignés que si `type = sale`. `null` pour `personal` / `loss`. Le client vient de `sale.customer_id`, jamais dupliqué sur le mouvement.
 
-8. **Numéro de lot** `CODE-YYMMDD-N` (ex. `SC-250831-1`) : auto-généré, `N` réinitialisé par produit et par jour, unicité garantie. Format pensé pour être **recopié à la main** sur l'étiquette → rester court et lisible.
+9. **Numéro de lot** `CODE-YYMMDD-N` (ex. `SC-250831-1`) : auto-généré, `N` réinitialisé par produit et par jour, unicité garantie. Format pensé pour être **recopié à la main** sur l'étiquette → rester court et lisible.
 
 ---
 
@@ -212,6 +215,8 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 - ❌ Supprimer un client qui a des ventes → refusé (`409`), ça effacerait la traçabilité lot ↔ client (RF-24).
 - ❌ Coupler frontend et backend autrement que par le contrat d'API REST.
 - ❌ Traiter l'authentification à la légère (service exposé) → suivre le spike auth avant tout.
+- ❌ Dériver un numéro de lot d'un comptage des lots existants → passer par `batch_number_sequence`. Depuis qu'un lot peut être supprimé, un comptage réémettrait son numéro sur une seconde série d'étiquettes manuscrites, indiscernable de la première (`data-model.md` §3.9, C-12).
+- ❌ Calculer côté client le poids d'une sortie perso ou perte → le serveur en est le seul auteur depuis le solde groupé. Le frontend n'affiche qu'une prévision (`data-model.md` §3.8).
 - ❌ Sérialiser/stocker les enums en `PascalCase` (`ByWeight`) → toujours `snake_case` (`by_weight`), cohérent avec la table de correspondance FR et le reste du schéma (bug réel rencontré et corrigé, cf. `data-model.md` C-11).
 
 ---

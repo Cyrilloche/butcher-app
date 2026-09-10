@@ -124,7 +124,7 @@ L'unité soldée passe à un statut sorti du stock, y compris lorsqu'elle était
 | Numéro de lot jamais réémis | FR-013 | Service lot, génération du numéro |
 | Désactivation interdite avec du stock restant | FR-016 | Service produit, désactivation |
 | Poids des sorties de solde calculé par le serveur | FR-020 | Service produit, solde |
-| Garde-fous revérifiés à l'enregistrement | FR-028 | Tous les services concernés |
+| Garde-fous revérifiés à l'enregistrement | FR-027 | Tous les services concernés |
 
 ---
 

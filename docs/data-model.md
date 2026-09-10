@@ -19,6 +19,7 @@
 | 0.5 | 2026-09-04 | **Entité `unit_of_measure` supprimée** et `product.sale_unit_id` avec elle (décision produit, voir §3.2) : le champ n'avait aucun rôle fonctionnel — RG-03 code le prix en €/kg en dur — et bloquait la création de produit sur une base vide. `sale_mode` suffit à piloter l'affichage. RF-03/RF-04/RF-05 et RG-08 retirés du périmètre V1. |
 | 0.4 | 2026-09-04 | **QM-04 résolu et implémenté** : nouvelle entité `sale` (§3.7) regroupant les lignes d'une vente sous un numéro `V-YYMMDD-N`, un client obligatoire et un statut de paiement ; `stock_movement.customer_id` remplacé par `sale_id` ; suppression d'un client passée en `Restrict`. Répond à Q-04/Q-05 du PRD et aux exigences RF-17/RG-07 modifiées. |
 | 0.6 | 2026-09-04 | Ajout de `product.allow_partial_sale` (booléen, défaut `false`, pertinent uniquement si `sale_mode = by_weight`) : la vente à la tranche (RF-19) n'est plus possible sur n'importe quel produit au poids, elle doit être explicitement autorisée. Contrôle appliqué côté serveur (`409` sinon), pas seulement dans l'UI. |
+| 0.8 | 2026-09-09 | **Mutabilité du produit conditionnée à son usage** : `code` et `sale_mode` redeviennent modifiables tant qu'aucun lot n'est rattaché, et se figent au premier lot (§3.3). **Suppression d'un lot intact** ouverte (§3.4), avec ses unités. Nouvelle entité `batch_number_sequence` (§3.9) : la numérotation ne peut plus être dérivée d'un comptage, puisqu'un lot peut disparaître — un numéro émis n'est jamais réattribué (§4.1). **Désactivation d'un produit conditionnée au stock restant** (§3.3), assortie d'un solde en perte des unités restantes. Poids d'une sortie perso ou perte désormais **calculé par le serveur** (§3.8). |
 | 0.7 | 2026-09-04 | RG-05 précisée (pas remplacée) : garde-fou serveur empêchant la somme des `sold_weight` d'une unité entamée de dépasser son `weight` pesé, à la création comme à la modification d'un mouvement de vente. Calcul à la volée, aucune colonne « poids restant » ajoutée — conforme à l'intention initiale de RG-05. |
 
 ### Objet du document
@@ -92,7 +93,7 @@ Un produit fabriqué. Le **mode de vente** est la propriété structurante (RG-0
 | `is_active` | boolean | non nul, défaut `true` | Désactivation sans suppression (RF-01) |
 | `created_at` / `updated_at` | timestamptz | | Audit |
 
-**Règles complémentaires (implémentation)** : `code` et `sale_mode` sont **définitifs** après création (RG-01 pour `sale_mode` ; `code` porte le numéro de lot, §4.1, donc figé pour la même raison) — seuls `name` et `allow_partial_sale` restent modifiables. La **désactivation d'un produit n'est jamais bloquée** (RG-09), même s'il a déjà des lots. Un produit se crée sur une base entièrement vide : aucun référentiel préalable à alimenter (§3.2). `allow_partial_sale = true` sur un produit `by_piece` est refusé (`400`) à la création comme à la modification. La vente partielle (RF-19, mouvement `isFullSale: false`) est elle-même rejetée (`409`) si l'unité vendue appartient à un produit qui n'a pas `allow_partial_sale = true` — contrôle serveur, pas seulement une UI qui masque l'option.
+**Règles complémentaires (implémentation, révisées en v0.8)** : `code` et `sale_mode` sont modifiables **tant qu'aucun `production_batch` n'est rattaché au produit**, et se figent dès le premier lot — le code est alors recopié sur des étiquettes existantes (§4.1), et le mode de vente détermine la lecture des ventes passées. `name` et `allow_partial_sale` restent modifiables à tout moment. L'état « utilisé » est **dérivé**, jamais stocké : il se calcule par l'existence d'un lot, et la suppression du dernier lot (§3.4) rend au produit sa modifiabilité. Une valeur identique à celle en base est acceptée sur un produit figé, afin que le client puisse renvoyer la ressource complète ; toute valeur différente est refusée (`409`). L'unicité du `code` s'applique désormais **aussi à la modification**, sur les produits actifs comme désactivés. La **désactivation d'un produit est bloquée** (`409`) tant qu'il lui reste une unité `available` ou `opened` ; un **solde** de ces unités en sorties de type `loss` est offert pour la débloquer, sur une sélection choisie par l'utilisateur. Un produit se crée sur une base entièrement vide : aucun référentiel préalable à alimenter (§3.2). `allow_partial_sale = true` sur un produit `by_piece` est refusé (`400`) à la création comme à la modification. La vente partielle (RF-19, mouvement `isFullSale: false`) est elle-même rejetée (`409`) si l'unité vendue appartient à un produit qui n'a pas `allow_partial_sale = true` — contrôle serveur, pas seulement une UI qui masque l'option.
 
 ### 3.4 `production_batch`
 
@@ -111,7 +112,7 @@ Une fabrication d'un produit, à une date, avec un **prix propre au lot** (RG-02
 | `created_by` | uuid | FK → `app_user`, nullable | Auteur (RF-27) |
 | `created_at` / `updated_at` | timestamptz | | Audit |
 
-**Règles complémentaires (implémentation, RG-10)** : `product_id`, `production_date` et `batch_number` sont **définitifs** après création. `sale_price`, `raw_material_ref`, `expiry_date`, `notes` restent modifiables (correction d'erreur de saisie). **Aucune suppression** de lot n'est possible. La création d'un lot est **bloquée** si le produit référencé est inactif ou inexistant.
+**Règles complémentaires (implémentation, RG-10, révisées en v0.8)** : `product_id`, `production_date` et `batch_number` sont **définitifs** après création. `sale_price`, `raw_material_ref`, `expiry_date`, `notes` restent modifiables (correction d'erreur de saisie). Un lot **peut être supprimé**, avec l'intégralité de ses `stock_unit`, **tant qu'aucune de ces unités ne porte de `stock_movement`** — vente, perso ou perte confondues ; sinon la suppression est refusée (`409`). C'est une correction d'erreur de saisie, pas une opération de gestion : elle est la soupape qui rend vivable le gel du code produit (§3.3). Les unités sont supprimées explicitement par le service, dans une transaction ; le `RESTRICT` en base est conservé comme filet. Le numéro du lot **n'est pas libéré** (§3.9). La création d'un lot est **bloquée** si le produit référencé est inactif ou inexistant.
 
 ### 3.5 `stock_unit`
 
@@ -192,7 +193,31 @@ Toute sortie de stock, rattachée à une **stock_unit précise** (RF-15). Journa
 
 - Le **numéro communicable** est porté par la vente (`sale.sale_number`), pas par la ligne : c'est la vente que l'utilisateur retrouve et cite, pas le mouvement individuel. Un `stock_movement` n'a donc que son `id` technique. *(Écart identifié le 2026-09-04, résolu le jour même par l'ajout de `sale`.)*
 - Un mouvement `personal` ou `loss` n'a **jamais** de `sale_id` (ni d'`amount`) : ce n'est pas une vente.
+- **Le `sold_weight` d'une sortie `personal` ou `loss` est calculé par le serveur** (v0.8), jamais transmis par le client : poids pesé de l'unité si elle est `available`, poids pesé **moins la somme des `sold_weight` de ses ventes** si elle est `opened` — repartir du poids d'origine compterait deux fois la part déjà vendue (RG-05). `null` si l'unité n'a pas de poids. Seule exception, une unité `by_weight` **pas encore pesée** n'offre aucune base de calcul : le poids saisi par l'utilisateur est alors conservé. Un mouvement de type `sale` continue de porter le poids réellement pesé, que seul l'utilisateur connaît.
+- La règle ci-dessus vivait dans le frontend jusqu'en v0.7. Elle a été portée côté serveur au moment où le solde groupé (§3.3) en a eu besoin : deux implémentations de la même règle auraient fini par diverger.
 - Pour éviter au frontend un aller-retour, l'API expose en lecture seule, sur chaque ligne : `saleNumber`, `customerId` et `customerName` (résolus via la vente) ainsi que `productName` et `batchNumber` (résolus via `stock_unit → production_batch → product`). Sans ces deux derniers, une vue « détail d'une vente » n'a d'autre choix que de déduire le produit du préfixe du numéro de lot — dérivation fragile, et le préfixe n'est qu'un code, pas un nom.
+
+### 3.9 `batch_number_sequence` *(nouveau en v0.8)*
+
+Registre des séquences de numéro de lot déjà émises, pour un produit et une date de production. Son
+unique raison d'être est qu'un numéro émis ne soit **jamais réattribué**, y compris après la
+suppression du lot qui le portait (§3.4, §4.1).
+
+| Attribut | Type | Contraintes | Rôle |
+|---|---|---|---|
+| `product_id` | integer | PK composite, FK → `product`, `RESTRICT` | Produit concerné |
+| `production_date` | date | PK composite | Journée de production |
+| `last_sequence` | integer | non nul, > 0 | Dernier `N` émis pour ce couple |
+
+**Règles complémentaires (implémentation)** :
+- La ligne est créée à `1` à la première création de lot pour ce couple, puis incrémentée. Lecture et
+  incrément ont lieu dans la transaction de création du lot.
+- La ligne n'est **jamais supprimée**, y compris lorsque tous les lots du couple ont disparu. C'est
+  précisément ce qui empêche la réémission.
+- Le registre n'est **pas exposé par l'API** : c'est une mécanique interne, invisible de l'utilisateur.
+- Cas limite assumé : un produit redevenu « jamais utilisé » peut changer de code alors que le
+  registre garde des lignes issues du lot supprimé. Le nouveau code produit alors un `N` plus élevé
+  que nécessaire. Il n'y a pas de collision, le numéro n'ayant jamais été émis.
 
 ---
 
@@ -212,9 +237,10 @@ Le numéro est **auto-généré** puis **recopié à la main** sur l'étiquette 
 
 **Exemple complet :** `SC-250831-1` — saucisse curry, produite le 31/08/2025, 1ᵉʳ lot de ce produit ce jour-là.
 
-**Règles de génération :**
-- À la création d'un lot, l'application calcule `N = (nombre de lots déjà existants pour ce produit à cette date) + 1` (simple comptage, pas de parsing des numéros existants — possible car aucun lot n'est jamais supprimé, §5 C-09).
-- L'unicité globale de `batch_number` est garantie par construction et renforcée par la contrainte d'unicité en base. En cas de création concurrente sur le même produit/jour (RNF-05), l'application retente le calcul + l'insertion jusqu'à 3 fois si la contrainte d'unicité est violée.
+**Règles de génération (révisées en v0.8) :**
+- À la création d'un lot, `N` est pris dans le registre `batch_number_sequence` (§3.9), lu et incrémenté dans la transaction de création. Le comptage des lots existants, utilisé jusqu'en v0.7, n'est plus possible : depuis que la suppression d'un lot existe (§3.4), il ferait retomber le compte et **réémettrait le numéro d'un lot supprimé** sur une seconde série d'étiquettes manuscrites, indiscernable de la première.
+- **Un numéro émis n'est jamais réattribué.** Conséquence assumée : les séries comportent des trous après une suppression, et un premier lot du jour peut porter un `N` supérieur à 1.
+- L'unicité globale de `batch_number` reste renforcée par la contrainte d'unicité en base, qui sert désormais de filet plutôt que de mécanisme : le registre rend la collision impossible.
 - `product.code` est normalisé en majuscules **à la création du produit** (pas seulement au moment de composer le numéro de lot) et ne doit pas contenir le séparateur `-`.
 
 > *Le format encode volontairement le produit et la date : cela aide à identifier un lot « à l'œil » sur un sachet sous vide, sans ouvrir l'application, tout en restant recopiable à la main.*
@@ -262,7 +288,9 @@ Certaines règles sont **garanties par la logique applicative** et, si pertinent
 | C-06 | Les statuts de sortie (`sold`/`personal`/`lost`) sont exclusifs, posés à l'échelle de l'unité individuelle (RG-06). |
 | ~~C-07~~ | ~~Unicité de `unit_of_measure.label` / `abbreviation`~~ — sans objet, entité supprimée (§3.2). Identifiant conservé, non réattribué. |
 | ~~C-08~~ | ~~`product.sale_unit_id` doit référencer une unité active (RG-08)~~ — sans objet, champ supprimé (§3.2). Identifiant conservé, non réattribué. |
-| C-09 | `product.code` et `product.sale_mode` sont définitifs après création ; `production_batch.product_id`, `production_date` et `batch_number` sont définitifs après création (RG-10). Aucune suppression n'est possible sur `product` ni `production_batch`. |
+| C-09 | `product.code` et `product.sale_mode` sont figés **dès qu'un lot est rattaché au produit**, modifiables avant (v0.8) ; `production_batch.product_id`, `production_date` et `batch_number` sont définitifs après création (RG-10). Aucune suppression n'est possible sur `product`. Un `production_batch` est supprimable tant qu'aucune de ses unités ne porte de mouvement (v0.8). |
+| C-12 | Un `batch_number` déjà émis n'est jamais réattribué, y compris après suppression du lot qui le portait (v0.8, §3.9). |
+| C-13 | Un `product` ne peut être désactivé tant qu'il lui reste une `stock_unit` en `available` ou `opened` (v0.8). |
 | C-10 | Une `stock_unit` n'est supprimable que si `status = available` et qu'aucun `stock_movement` ne lui est rattaché. |
 | C-11 | Les enums (`sale_mode`, `status`, `type`) sont sérialisés et stockés en **snake_case** (`by_weight`, `available`, `sale`...), jamais en `PascalCase` — cohérent avec la table de correspondance FR (§4.2) et le reste du schéma. |
 
@@ -336,6 +364,14 @@ Table product {
   is_active boolean [not null, default: true]
   created_at timestamptz [default: `now()`]
   updated_at timestamptz
+}
+
+Table batch_number_sequence {
+  product_id integer [ref: > product.id, note: 'part of composite PK']
+  production_date date [note: 'part of composite PK']
+  last_sequence integer [not null, note: 'last N issued; never decremented, never deleted']
+
+  Note: 'Ensures an issued batch_number is never reissued after a batch is deleted (v0.8)'
 }
 
 Table production_batch {

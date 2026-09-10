@@ -42,7 +42,7 @@ Docker Compose sur VPS
 deux utilisateurs simultanés au plus
 
 **Constraints**: pas de mode hors-ligne (ADR-001) ; interface intégralement en français ; aucune
-détection de conflit d'édition concurrente (FR-029) ; les numéros de lot déjà émis ne doivent jamais
+détection de conflit d'édition concurrente (FR-028) ; les numéros de lot déjà émis ne doivent jamais
 être réattribués (FR-013)
 
 **Scale/Scope**: 2 utilisateurs, ~30 produits, 4 écrans touchés, 6 endpoints touchés ou créés
@@ -56,7 +56,7 @@ détection de conflit d'édition concurrente (FR-029) ; les numéros de lot déj
 - **I. Simplicité (utilisateurs non techniques)** — ✅ Le besoin vient directement des utilisateurs
   tests. Aucun écran nouveau n'est créé : l'édition et le solde se logent dans la fiche produit, la
   suppression de lot dans le détail stock qui affiche déjà les lots. Tous les libellés et messages
-  d'erreur sont en français (FR-006, FR-030), y compris ceux produits par le serveur, le middleware
+  d'erreur sont en français (FR-006, FR-029), y compris ceux produits par le serveur, le middleware
   d'exceptions existant renvoyant déjà des `ProblemDetails` en français.
 - **II. Backend garant des règles métier** — ✅ Les quatre garde-fous sont côté serveur : refus de
   modifier code et mode de vente sur un produit utilisé, refus de supprimer un lot ayant une sortie,

@@ -16,7 +16,7 @@ La configuration de développement passe par `development/.env` et le `Makefile`
 ```bash
 make db-up        # PostgreSQL + pgAdmin
 make migrate      # applique la migration AddBatchNumberSequence
-make run          # API sur https://localhost:xxxx, Swagger exposé
+make run          # API sur http://localhost:5045 (https://localhost:7209), Swagger exposé
 ```
 
 Frontend, dans un second terminal :
@@ -34,6 +34,11 @@ Se connecter avec le compte de seed défini dans `development/.env`.
 ```bash
 make test         # xUnit, base PostgreSQL réelle via PostgresDatabaseFixture
 ```
+
+Sous Docker Desktop avec intégration WSL, Testcontainers peut échouer à démarrer son conteneur de
+nettoyage (`ryuk`), avec une erreur `DockerContainerNotFoundException`. Le contournement est
+`TESTCONTAINERS_RYUK_DISABLED=true make test` ; les conteneurs de test sont alors à supprimer à la
+main s'ils survivent à un plantage.
 
 La suite doit rester verte avant toute release. Les règles métier nouvelles doivent y être couvertes,
 en particulier les quatre refus serveur : modification d'un champ figé, suppression d'un lot ayant
@@ -116,4 +121,4 @@ Sur une unité entamée, dont une partie a déjà été vendue, la sortie de per
 - **Rupture de contrat** : `PUT /api/products/{id}` gagne deux champs requis. Le frontend doit être
   déployé avec le backend correspondant, et le commit porter la marque `!`.
 - **Édition concurrente** : la dernière écriture l'emporte, sans avertissement. C'est une décision
-  assumée (FR-029), pas un défaut à corriger si le cas est observé.
+  assumée (FR-028), pas un défaut à corriger si le cas est observé.
