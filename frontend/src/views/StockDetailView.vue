@@ -4,6 +4,8 @@ import AppPageHeader from '@/components/base/AppPageHeader.vue'
 import AppCard from '@/components/base/AppCard.vue'
 import StockUnitRow from '@/components/domain/StockUnitRow.vue'
 import StockUnitOutcomeMenu from '@/components/domain/StockUnitOutcomeMenu.vue'
+import BatchDeleteAction from '@/components/domain/BatchDeleteAction.vue'
+import ProductStatusBadge from '@/components/domain/ProductStatusBadge.vue'
 import { getStockDetail } from '@/composables/useStock'
 import { useAsyncData } from '@/composables/useAsyncData'
 
@@ -38,14 +40,25 @@ async function onOutcomeDone() {
   </v-container>
 
   <v-container v-else-if="detail" class="stock-detail-view">
-    <AppPageHeader to="/" back-label="Stock" :title="detail.name" :subtitle="detail.summary" />
+    <AppPageHeader to="/" back-label="Stock" :title="detail.name" :subtitle="detail.summary">
+      <template #badge>
+        <ProductStatusBadge v-if="!detail.isActive" :is-active="false" />
+      </template>
+    </AppPageHeader>
     <p v-if="outcomeError" class="text-error stock-detail-view__outcome-error">{{ outcomeError }}</p>
 
     <div class="stock-detail-view__batches">
       <AppCard v-for="batch in detail.batches" :key="batch.batchNumber" class="stock-detail-view__batch">
         <div class="stock-detail-view__batch-header">
           <span class="font-weight-medium">Fabriqué le {{ batch.dateLabel }}</span>
-          <span class="text-secondary font-weight-medium">{{ batch.priceLabel }}</span>
+          <div class="stock-detail-view__batch-actions">
+            <span class="text-secondary font-weight-medium">{{ batch.priceLabel }}</span>
+            <BatchDeleteAction
+              :batch="batch"
+              @done="onOutcomeDone"
+              @failed="(message) => (outcomeError = message)"
+            />
+          </div>
         </div>
         <div>
           <StockUnitRow v-for="unit in batch.units" :key="unit.number" :unit="unit">
@@ -82,6 +95,12 @@ async function onOutcomeDone() {
   font-size: 14px;
   font-weight: 500;
   padding: 0 4px 12px;
+}
+
+.stock-detail-view__batch-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .stock-detail-view__batch-header {

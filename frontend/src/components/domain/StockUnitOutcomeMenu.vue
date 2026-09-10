@@ -54,9 +54,10 @@ const dialog = computed(() => {
 })
 
 /**
- * Une unité entamée a déjà été vendue en partie : enregistrer son poids d'origine
- * compterait deux fois la part vendue. On repart donc du restant estimé (RG-05).
- * À zéro, il n'y a plus rien à sortir — l'unité doit être clôturée.
+ * Une unité entamée a déjà été vendue en partie : le poids enregistré est le restant estimé, pas le
+ * poids d'origine (RG-05). Ce calcul sert ici uniquement à annoncer à l'utilisateur ce qui sera
+ * écrit — le serveur refait le sien et fait foi. À zéro, il n'y a plus rien à sortir, l'unité doit
+ * être clôturée.
  */
 const nothingLeft = computed(
   () => pending.value !== 'close' && outcomeWeightKg.value != null && outcomeWeightKg.value <= 0,
@@ -64,7 +65,7 @@ const nothingLeft = computed(
 
 const weightHint = computed(() =>
   outcomeWeightKg.value != null && outcomeWeightKg.value > 0
-    ? `Poids enregistré : ${formatWeight(Math.round(outcomeWeightKg.value * 1000))}`
+    ? `Poids qui sera enregistré : ${formatWeight(Math.round(outcomeWeightKg.value * 1000))}`
     : null,
 )
 
@@ -77,8 +78,8 @@ async function open(outcome: Outcome) {
   try {
     outcomeWeightKg.value = await getRemainingWeightKg(props.unit.id, props.unit.weightKg)
   } catch {
-    // Le restant n'a pas pu être calculé : on retombe sur le poids pesé, que le
-    // backend revalidera de toute façon.
+    // L'annonce du poids n'a pas pu être préparée : on affiche le poids pesé. Sans effet sur ce qui
+    // sera enregistré, le serveur calculant la valeur réelle.
     outcomeWeightKg.value = props.unit.weightKg
   } finally {
     preparing.value = false
@@ -92,11 +93,10 @@ async function confirm() {
     if (pending.value === 'close') {
       await closeStockUnit(props.unit.id)
     } else {
-      await createStockMovement(props.unit.id, {
-        type: pending.value,
-        // Requis pour un produit au poids, interdit pour un produit à la pièce.
-        ...(outcomeWeightKg.value != null ? { soldWeight: outcomeWeightKg.value } : {}),
-      })
+      // Le poids enregistré est calculé par le serveur, seul auteur de cette règle depuis qu'elle
+      // vaut aussi pour le solde groupé. Le client n'envoie plus rien : ce qu'il enverrait serait
+      // ignoré. Le poids affiché ci-dessous n'est qu'une prévision de ce que le serveur va écrire.
+      await createStockMovement(props.unit.id, { type: pending.value })
     }
     pending.value = null
     emit('done')

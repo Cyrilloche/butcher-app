@@ -40,6 +40,8 @@ export interface StockDetailUnit {
 }
 
 export interface StockDetailBatch {
+  /** Identifiant du lot — nécessaire pour le supprimer depuis le détail stock. */
+  id: number
   batchNumber: string
   dateLabel: string
   priceLabel: string
@@ -48,6 +50,8 @@ export interface StockDetailBatch {
 
 export interface StockDetail {
   name: string
+  /** Faux pour un produit désactivé : l'écran reste consultable, il est simplement signalé. */
+  isActive: boolean
   summary: string
   batches: StockDetailBatch[]
 }
@@ -189,6 +193,7 @@ export async function getStockDetail(code: string): Promise<StockDetail | null> 
       // les unités déjà sorties — sinon le numéro d'une unité changerait au fil des ventes.
       const batchUnits = [...(unitsByBatch.get(batch.id) ?? [])].sort((a, b) => a.id - b.id)
       return {
+        id: batch.id,
         batchNumber: batch.batchNumber,
         dateLabel: formatDateLabel(batch.productionDate),
         priceLabel: formatPriceLabel(batch.salePrice, product.priceUnit),
@@ -216,7 +221,7 @@ export async function getStockDetail(code: string): Promise<StockDetail | null> 
   const summaryParts = [`${count} ${pluralize(product.unitLabel, count)} en stock`]
   if (product.saleMode === 'by_weight' && totalGrams > 0) summaryParts.push(formatWeight(totalGrams))
 
-  return { name: product.name, summary: summaryParts.join(' · '), batches }
+  return { name: product.name, isActive: productDto.isActive, summary: summaryParts.join(' · '), batches }
 }
 
 /**
@@ -224,7 +229,9 @@ export async function getStockDetail(code: string): Promise<StockDetail | null> 
  * (RG-05 : le restant n'est pas une donnée stockée, il se recalcule à la demande).
  * `null` pour un produit à la pièce, où la notion de poids n'existe pas.
  *
- * Indicatif côté client : le backend revalide et fait foi.
+ * Purement indicatif : sert à annoncer un poids avant confirmation, dans le menu de sortie, et à
+ * pré-remplir une vente à la tranche. Le poids réellement enregistré sur une sortie perso ou perte
+ * est calculé par le serveur, qui est le seul auteur de cette règle.
  */
 export async function getRemainingWeightKg(
   stockUnitId: number,

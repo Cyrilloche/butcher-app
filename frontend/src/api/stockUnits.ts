@@ -1,12 +1,13 @@
 import { apiFetch } from './http'
 import type { AddStockUnitsRequest, StockUnitDto, StockUnitStatus } from './types'
 
-export function listStockUnits(filters: { batchId?: number; status?: StockUnitStatus } = {}): Promise<
-  StockUnitDto[]
-> {
+export function listStockUnits(
+  filters: { batchId?: number; status?: StockUnitStatus; productId?: number } = {},
+): Promise<StockUnitDto[]> {
   const params = new URLSearchParams()
   if (filters.batchId != null) params.set('batchId', String(filters.batchId))
   if (filters.status) params.set('status', filters.status)
+  if (filters.productId != null) params.set('productId', String(filters.productId))
   const query = params.toString()
   return apiFetch<StockUnitDto[]>(`/api/stock-units${query ? `?${query}` : ''}`)
 }

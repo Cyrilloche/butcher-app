@@ -29,6 +29,18 @@ export interface ProductDto {
   /** Uniquement pertinent si saleMode = by_weight (400 sinon). */
   allowPartialSale: boolean
   isActive: boolean
+  /**
+   * Vrai dès qu'au moins un lot de production est rattaché : le code et le mode de vente sont alors
+   * figés côté serveur. Décrit un fait, l'interface en déduit ce qu'elle passe en lecture seule.
+   */
+  isUsed: boolean
+  /** Unités encore disponibles ou entamées : bloque la désactivation tant qu'il en reste. */
+  remainingStockUnitCount: number
+}
+
+export interface WriteOffProductStockResult {
+  /** Nombre d'unités effectivement sorties du stock par le solde. */
+  writtenOffCount: number
 }
 
 export interface CreateProductRequest {
@@ -41,6 +53,13 @@ export interface CreateProductRequest {
 export interface UpdateProductRequest {
   name: string
   allowPartialSale: boolean
+  /**
+   * Modifiable tant que le produit n'a aucun lot. Sur un produit déjà utilisé, renvoyer la valeur
+   * actuelle : le serveur refuse toute valeur différente (409).
+   */
+  code: string
+  /** Même règle que `code` : figé dès le premier lot. */
+  saleMode: SaleMode
 }
 
 // --- ProductionBatch -------------------------------------------------------------
@@ -123,6 +142,8 @@ export interface StockMovementDto {
   saleNumber: string | null
   /** Lecture seule — résolu côté serveur via stock_unit → production_batch → product. */
   productName: string
+  /** Faux si le produit a été désactivé depuis : le mouvement reste dans l'historique. */
+  productIsActive: boolean
   batchNumber: string
   notes: string | null
 }

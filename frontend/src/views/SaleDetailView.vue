@@ -69,7 +69,12 @@ async function markPaid() {
         </div>
         <div v-for="line in lineViews" :key="line.movement.id" class="sale-detail-view__line">
           <div class="sale-detail-view__line-info">
-            <div class="font-weight-medium">{{ line.movement.productName }}</div>
+            <div class="font-weight-medium">
+              {{ line.movement.productName }}
+              <span v-if="!line.movement.productIsActive" class="text-secondary sale-detail-view__retired">
+                (produit désactivé)
+              </span>
+            </div>
             <div class="text-secondary">{{ line.detail }}</div>
           </div>
           <div class="font-weight-medium">
@@ -162,6 +167,11 @@ async function markPaid() {
   font-size: 16px;
   font-weight: 600;
   margin-bottom: 8px;
+}
+
+.sale-detail-view__retired {
+  font-size: 13px;
+  font-weight: 400;
 }
 
 .sale-detail-view__line {
