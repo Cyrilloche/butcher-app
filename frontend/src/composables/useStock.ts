@@ -1,7 +1,6 @@
 import { listProducts } from '@/api/products'
 import { listProductionBatches } from '@/api/productionBatches'
 import { listStockUnits } from '@/api/stockUnits'
-import { listStockMovements } from '@/api/stockMovements'
 import type { ProductDto, ProductionBatchDto, StockUnitDto, SaleMode } from '@/api/types'
 
 export type { SaleMode }
@@ -33,9 +32,19 @@ export interface StockDashboardProduct {
 export interface StockDetailUnit {
   id: number
   number: string
-  /** Poids pesé en kg (null pour un produit à la pièce) — sert aux mouvements de sortie. */
+  /** Poids pesé en kg (null pour un produit à la pièce). */
   weightKg: number | null
+  /** Poids encore vendable en kg, tel que le serveur l'a calculé — sert aux mouvements de sortie. */
+  remainingKg: number | null
+  /** Poids pesé, mis en forme. C'est le poids d'origine, il ne bouge jamais. */
   weightLabel: string | null
+  /**
+   * Poids encore vendable, mis en forme, `null` si l'unité n'a pas de poids. Vient du serveur
+   * (RG-05) : ne jamais le recalculer ici.
+   */
+  remainingLabel: string | null
+  /** Vrai quand l'unité est entamée et qu'il ne reste plus rien à vendre : une clôture est due. */
+  isEmptied: boolean
   status: StockUnitStatus
 }
 
@@ -168,9 +177,11 @@ export async function getStockDashboard(): Promise<{
     const available = units.filter((u) => u.status === 'available')
     const opened = units.filter((u) => u.status === 'opened')
     const inStock = available.length + opened.length
+    // Même règle que le résumé du détail d'un produit : les deux écrans doivent annoncer le même
+    // poids, sous peine d'user la confiance dans l'outil plus vite que l'absence d'information.
     const totalGrams = units
       .filter(isInStock)
-      .reduce((sum, u) => sum + (u.weight != null ? weightToGrams(u.weight) : 0), 0)
+      .reduce((sum, u) => sum + (u.remainingWeight != null ? weightToGrams(u.remainingWeight) : 0), 0)
 
     const metaParts = [product.saleMode === 'by_weight' ? 'Au poids' : 'À la pièce']
     if (product.saleMode === 'by_weight' && totalGrams > 0) metaParts.push(`${formatWeight(totalGrams)} au total`)
@@ -229,12 +240,21 @@ export async function getStockDetail(code: string): Promise<StockDetail | null> 
           .map((unit) => {
             count += 1
             const grams = unit.weight != null ? weightToGrams(unit.weight) : 0
-            totalGrams += grams
+            // Le total dit ce qui est encore vendable, pas ce qui a été fabriqué : un jambon
+            // entamé y entre pour son restant. Le décompte d'unités, lui, ne bouge pas — c'est un
+            // objet sur l'étagère, entamé ou non.
+            totalGrams += unit.remainingWeight != null ? weightToGrams(unit.remainingWeight) : 0
             return {
               id: unit.id,
               number: unit.unitNumber,
               weightKg: unit.weight,
+              remainingKg: unit.remainingWeight,
               weightLabel: unit.weight != null ? formatWeight(grams) : null,
+              remainingLabel:
+                unit.remainingWeight != null
+                  ? formatWeight(weightToGrams(unit.remainingWeight))
+                  : null,
+              isEmptied: unit.status === 'opened' && unit.remainingWeight === 0,
               status: unit.status,
             }
           }),
@@ -250,25 +270,3 @@ export async function getStockDetail(code: string): Promise<StockDetail | null> 
   return { name: product.name, isActive: productDto.isActive, summary: summaryParts.join(' · '), batches }
 }
 
-/**
- * Poids restant estimé (kg) d'une unité : poids pesé − somme des poids déjà vendus
- * (RG-05 : le restant n'est pas une donnée stockée, il se recalcule à la demande).
- * `null` pour un produit à la pièce, où la notion de poids n'existe pas.
- *
- * Purement indicatif : sert à annoncer un poids avant confirmation, dans le menu de sortie, et à
- * pré-remplir une vente à la tranche. Le poids réellement enregistré sur une sortie perso ou perte
- * est calculé par le serveur, qui est le seul auteur de cette règle.
- */
-export async function getRemainingWeightKg(
-  stockUnitId: number,
-  unitWeightKg: number | null,
-): Promise<number | null> {
-  if (unitWeightKg == null) return null
-  const movements = await listStockMovements({ stockUnitId })
-  const alreadySold = movements
-    .filter((m) => m.type === 'sale')
-    .reduce((sum, m) => sum + (m.soldWeight ?? 0), 0)
-  // Arrondi au gramme : le poids est un decimal(10,3) côté base, et la soustraction
-  // de flottants produirait sinon des valeurs du type 0.30000000000000004.
-  return Math.max(0, Math.round((unitWeightKg - alreadySold) * 1000) / 1000)
-}

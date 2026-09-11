@@ -22,6 +22,7 @@ import {
   PhSignOut,
   PhDotsThreeVertical,
   PhHouse,
+  PhWarningOctagon,
 } from '@phosphor-icons/vue'
 
 /**
@@ -51,6 +52,7 @@ const phosphorIcons: Record<string, unknown> = {
   'sign-out': PhSignOut,
   'dots-three-vertical': PhDotsThreeVertical,
   house: PhHouse,
+  'warning-octagon': PhWarningOctagon,
 }
 
 export const phosphor: IconSet = {

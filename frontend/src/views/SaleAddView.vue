@@ -7,7 +7,7 @@ import AppButton from '@/components/base/AppButton.vue'
 import AppTextField from '@/components/base/AppTextField.vue'
 import { createSale } from '@/api/sales'
 import { listSellableLots, type SellableLot } from '@/composables/useSales'
-import { formatWeight, getRemainingWeightKg } from '@/composables/useStock'
+import { formatWeight } from '@/composables/useStock'
 import { useAsyncData } from '@/composables/useAsyncData'
 import CustomerPicker from '@/components/domain/CustomerPicker.vue'
 import { ApiError } from '@/api/http'
@@ -48,20 +48,12 @@ const lotResults = computed(() => {
 const pendingLot = ref<SellableLot | null>(null)
 const pendingMode = ref<'choice' | 'weight' | null>(null)
 const sliceGrams = ref('')
-/** Poids restant estimé (kg) sur l'unité en cours — poids d'origine − somme déjà vendue.
- *  Indicatif seulement : le backend revalide et fait foi (garde-fou anti-dépassement,
- *  cf. docs/data-model.md RG-05). */
+/** Poids encore vendable (kg) sur l'unité en cours, tel que le serveur l'a calculé (RG-05).
+ *  Le garde-fou serveur revalide à l'écriture : c'est lui qui fait foi. */
 const remainingWeightKg = ref<number | null>(null)
-const loadingRemaining = ref(false)
 
-async function loadRemainingWeight(lot: SellableLot) {
-  if (lot.weight == null) return
-  loadingRemaining.value = true
-  try {
-    remainingWeightKg.value = await getRemainingWeightKg(lot.stockUnitId, lot.weight)
-  } finally {
-    loadingRemaining.value = false
-  }
+function loadRemainingWeight(lot: SellableLot) {
+  remainingWeightKg.value = lot.remainingWeight
 }
 
 function pickLot(lot: SellableLot) {
@@ -214,9 +206,8 @@ async function save() {
           </div>
 
           <div v-else class="sale-add-view__pending-weight-block">
-            <p v-if="loadingRemaining" class="text-secondary sale-add-view__remaining">Calcul du poids restant...</p>
-            <p v-else-if="remainingWeightKg != null" class="sale-add-view__remaining" :class="{ 'text-error': exceedsRemaining }">
-              Poids restant estimé : {{ formatWeight(Math.round(remainingWeightKg * 1000)) }}
+            <p v-if="remainingWeightKg != null" class="sale-add-view__remaining" :class="{ 'text-error': exceedsRemaining }">
+              Poids restant : {{ formatWeight(Math.round(remainingWeightKg * 1000)) }}
             </p>
 
             <div class="sale-add-view__pending-weight">

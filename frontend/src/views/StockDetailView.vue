@@ -5,6 +5,7 @@ import AppCard from '@/components/base/AppCard.vue'
 import StockUnitRow from '@/components/domain/StockUnitRow.vue'
 import StockUnitOutcomeMenu from '@/components/domain/StockUnitOutcomeMenu.vue'
 import BatchDeleteAction from '@/components/domain/BatchDeleteAction.vue'
+import StockUnitDeleteAction from '@/components/domain/StockUnitDeleteAction.vue'
 import ProductStatusBadge from '@/components/domain/ProductStatusBadge.vue'
 import { getStockDetail } from '@/composables/useStock'
 import { useAsyncData } from '@/composables/useAsyncData'
@@ -47,16 +48,18 @@ async function onOutcomeDone() {
     </AppPageHeader>
     <p v-if="outcomeError" class="text-error stock-detail-view__outcome-error">{{ outcomeError }}</p>
 
+    <!-- La date sort de la carte et la surmonte : elle sépare les fournées comme un titre de
+         section, et la carte n'a plus à porter qu'une liste d'unités. -->
     <div class="stock-detail-view__batches">
-      <AppCard v-for="batch in detail.batches" :key="batch.id" class="stock-detail-view__batch">
-        <div class="stock-detail-view__batch-header">
-          <span class="font-weight-medium">
-            Fabriqué le {{ batch.dateLabel }}
-            <span v-if="batch.dayRankLabel" class="text-secondary stock-detail-view__batch-rank">
+      <section v-for="batch in detail.batches" :key="batch.id">
+        <div class="stock-detail-view__day">
+          <h3 class="stock-detail-view__day-title">
+            {{ batch.dateLabel }}
+            <span v-if="batch.dayRankLabel" class="stock-detail-view__day-rank text-secondary">
               · {{ batch.dayRankLabel }}
             </span>
-          </span>
-          <div class="stock-detail-view__batch-actions">
+          </h3>
+          <div class="stock-detail-view__day-meta">
             <span class="text-secondary font-weight-medium">{{ batch.priceLabel }}</span>
             <BatchDeleteAction
               :batch="batch"
@@ -65,9 +68,15 @@ async function onOutcomeDone() {
             />
           </div>
         </div>
-        <div>
+
+        <AppCard>
           <StockUnitRow v-for="unit in batch.units" :key="unit.number" :unit="unit">
             <template #action>
+              <StockUnitDeleteAction
+                :unit="unit"
+                @done="onOutcomeDone"
+                @failed="(message) => (outcomeError = message)"
+              />
               <StockUnitOutcomeMenu
                 :unit="unit"
                 @done="onOutcomeDone"
@@ -75,8 +84,8 @@ async function onOutcomeDone() {
               />
             </template>
           </StockUnitRow>
-        </div>
-      </AppCard>
+        </AppCard>
+      </section>
     </div>
   </v-container>
 
@@ -93,7 +102,7 @@ async function onOutcomeDone() {
 .stock-detail-view__batches {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 26px;
 }
 
 .stock-detail-view__outcome-error {
@@ -102,22 +111,35 @@ async function onOutcomeDone() {
   padding: 0 4px 12px;
 }
 
-.stock-detail-view__batch-rank {
-  font-weight: 500;
-}
-
-.stock-detail-view__batch-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.stock-detail-view__batch-header {
+.stock-detail-view__day {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
-  font-size: 16px;
+  padding: 0 2px 8px;
   margin-bottom: 10px;
+  border-bottom: 2px solid rgb(var(--v-theme-secondary));
+}
+
+.stock-detail-view__day-title {
+  font-family: var(--font-heading);
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.1;
+  margin: 0;
+  min-width: 0;
+}
+
+.stock-detail-view__day-rank {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.stock-detail-view__day-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
 }
 </style>

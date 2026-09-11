@@ -16,6 +16,8 @@ export interface SellableLot {
   price: number
   /** Kilogrammes, poids pesé à l'origine de l'unité — sens seulement si available et au poids. */
   weight: number | null
+  /** Poids encore vendable en kg, calculé par le serveur. `null` pour une unité sans poids. */
+  remainingWeight: number | null
   /** Prix au kg du lot — pour calculer en direct le prix d'une tranche. null si à la pièce. */
   pricePerKg: number | null
   allowPartialSale: boolean
@@ -65,6 +67,7 @@ export async function listSellableLots(): Promise<SellableLot[]> {
         productName: product.name,
         label: unit.unitNumber,
         detail: unitDetail(unit, batch),
+        remainingWeight: unit.remainingWeight,
         status: unit.status,
         price: unitPrice(unit, batch),
         weight: unit.weight,

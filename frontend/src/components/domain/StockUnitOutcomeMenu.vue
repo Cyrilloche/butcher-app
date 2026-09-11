@@ -11,7 +11,7 @@
 import { computed, ref } from 'vue'
 import { createStockMovement } from '@/api/stockMovements'
 import { closeStockUnit } from '@/api/stockUnits'
-import { getRemainingWeightKg, formatWeight, type StockDetailUnit } from '@/composables/useStock'
+import { formatWeight, type StockDetailUnit } from '@/composables/useStock'
 import { ApiError } from '@/api/http'
 
 const props = defineProps<{ unit: StockDetailUnit }>()
@@ -21,8 +21,7 @@ type Outcome = 'personal' | 'loss' | 'close'
 
 const pending = ref<Outcome | null>(null)
 const submitting = ref(false)
-const preparing = ref(false)
-/** Poids qui sera enregistré sur le mouvement — restant estimé, pas poids d'origine. */
+/** Poids qui sera enregistré sur le mouvement : le restant, pas le poids d'origine. */
 const outcomeWeightKg = ref<number | null>(null)
 
 const dialog = computed(() => {
@@ -69,21 +68,11 @@ const weightHint = computed(() =>
     : null,
 )
 
-async function open(outcome: Outcome) {
+function open(outcome: Outcome) {
   pending.value = outcome
-  outcomeWeightKg.value = null
-  if (outcome === 'close' || props.unit.weightKg == null) return
-
-  preparing.value = true
-  try {
-    outcomeWeightKg.value = await getRemainingWeightKg(props.unit.id, props.unit.weightKg)
-  } catch {
-    // L'annonce du poids n'a pas pu être préparée : on affiche le poids pesé. Sans effet sur ce qui
-    // sera enregistré, le serveur calculant la valeur réelle.
-    outcomeWeightKg.value = props.unit.weightKg
-  } finally {
-    preparing.value = false
-  }
+  // Le restant vient du serveur, porté par l'unité déjà chargée : plus rien à aller chercher, et
+  // plus de soustraction refaite ici. Le serveur reste seul auteur de ce qu'il écrira.
+  outcomeWeightKg.value = outcome === 'close' ? null : props.unit.remainingKg
 }
 
 async function confirm() {
@@ -132,7 +121,9 @@ async function confirm() {
         <v-list-item-title>Usage perso</v-list-item-title>
       </v-list-item>
       <v-list-item @click="open('loss')">
-        <template #prepend><v-icon size="20">phosphor:trash</v-icon></template>
+        <!-- Pas une corbeille : celle-ci veut dire « supprimer », à quelques millimètres d'ici.
+             Déclarer une perte garde la trace de l'unité, la supprimer ne laisse rien. -->
+        <template #prepend><v-icon size="20">phosphor:warning-octagon</v-icon></template>
         <v-list-item-title>Déclarer une perte</v-list-item-title>
       </v-list-item>
     </v-list>
@@ -143,8 +134,7 @@ async function confirm() {
       <h2 class="text-h6 font-weight-bold mb-2">{{ dialog.title }}</h2>
       <p class="text-secondary mb-2">{{ dialog.body }}</p>
 
-      <p v-if="preparing" class="text-secondary stock-unit-outcome__hint">Calcul du poids restant...</p>
-      <p v-else-if="nothingLeft" class="text-error stock-unit-outcome__hint">
+      <p v-if="nothingLeft" class="text-error stock-unit-outcome__hint">
         Cette unité a déjà été vendue en totalité : il n'y a plus rien à sortir. Clôture-la plutôt.
       </p>
       <p v-else-if="weightHint" class="text-secondary stock-unit-outcome__hint">{{ weightHint }}</p>
@@ -155,7 +145,7 @@ async function confirm() {
           :color="dialog.color"
           variant="flat"
           :loading="submitting"
-          :disabled="preparing || nothingLeft"
+          :disabled="nothingLeft"
           @click="confirm"
         >
           {{ dialog.cta }}

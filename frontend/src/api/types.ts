@@ -101,8 +101,16 @@ export interface StockUnitDto {
    * identité pour l'utilisateur : ne jamais le recomposer côté client, il vient du serveur.
    */
   unitNumber: string
-  /** Kilogrammes, decimal(10,3) côté backend — pas des grammes. */
+  /** Poids pesé à la fabrication. Kilogrammes, decimal(10,3) côté backend — pas des grammes. */
   weight: number | null
+  /**
+   * Poids encore vendable : le poids pesé moins la somme des poids déjà vendus sur cette unité
+   * (RG-05). Égal au poids pesé sur une unité intacte, `0` sur une unité entièrement vendue,
+   * `null` si l'unité n'a pas de poids.
+   *
+   * Calculé par le serveur à chaque lecture, jamais stocké. Ne jamais le recalculer ici.
+   */
+  remainingWeight: number | null
   status: StockUnitStatus
 }
 
