@@ -4,10 +4,10 @@
 |---|---|
 | **Projet** | Mini-ERP Charcuterie (repo : `butcher-app`) |
 | **Document** | Modèle de données détaillé (V1) |
-| **Version** | 0.10 |
-| **Date** | 11 septembre 2026 |
+| **Version** | 0.11 |
+| **Date** | 12 septembre 2026 |
 | **Statut** | Implémenté (backend, cœur métier V1 complet) |
-| **Documents liés** | PRD v0.7, Journal ADR (10 décisions, ADR-010 accepté), `docs/etat-des-lieux.md` |
+| **Documents liés** | PRD v0.8, Journal ADR (10 décisions, ADR-010 accepté), `docs/etat-des-lieux.md` |
 
 ### Historique des révisions
 
@@ -21,6 +21,7 @@
 | 0.6 | 2026-09-04 | Ajout de `product.allow_partial_sale` (booléen, défaut `false`, pertinent uniquement si `sale_mode = by_weight`) : la vente à la tranche (RF-19) n'est plus possible sur n'importe quel produit au poids, elle doit être explicitement autorisée. Contrôle appliqué côté serveur (`409` sinon), pas seulement dans l'UI. |
 | 0.8 | 2026-09-09 | **Mutabilité du produit conditionnée à son usage** : `code` et `sale_mode` redeviennent modifiables tant qu'aucun lot n'est rattaché, et se figent au premier lot (§3.3). **Suppression d'un lot intact** ouverte (§3.4), avec ses unités. Nouvelle entité `batch_number_sequence` (§3.9) : la numérotation ne peut plus être dérivée d'un comptage, puisqu'un lot peut disparaître — un numéro émis n'est jamais réattribué (§4.1). **Désactivation d'un produit conditionnée au stock restant** (§3.3), assortie d'un solde en perte des unités restantes. Poids d'une sortie perso ou perte désormais **calculé par le serveur** (§3.8). |
 | 0.9 | 2026-09-10 | **Le numéro d'étiquette descend du lot vers l'unité** : nouvelle colonne `stock_unit.unit_number` (unique, non nulle, §3.5), suppression de `production_batch.batch_number` (§3.4), registre requalifié en `unit_number_sequence` et comptant des unités (§3.9). Motif : le double numéro affiché, `SC-260910-2-1`, était lu comme un sous-lot. Une fournée n'a plus de numéro et s'annonce par sa date, son prix et son rang dans la journée. Rupture de contrat sur trois DTO. |
+| 0.11 | 2026-09-12 | **Poids encore vendable exposé sur le contrat d'une unité** (§3.5), calculé à chaque lecture et **jamais stocké** — aucune migration. RG-05 révisée en conséquence (PRD v0.8) : l'interdiction porte sur la persistance, pas sur le calcul ni sur l'affichage. La règle est partagée avec le poids d'une sortie perso ou perte (§3.8) sous le nom `ComputeRemainingWeight`. |
 | 0.10 | 2026-09-11 | Aucune modification de schéma. `raw_material_ref` et `expiry_date` (§3.4) documentés comme **non exposés en V1** : RF-08/RF-09 reportées en V2 (PRD v0.7) au nom de la prise en main par des utilisateurs non techniques. Colonnes et API conservées, réouverture sans coût. |
 | 0.7 | 2026-09-04 | RG-05 précisée (pas remplacée) : garde-fou serveur empêchant la somme des `sold_weight` d'une unité entamée de dépasser son `weight` pesé, à la création comme à la modification d'un mouvement de vente. Calcul à la volée, aucune colonne « poids restant » ajoutée — conforme à l'intention initiale de RG-05. |
 
@@ -132,6 +133,15 @@ Cœur du suivi de stock : **un objet physique distinct**, suivi individuellement
 
 **Règles complémentaires (implémentation)** : les unités d'un lot sont générées via un appel **distinct** de la création du lot (§ note RF-10 du PRD), pour permettre une pesée étalée dans le temps. Une unité au statut `available` peut être **supprimée** (correction d'une erreur de pesée) uniquement si aucun `stock_movement` n'y est rattaché. Le statut `opened` n'est atteignable que via une vente partielle (`stock_movement` de type `sale`) : il n'existe pas de moyen de créer directement une unité `opened`.
 
+**Poids encore vendable (dérivé, v0.11)** : le contrat d'une unité expose `remaining_weight`, égal
+au poids pesé moins la somme des `sold_weight` de ses mouvements **de type vente**. Il vaut le poids
+pesé sur une unité intacte, zéro sur une unité entièrement vendue, `null` si l'unité n'a pas de
+poids — produit `by_piece`, ou unité pas encore pesée. **Aucune colonne, aucun cache** : la valeur
+est recalculée à chaque lecture, ce qui est toute la portée de RG-05 révisée. Le calcul est agrégé
+en SQL par sous-requête corrélée, donc une lecture d'unités reste une requête quel que soit leur
+nombre. Une sortie perso ou une perte **n'est pas** retranchée : elle finalise l'unité, qui quitte
+le stock ; l'inclure masquerait un filtre trop large derrière un restant faussement nul.
+
 **Numéro de l'unité (`unit_number`, v0.9)** : c'est **le** numéro du système, celui que l'utilisateur recopie à la main sur l'étiquette du sachet ou du jambon (§4.1). Il est attribué par le serveur au moment où l'unité est créée, c'est-à-dire au geste de pesée, et **jamais modifié ensuite** — l'étiquette physique, elle, ne se réécrit pas. Il est unique en base.
 
 Jusqu'à la v0.8, le numéro appartenait au lot et l'affichage d'une unité le suffixait de son rang dans le lot, ce qui produisait `SC-260910-2-1`. Ce libellé à quatre segments a été lu par l'utilisateur comme la marque d'un sous-lot et jugé inutilement compliqué pour une activité artisanale. Le numéro est donc descendu d'un étage. Aucun numéro ne doit plus être **recomposé côté client** : il change au fil des ventes alors que le papier, lui, ne change pas.
@@ -200,6 +210,10 @@ Toute sortie de stock, rattachée à une **stock_unit précise** (RF-15). Journa
 - Le **numéro communicable** est porté par la vente (`sale.sale_number`), pas par la ligne : c'est la vente que l'utilisateur retrouve et cite, pas le mouvement individuel. Un `stock_movement` n'a donc que son `id` technique. *(Écart identifié le 2026-09-04, résolu le jour même par l'ajout de `sale`.)*
 - Un mouvement `personal` ou `loss` n'a **jamais** de `sale_id` (ni d'`amount`) : ce n'est pas une vente.
 - **Le `sold_weight` d'une sortie `personal` ou `loss` est calculé par le serveur** (v0.8), jamais transmis par le client : poids pesé de l'unité si elle est `available`, poids pesé **moins la somme des `sold_weight` de ses ventes** si elle est `opened` — repartir du poids d'origine compterait deux fois la part déjà vendue (RG-05). `null` si l'unité n'a pas de poids. Seule exception, une unité `by_weight` **pas encore pesée** n'offre aucune base de calcul : le poids saisi par l'utilisateur est alors conservé. Un mouvement de type `sale` continue de porter le poids réellement pesé, que seul l'utilisateur connaît.
+- Le calcul de ce poids est **le même** que celui du poids encore vendable affiché sur une unité
+  (§3.5) : une seule méthode, `ComputeRemainingWeight`, deux appelants. Elle porte ce nom depuis
+  la v0.11, l'ancien (`ComputeOutcomeWeight`) désignant son premier usage et non la valeur
+  calculée.
 - La règle ci-dessus vivait dans le frontend jusqu'en v0.7. Elle a été portée côté serveur au moment où le solde groupé (§3.3) en a eu besoin : deux implémentations de la même règle auraient fini par diverger.
 - Pour éviter au frontend un aller-retour, l'API expose en lecture seule, sur chaque ligne : `saleNumber`, `customerId` et `customerName` (résolus via la vente) ainsi que `productName` et `batchNumber` (résolus via `stock_unit → production_batch → product`). Sans ces deux derniers, une vue « détail d'une vente » n'a d'autre choix que de déduire le produit du préfixe du numéro de lot — dérivation fragile, et le préfixe n'est qu'un code, pas un nom.
 

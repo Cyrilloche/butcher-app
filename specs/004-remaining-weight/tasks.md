@@ -41,16 +41,16 @@ Monorepo à deux applications : `backend/src/Butcher.Api/`, `backend/tests/Butch
 **Purpose**: le champ calculé par le serveur. Les trois histoires en dépendent, aucune ne peut
 commencer avant. C'est ici que vit la règle, et ici qu'elle est testée.
 
-- [ ] T003 Renommer `ComputeOutcomeWeight` en `ComputeRemainingWeight` dans `backend/src/Butcher.Api/Application/Services/StockMovementRules.cs`, mettre à jour ses appelants dans `StockMovementService.cs` et `SaleService.cs`, et réécrire son commentaire pour décrire la **valeur calculée** et ses deux usages — le poids à inscrire sur une sortie perso ou perte, et le poids à afficher comme encore vendable (D0 de [research.md](./research.md))
-- [ ] T004 Ajouter `RemainingWeight` (`decimal?`) à `backend/src/Butcher.Api/Application/Dtos/StockUnitDto.cs`, avec un commentaire disant qu'il est **calculé à chaque lecture et jamais stocké** (FR-002)
-- [ ] T005 Dans `StockUnitService.GetAllAsync` (`backend/src/Butcher.Api/Application/Services/StockUnitService.cs`), projeter chaque unité avec la somme de ses poids vendus, obtenue par une sous-requête sur la navigation `StockMovements` filtrée sur `MovementType.Sale`, puis renseigner `RemainingWeight` via `ComputeRemainingWeight`. **Une seule requête doit partir**, quel que soit le nombre d'unités (D1)
-- [ ] T006 Appliquer le même calcul à `GetByIdAsync` et au retour de `AddUnitsAsync` dans `backend/src/Butcher.Api/Application/Services/StockUnitService.cs` — sur des unités qui viennent d'être créées, la somme vendue est nulle et le restant vaut le poids pesé (FR-005)
-- [ ] T007 [P] Tester dans `backend/tests/Butcher.Api.Tests/Application/Services/StockUnitServiceTests.cs` : une unité pesée sans aucune vente renvoie un restant égal à son poids pesé ; une unité entamée après une vente partielle renvoie la différence
-- [ ] T008 [P] Tester dans `backend/tests/Butcher.Api.Tests/Application/Services/StockUnitServiceTests.cs` : une unité dont la totalité du poids a été vendue renvoie un restant nul et reste au statut entamé ; le restant ne descend jamais sous zéro (FR-003)
-- [ ] T009 [P] Tester dans `backend/tests/Butcher.Api.Tests/Application/Services/StockUnitServiceTests.cs` : une unité d'un produit vendu à la pièce et une unité au poids pas encore pesée renvoient un restant **absent**, et non zéro (FR-004)
-- [ ] T010 [P] Tester dans `backend/tests/Butcher.Api.Tests/Application/Services/StockUnitServiceTests.cs` qu'une sortie perso ou une perte **n'est pas** retranchée du restant : seul le type vente compte. Un filtre trop large donnerait un restant faussement nul (D10)
-- [ ] T011 Vérifier l'absence de N+1 sur la projection de `backend/src/Butcher.Api/Application/Services/StockUnitService.cs` en lisant les requêtes émises par EF Core sur `GET /api/stock-units` avec une dizaine d'unités : une seule requête, agrégat compris
-- [ ] T012 [P] Ajouter `remainingWeight: number | null` à l'interface `StockUnitDto` de `frontend/src/api/types.ts`, en respectant le contrat de [contracts/api.md](./contracts/api.md)
+- [X] T003 Renommer `ComputeOutcomeWeight` en `ComputeRemainingWeight` dans `backend/src/Butcher.Api/Application/Services/StockMovementRules.cs`, mettre à jour ses appelants dans `StockMovementService.cs` et `SaleService.cs`, et réécrire son commentaire pour décrire la **valeur calculée** et ses deux usages — le poids à inscrire sur une sortie perso ou perte, et le poids à afficher comme encore vendable (D0 de [research.md](./research.md))
+- [X] T004 Ajouter `RemainingWeight` (`decimal?`) à `backend/src/Butcher.Api/Application/Dtos/StockUnitDto.cs`, avec un commentaire disant qu'il est **calculé à chaque lecture et jamais stocké** (FR-002)
+- [X] T005 Dans `StockUnitService.GetAllAsync` (`backend/src/Butcher.Api/Application/Services/StockUnitService.cs`), projeter chaque unité avec la somme de ses poids vendus, obtenue par une sous-requête sur la navigation `StockMovements` filtrée sur `MovementType.Sale`, puis renseigner `RemainingWeight` via `ComputeRemainingWeight`. **Une seule requête doit partir**, quel que soit le nombre d'unités (D1)
+- [X] T006 Appliquer le même calcul à `GetByIdAsync` et au retour de `AddUnitsAsync` dans `backend/src/Butcher.Api/Application/Services/StockUnitService.cs` — sur des unités qui viennent d'être créées, la somme vendue est nulle et le restant vaut le poids pesé (FR-005)
+- [X] T007 [P] Tester dans `backend/tests/Butcher.Api.Tests/Application/Services/StockUnitServiceTests.cs` : une unité pesée sans aucune vente renvoie un restant égal à son poids pesé ; une unité entamée après une vente partielle renvoie la différence
+- [X] T008 [P] Tester dans `backend/tests/Butcher.Api.Tests/Application/Services/StockUnitServiceTests.cs` : une unité dont la totalité du poids a été vendue renvoie un restant nul et reste au statut entamé ; le restant ne descend jamais sous zéro (FR-003)
+- [X] T009 [P] Tester dans `backend/tests/Butcher.Api.Tests/Application/Services/StockUnitServiceTests.cs` : une unité d'un produit vendu à la pièce et une unité au poids pas encore pesée renvoient un restant **absent**, et non zéro (FR-004)
+- [X] T010 [P] Tester dans `backend/tests/Butcher.Api.Tests/Application/Services/StockUnitServiceTests.cs` qu'une sortie perso ou une perte **n'est pas** retranchée du restant : seul le type vente compte. Un filtre trop large donnerait un restant faussement nul (D10)
+- [X] T011 Vérifier l'absence de N+1 sur la projection de `backend/src/Butcher.Api/Application/Services/StockUnitService.cs` en lisant les requêtes émises par EF Core sur `GET /api/stock-units` avec une dizaine d'unités : une seule requête, agrégat compris
+- [X] T012 [P] Ajouter `remainingWeight: number | null` à l'interface `StockUnitDto` de `frontend/src/api/types.ts`, en respectant le contrat de [contracts/api.md](./contracts/api.md)
 
 **Checkpoint** : à ce stade le serveur expose le champ et le prouve par ses tests. Rien n'a changé
 à l'écran, et rien n'est cassé : l'ajout est additif, l'ancien client fonctionne à l'identique.
@@ -67,12 +67,12 @@ restant sur sa ligne. Livrable seul, sans les deux histoires suivantes.
 Cette phase porte aussi la mise en forme validée par l'exploitant (section « Présentation retenue »
 de [spec.md](./spec.md)) : c'est elle qui fait de la place au restant sur une ligne d'unité.
 
-- [ ] T013 [US1] Exposer le restant dans `StockDetailUnit` et le renseigner dans `getStockDetail` (`frontend/src/composables/useStock.ts`), en réutilisant le formatage de poids existant
-- [ ] T014 [US1] Refondre `frontend/src/components/domain/StockUnitRow.vue` en **deux lignes de hauteur fixe** : en haut le numéro d'étiquette, plus gros caractère de la ligne, et à droite le poids pesé ; en bas l'étiquette de statut, le poids encore vendable, puis les actions. Sur une unité entamée, le poids du haut est préfixé de « pesé » pour lever l'ambiguïté (FR-006, FR-007)
-- [ ] T015 [US1] Dans `frontend/src/views/StockDetailView.vue`, sortir la date de fabrication de la carte et la placer **au-dessus, en gros, comme un titre de section**, avec le rang dans la journée, le prix de la fournée et sa corbeille alignés à droite sur la même ligne. La carte ne contient plus que les unités
-- [ ] T016 [US1] Brancher une corbeille par unité sur `deleteStockUnit` (`frontend/src/api/stockUnits.ts`, déjà écrite), avec une confirmation nommant le numéro d'étiquette. Le bouton est **désactivé sauf sur une unité disponible** : tout mouvement fait quitter ce statut, donc « disponible » vaut « sans mouvement ». Le refus reste garanti côté serveur, la désactivation n'est qu'une politesse (D6)
-- [ ] T017 [US1] [P] Remplacer l'icône de « Déclarer une perte » par `phosphor:warning-octagon` dans `frontend/src/components/domain/StockUnitOutcomeMenu.vue`, et enregistrer cette icône dans `frontend/src/plugins/phosphor-iconset.ts`. La corbeille devient réservée à la suppression (D7)
-- [ ] T018 [US1] Afficher la mention « à clôturer » à côté d'un restant nul, en couleur critique, dans `frontend/src/components/domain/StockUnitRow.vue`. **Décorative** : aucune action rattachée, la clôture reste dans le menu à trois points (D9)
+- [X] T013 [US1] Exposer le restant dans `StockDetailUnit` et le renseigner dans `getStockDetail` (`frontend/src/composables/useStock.ts`), en réutilisant le formatage de poids existant
+- [X] T014 [US1] Refondre `frontend/src/components/domain/StockUnitRow.vue` en **deux lignes de hauteur fixe** : en haut le numéro d'étiquette, plus gros caractère de la ligne, et à droite le poids pesé ; en bas l'étiquette de statut, le poids encore vendable, puis les actions. Sur une unité entamée, le poids du haut est préfixé de « pesé » pour lever l'ambiguïté (FR-006, FR-007)
+- [X] T015 [US1] Dans `frontend/src/views/StockDetailView.vue`, sortir la date de fabrication de la carte et la placer **au-dessus, en gros, comme un titre de section**, avec le rang dans la journée, le prix de la fournée et sa corbeille alignés à droite sur la même ligne. La carte ne contient plus que les unités
+- [X] T016 [US1] Brancher une corbeille par unité sur `deleteStockUnit` (`frontend/src/api/stockUnits.ts`, déjà écrite), avec une confirmation nommant le numéro d'étiquette. Le bouton est **désactivé sauf sur une unité disponible** : tout mouvement fait quitter ce statut, donc « disponible » vaut « sans mouvement ». Le refus reste garanti côté serveur, la désactivation n'est qu'une politesse (D6)
+- [X] T017 [US1] [P] Remplacer l'icône de « Déclarer une perte » par `phosphor:warning-octagon` dans `frontend/src/components/domain/StockUnitOutcomeMenu.vue`, et enregistrer cette icône dans `frontend/src/plugins/phosphor-iconset.ts`. La corbeille devient réservée à la suppression (D7)
+- [X] T018 [US1] Afficher la mention « à clôturer » à côté d'un restant nul, en couleur critique, dans `frontend/src/components/domain/StockUnitRow.vue`. **Décorative** : aucune action rattachée, la clôture reste dans le menu à trois points (D9)
 - [ ] T019 [US1] Relire `frontend/src/views/StockDetailView.vue` et `frontend/src/components/domain/StockUnitRow.vue` sur mobile, en vérifiant qu'aucune valeur technique anglaise, aucun statut HTTP et aucune date au format technique n'y apparaissent (principe I, FR-012)
 - [ ] T020 [US1] Dérouler les scénarios 1 et 2 de [quickstart.md](./quickstart.md) sur la pile locale
 
@@ -87,8 +87,8 @@ de [spec.md](./spec.md)) : c'est elle qui fait de la place au restant sur une li
 **Independent Test**: dix sachets de 500 g plus un jambon de 3 kg dont 2,2 kg sont vendus donnent
 5,8 kg et onze unités, et non 8 kg.
 
-- [ ] T021 [US2] Dans `getStockDetail` (`frontend/src/composables/useStock.ts`), remplacer l'accumulation du poids pesé par la somme du poids encore vendable des unités en stock (FR-009). Le décompte d'unités reste strictement inchangé (FR-011)
-- [ ] T022 [US2] Vérifier, sur le résumé produit par `frontend/src/composables/useStock.ts`, qu'une unité entamée à restant nul compte toujours pour une unité et contribue zéro au poids, donnant un résumé du type « 1 unité · 0 g » — comportement attendu et non incohérence
+- [X] T021 [US2] Dans `getStockDetail` (`frontend/src/composables/useStock.ts`), remplacer l'accumulation du poids pesé par la somme du poids encore vendable des unités en stock (FR-009). Le décompte d'unités reste strictement inchangé (FR-011)
+- [X] T022 [US2] Vérifier, sur le résumé produit par `frontend/src/composables/useStock.ts`, qu'une unité entamée à restant nul compte toujours pour une unité et contribue zéro au poids, donnant un résumé du type « 1 unité · 0 g » — comportement attendu et non incohérence. **Vérifié par lecture du code** : le décompte s'incrémente par unité en stock sans condition, et le poids somme `remainingWeight`, nul dans ce cas
 - [ ] T023 [US2] Dérouler le scénario 3 de [quickstart.md](./quickstart.md), partie détail du produit
 
 ---
@@ -99,7 +99,7 @@ de [spec.md](./spec.md)) : c'est elle qui fait de la place au restant sur une li
 
 **Independent Test**: ouvrir la liste de stock et le détail du même produit, comparer les poids.
 
-- [ ] T024 [US3] Dans le calcul par produit de la liste de stock (`frontend/src/composables/useStock.ts`), sommer le poids encore vendable au lieu du poids pesé, en suivant exactement la règle de T021 (FR-010)
+- [X] T024 [US3] Dans le calcul par produit de la liste de stock (`frontend/src/composables/useStock.ts`), sommer le poids encore vendable au lieu du poids pesé, en suivant exactement la règle de T021 (FR-010)
 - [ ] T025 [US3] Vérifier que les produits vendus à la pièce n'affichent toujours aucun poids (FR-014), et dérouler le scénario 3 de [quickstart.md](./quickstart.md), partie liste de stock
 
 ---
@@ -110,10 +110,10 @@ de [spec.md](./spec.md)) : c'est elle qui fait de la place au restant sur une li
 documentation **ne sont pas facultatives** : la rédaction actuelle de RG-05 interdit ce que la
 fonctionnalité affiche, et une session ultérieure la lirait comme un interdit (principe IV).
 
-- [ ] T026 Supprimer `getRemainingWeightKg` de `frontend/src/composables/useStock.ts` et adapter ses appelants (`frontend/src/views/SaleAddView.vue`, `frontend/src/composables/useSales.ts`) pour lire `remainingWeight` sur l'unité déjà chargée. Cela retire une requête par jambon sélectionné et le dernier calcul de restant vivant côté client (D8)
-- [ ] T027 [P] Réviser RG-05 dans `docs/PRD.md` §7 : le restant n'est **jamais stocké**, il est **calculé à la demande** et **peut être affiché** ; le garde-fou d'écriture est inchangé. Marquer la révision et sa date, sans effacer l'intention d'origine, et ajouter une ligne à l'historique des révisions
-- [ ] T028 [P] Mettre à jour `docs/data-model.md` : le champ dérivé et son mode de calcul en §3.5, le partage de la règle avec le poids d'une sortie en §3.8, et une ligne d'historique de version rappelant qu'**aucune migration** n'accompagne ce changement
-- [ ] T029 [P] Mettre à jour `CLAUDE.md` : la règle métier 4 du §8, dont la phrase « le poids restant n'est pas suivi » devient fausse, et le §9 des pièges connus, où le calcul client d'un poids de restant peut désormais être énoncé comme définitivement retiré
+- [X] T026 Supprimer `getRemainingWeightKg` de `frontend/src/composables/useStock.ts` et adapter ses appelants (`frontend/src/views/SaleAddView.vue`, `frontend/src/composables/useSales.ts`) pour lire `remainingWeight` sur l'unité déjà chargée. Cela retire une requête par jambon sélectionné et le dernier calcul de restant vivant côté client (D8)
+- [X] T027 [P] Réviser RG-05 dans `docs/PRD.md` §7 : le restant n'est **jamais stocké**, il est **calculé à la demande** et **peut être affiché** ; le garde-fou d'écriture est inchangé. Marquer la révision et sa date, sans effacer l'intention d'origine, et ajouter une ligne à l'historique des révisions
+- [X] T028 [P] Mettre à jour `docs/data-model.md` : le champ dérivé et son mode de calcul en §3.5, le partage de la règle avec le poids d'une sortie en §3.8, et une ligne d'historique de version rappelant qu'**aucune migration** n'accompagne ce changement
+- [X] T029 [P] Mettre à jour `CLAUDE.md` : la règle métier 4 du §8, dont la phrase « le poids restant n'est pas suivi » devient fausse, et le §9 des pièges connus, où le calcul client d'un poids de restant peut désormais être énoncé comme définitivement retiré
 - [ ] T030 Dérouler les scénarios 4 et 5 de [quickstart.md](./quickstart.md), en particulier le retrait d'une ligne de vente qui doit faire **remonter** le restant du jambon sans aucun geste supplémentaire
 - [ ] T031 Passer la liste de contrôle finale de [quickstart.md](./quickstart.md) : `make test`, `npm run type-check`, `npm run lint`, et vérifier que `git status` ne montre **aucun fichier sous `Migrations/`**
 

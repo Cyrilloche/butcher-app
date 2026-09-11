@@ -14,14 +14,14 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 
 ## 2. État d'avancement & feuille de route
 
-**Phase actuelle : Vague 1 complète côté périmètre fonctionnel. Backend complet, socle de déploiement livré (ADR-010), frontend au niveau de l'API. La saisie DLC/matière première d'un lot (RF-08/RF-09) est reportée en V2 le 2026-09-11 : deux champs facultatifs de plus sur le parcours le plus fragile, alors que la prise en main de l'outil est déjà le vrai défi. La recette manuelle de la correction d'une vente est déroulée et validée (2026-09-11).**
+**Phase actuelle : Vague 1 complète côté périmètre fonctionnel. Backend complet, socle de déploiement livré (ADR-010), frontend au niveau de l'API. La saisie DLC/matière première d'un lot (RF-08/RF-09) est reportée en V2 le 2026-09-11 : deux champs facultatifs de plus sur le parcours le plus fragile, alors que la prise en main de l'outil est déjà le vrai défi. La recette manuelle de la correction d'une vente est déroulée et validée (2026-09-11). Depuis, le poids encore vendable d'un jambon entamé est visible et les totaux de stock disent enfin ce qui reste à vendre (2026-09-12).**
 
 | Étape | Statut |
 |---|---|
 | Cadrage métier (discovery) | ✅ Terminé |
-| PRD | ✅ Rédigé (v0.7, règles réalignées sur le code livré) |
+| PRD | ✅ Rédigé (v0.8, règles réalignées sur le code livré) |
 | Décisions d'architecture (ADR) | ✅ Rédigées (ADR-006 tranché : Vuetify) |
-| Modèle de données | ✅ Rédigé (v0.10, aligné sur l'implémentation) |
+| Modèle de données | ✅ Rédigé (v0.11, aligné sur l'implémentation) |
 | Maquettes (Claude Design) | ✅ Toutes vues Vague 1 maquettées (Stock, Produits, Clients, Ventes) ; itération ensuite en code (voir §10) |
 | Backend — cœur métier (9 entités dont `sale`, CRUD + logique métier) | ✅ Exposé en API, 127 tests |
 | Spike authentification (JWT) | ✅ Réalisé et vérifié — ADR-009 accepté (Identity allégé, refresh token rotatif en base, cookie httpOnly/Secure, seed par variable d'environnement) |
@@ -33,6 +33,7 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 | Modification et fin de vie d'un produit | ✅ Un produit sans lot se corrige entièrement ; code et mode de vente se figent au premier lot ; un lot intact se supprime ; la désactivation exige un stock écoulé, avec solde en perte des unités restantes (`specs/001-product-edit-lifecycle/`) |
 | Correction et suppression d'une vente (RG-14, RG-11) | ✅ En-tête corrigeable (client, date, paiement, note) ; une ligne se corrige sur son montant et son poids vendu, ou se retire ; la vente entière se supprime, rendant au stock les unités sans autre sortie. Le montant reste celui qui a été saisi, jamais recalculé (`specs/003-sale-correction/`) |
 | Numéro d'étiquette porté par l'unité | ✅ Le numéro `CODE-YYMMDD-N` identifie le sachet et non la fabrication ; registre `unit_number_sequence` sous verrou, aucun numéro jamais réémis (`specs/002-unit-numbering/`) |
+| Poids encore vendable d'une unité entamée (RG-05 révisée) | ✅ Le serveur calcule le restant à chaque lecture, sans jamais le stocker ; la ligne d'une unité entamée l'affiche, et les totaux des deux écrans de stock le comptent au lieu du poids d'origine. Détail Stock refondu : la date en titre de section au-dessus de la carte, deux lignes par unité, corbeille par unité (`specs/004-remaining-weight/`) |
 | Développement Vague 1 | ✅ **Complet** — RF-08/RF-09 (DLC, matière première) reportées en V2 le 2026-09-11 ; recette manuelle de la correction d'une vente déroulée et validée le 2026-09-11 |
 | Analyse d'écart doc ↔ code | ✅ `docs/etat-des-lieux.md` (04/09/2026) |
 
@@ -191,7 +192,7 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 
 4. **Vente en une fois vs vente partielle.**
    - *En une fois* (sachet, jambon entier) : un `stock_movement` de type `sale` ; l'unité passe à `sold`.
-   - *Partielle* (jambon à la tranche) : plusieurs `stock_movement` de type `sale` sur la **même** `stock_unit`, qui reste `opened` jusqu'à une **clôture manuelle** en `sold` (`POST /api/stock-units/{id}/close`, exposé dans Détail Stock). Le poids restant **n'est pas suivi**, mais un garde-fou serveur empêche la somme des `sold_weight` de dépasser le poids pesé de l'unité. Seuls les produits avec `allow_partial_sale = true` (pertinent uniquement en `by_weight`) autorisent ce mode.
+   - *Partielle* (jambon à la tranche) : plusieurs `stock_movement` de type `sale` sur la **même** `stock_unit`, qui reste `opened` jusqu'à une **clôture manuelle** en `sold` (`POST /api/stock-units/{id}/close`, exposé dans Détail Stock). Le poids restant n'est **jamais stocké**, mais le serveur le **calcule à chaque lecture** et l'expose (`remaining_weight`) : la ligne d'une unité entamée l'affiche, et les totaux de poids des deux écrans de stock le comptent à la place du poids d'origine. Un garde-fou serveur empêche par ailleurs la somme des `sold_weight` de dépasser le poids pesé de l'unité. Seuls les produits avec `allow_partial_sale = true` (pertinent uniquement en `by_weight`) autorisent ce mode.
 
 5. **Le `status` de `stock_unit` est la source de vérité de l'état de stock.** C'est une dénormalisation assumée : le passage `opened → sold` d'un jambon est une décision manuelle non déductible des mouvements. Le backend maintient la cohérence status ↔ mouvements.
 
@@ -220,7 +221,8 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 - ❌ Traiter l'authentification à la légère (service exposé) → suivre le spike auth avant tout.
 - ❌ Dériver un numéro d'étiquette d'un comptage des unités existantes → passer par `unit_number_sequence`, sous verrou de ligne. Depuis qu'une unité et une fournée peuvent être supprimées, un comptage réémettrait un numéro déjà écrit sur une seconde série d'étiquettes manuscrites, indiscernable de la première (`data-model.md` §3.9, C-12).
 - ❌ Recomposer un numéro d'unité côté client, en suffixant un numéro de lot par un rang → le numéro vient du serveur. C'est ce double numéro, `SC-260910-2-1`, qui a été lu comme un sous-lot et supprimé le 2026-09-10.
-- ❌ Calculer côté client le poids d'une sortie perso ou perte → le serveur en est le seul auteur depuis le solde groupé. Le frontend n'affiche qu'une prévision (`data-model.md` §3.8).
+- ❌ Calculer côté client le poids d'une sortie perso ou perte, ou le poids restant d'une unité entamée → le serveur est le seul auteur de cette soustraction, sous le nom `ComputeRemainingWeight` (`data-model.md` §3.5 et §3.8). Le dernier calcul client a été retiré le 2026-09-12 : le frontend lit `remaining_weight` et se contente d'en faire la somme pour ses totaux.
+- ❌ Stocker le poids restant d'une unité, en colonne ou en cache → c'est le seul interdit que porte RG-05. Le calcul et l'affichage, eux, sont autorisés depuis le 2026-09-12.
 - ❌ Sérialiser/stocker les enums en `PascalCase` (`ByWeight`) → toujours `snake_case` (`by_weight`), cohérent avec la table de correspondance FR et le reste du schéma (bug réel rencontré et corrigé, cf. `data-model.md` C-11).
 
 ---

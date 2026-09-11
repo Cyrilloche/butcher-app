@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | **Nom de projet** | Mini-ERP Charcuterie (application : **Saloir**) |
-| **Version du document** | 0.7 |
-| **Date** | 11 septembre 2026 |
+| **Version du document** | 0.8 |
+| **Date** | 12 septembre 2026 |
 | **Statut** | Vague 1 complète côté périmètre — backend V1 complet, déploiement livré (ADR-010), frontend au niveau de l'API ; reste la recette manuelle de la correction d'une vente (voir `docs/etat-des-lieux.md`) |
 | **Auteur** | Cyril, avec assistance à l'architecture |
 | **Destinataires** | Utilisateurs finaux (exploitants), équipe de développement |
@@ -19,6 +19,7 @@
 | 0.5 | 2026-09-04 | Cyril, avec assistance à l'implémentation | Statut réaligné sur la réalité après analyse d'écart (`docs/etat-des-lieux.md`) : aucune exigence modifiée, mais RF-21 (sorties `perso`/`perte`) et RF-08/RF-09 (DLC, matière première) sont implémentés côté API sans être atteignables depuis l'interface — écarts tracés, Vague 1 non close tant que RF-21 ne l'est pas. |
 | 0.6 | 2026-09-11 | Cyril, avec assistance à l'implémentation | **RF-08 et RF-09 reportées en V2** (référence de matière première et DLC d'un lot) : facultatives, informatives, et deux saisies de plus sur le parcours le plus fragile. La prise en main de l'outil par des utilisateurs non techniques prime (H-06, RNF-02). Exigences conservées et réversibles sans coût — le modèle et l'API les portent déjà. Vague 1 close côté périmètre fonctionnel. |
 | 0.7 | 2026-09-11 | Cyril, avec assistance à l'implémentation | **Remise en cohérence des règles avec le code livré** : RG-09 révisée (la désactivation d'un produit exige un stock écoulé), RG-10 révisée (suppression d'un lot intact ouverte, le lot n'a plus de numéro), ajout de RG-16 (mutabilité du produit conditionnée à son usage) et RG-17 (numéro d'étiquette porté par l'unité, jamais réémis). §9 réaligné : unité de mesure retirée, numéro d'étiquette et registre de numérotation ajoutés. Aucune décision nouvelle — le document rattrape trois fonctionnalités déjà livrées. |
+| 0.8 | 2026-09-12 | Cyril, avec assistance à l'implémentation | **RG-05 révisée** : le poids restant d'une unité entamée reste interdit au stockage, mais il est désormais calculé à la demande par le serveur et affiché comme poids encore vendable — sur la ligne de l'unité et dans les totaux des deux écrans de stock. Le garde-fou d'écriture est inchangé. Aucune exigence nouvelle : l'affichage servait déjà la question métier « puis-je encore vendre une tranche » (`specs/004-remaining-weight/`). |
 | 0.3 | 2026-09-04 | Cyril, avec assistance à l'implémentation | **Q-04 et Q-05 résolus et implémentés** : ajout de l'entité *vente* (numéro unique, statut de paiement, regroupement de plusieurs unités) — nouvelles exigences RF-28 à RF-31 et règles RG-13 à RG-15 ; RF-17/RG-07 (client obligatoire) désormais garantis par le modèle ; §9 mis en cohérence (le client n'est plus optionnel) |
 
 ---
@@ -220,7 +221,7 @@ Le stock n'est pas un compteur abstrait : il représente des **objets physiques 
 | RG-02 | Le prix de vente s'applique **par lot** ; il n'existe pas de prix « catalogue » figé au niveau du produit. |
 | RG-03 | Pour un produit `poids_variable`, le **prix d'une vente = poids réel × prix au kg du lot**. |
 | RG-04 | Une unité physique vendue « en une fois » sort du stock ; une unité vendue en plusieurs fois reste en stock au statut `entamé` jusqu'à clôture manuelle. |
-| RG-05 | Le poids restant d'une unité `entamé` n'est **pas** suivi (aucun champ ni affichage dédié) : seule la somme des ventes rattachées est significative (chiffre d'affaires généré par l'unité). Un garde-fou de cohérence s'applique néanmoins à l'écriture : la somme des `sold_weight` déjà enregistrés sur l'unité (mouvements de type vente) plus le nouveau ne peut pas dépasser le poids physique pesé de l'unité — calculé à la volée, pas de nouvelle colonne stockée. |
+| RG-05 | **(révisée le 2026-09-12)** Le poids restant d'une unité `entamé` n'est **jamais stocké** : aucune colonne, aucune valeur mise en cache, aucune donnée à maintenir en cohérence. Il est **calculé à la demande** par le serveur — poids pesé de l'unité moins la somme des `sold_weight` de ses mouvements de type vente — et **peut être affiché** comme le poids encore vendable. Le garde-fou d'écriture est inchangé et reste la seule protection contre une vente au-delà du poids pesé : la somme des poids déjà vendus plus le nouveau ne peut pas dépasser le poids physique pesé de l'unité. *Formulation initiale (« n'est pas suivi, aucun champ ni affichage dédié ») trop large : l'intention était de ne pas créer une donnée à synchroniser, pas d'interdire une soustraction. Le garde-fou faisait déjà ce calcul.* |
 | RG-06 | Les statuts de sortie (`vendu`, `perso`, `perdu`) sont exclusifs et s'appliquent à l'échelle de l'unité physique individuelle. |
 | RG-07 | **(Modifié 2026-09-04, remplace la règle initiale)** Un mouvement de vente doit être rattaché à un client — plus de vente anonyme. V1 limitée à la vente à des particuliers (nom + prénom) ; la vente à des professionnels (raison sociale) est reportée à une évolution ultérieure si le besoin se confirme. |
 | ~~RG-08~~ | ~~Une **unité de mesure** ne peut pas être désactivée tant qu'elle est utilisée par un produit actif.~~ **Abandonnée le 2026-09-04** avec RF-04/RF-05. Identifiant conservé, non réattribué. |
