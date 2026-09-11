@@ -5,14 +5,12 @@ import AppPageHeader from '@/components/base/AppPageHeader.vue'
 import AppCard from '@/components/base/AppCard.vue'
 import AppButton from '@/components/base/AppButton.vue'
 import AppTextField from '@/components/base/AppTextField.vue'
-import { listCustomers } from '@/api/customers'
 import { createSale } from '@/api/sales'
 import { listSellableLots, type SellableLot } from '@/composables/useSales'
 import { formatWeight, getRemainingWeightKg } from '@/composables/useStock'
 import { useAsyncData } from '@/composables/useAsyncData'
-import { customerFullName } from '@/composables/useCustomers'
+import CustomerPicker from '@/components/domain/CustomerPicker.vue'
 import { ApiError } from '@/api/http'
-import type { CustomerDto } from '@/api/types'
 
 interface CartLine {
   stockUnitId: number
@@ -26,29 +24,14 @@ interface CartLine {
 
 const router = useRouter()
 
-const { data: customers } = useAsyncData(listCustomers, [])
 const { data: lots, loading: loadingLots } = useAsyncData(listSellableLots, [] as SellableLot[])
 
 const state = reactive({
   customerId: null as number | null,
-  clientQuery: '',
   lotQuery: '',
   cart: [] as CartLine[],
   paid: true,
 })
-
-const client = computed<CustomerDto | null>(() => customers.value.find((c) => c.id === state.customerId) ?? null)
-
-const clientResults = computed(() => {
-  const q = state.clientQuery.trim().toLowerCase()
-  if (q.length < 2) return []
-  return customers.value.filter((c) => customerFullName(c).toLowerCase().includes(q)).slice(0, 5)
-})
-
-function pickClient(id: number) {
-  state.customerId = id
-  state.clientQuery = ''
-}
 
 const inCartIds = computed(() => new Set(state.cart.map((l) => l.stockUnitId)))
 const lotResults = computed(() => {
@@ -152,18 +135,18 @@ function removeFromCart(index: number) {
 }
 
 const total = computed(() => state.cart.reduce((sum, l) => sum + l.amount, 0))
-const canSave = computed(() => !!client.value && state.cart.length > 0)
+const canSave = computed(() => state.customerId != null && state.cart.length > 0)
 
 const saving = ref(false)
 const saveError = ref<string | null>(null)
 
 async function save() {
-  if (!client.value || !canSave.value) return
+  if (state.customerId == null || !canSave.value) return
   saving.value = true
   saveError.value = null
   try {
     await createSale({
-      customerId: client.value.id,
+      customerId: state.customerId,
       paid: state.paid,
       lines: state.cart.map((line) => ({
         stockUnitId: line.stockUnitId,
@@ -189,31 +172,7 @@ async function save() {
       <AppCard>
         <div class="sale-add-view__section-title text-secondary">1. Le client</div>
 
-        <template v-if="!client">
-          <div class="sale-add-view__search">
-            <v-icon size="20">phosphor:magnifying-glass</v-icon>
-            <input v-model="state.clientQuery" type="text" placeholder="Nom ou téléphone" class="sale-add-view__search-input" />
-          </div>
-          <div v-if="clientResults.length > 0" class="sale-add-view__results">
-            <button
-              v-for="c in clientResults"
-              :key="c.id"
-              type="button"
-              class="sale-add-view__result"
-              @click="pickClient(c.id)"
-            >
-              <span class="sale-add-view__result-name">{{ customerFullName(c) }}</span>
-              <span class="text-secondary">{{ c.phone }}</span>
-            </button>
-          </div>
-        </template>
-        <div v-else class="sale-add-view__client">
-          <div class="sale-add-view__client-info">
-            <div class="sale-add-view__client-name">{{ customerFullName(client) }}</div>
-            <div class="text-secondary">{{ client.phone }}</div>
-          </div>
-          <button type="button" class="sale-add-view__change" @click="state.customerId = null">Changer</button>
-        </div>
+        <CustomerPicker v-model="state.customerId" />
       </AppCard>
 
       <AppCard>
@@ -512,26 +471,6 @@ async function save() {
   text-align: center;
   padding: 6px 0;
   margin: 0;
-}
-
-.sale-add-view__client {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: rgb(var(--v-theme-status-neutral-container));
-  border-radius: 10px;
-  padding: 12px 14px;
-}
-
-.sale-add-view__client-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.sale-add-view__client-name {
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 19px;
 }
 
 .sale-add-view__change {

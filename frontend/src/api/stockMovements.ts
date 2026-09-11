@@ -1,5 +1,9 @@
 import { apiFetch } from './http'
-import type { CreateStockMovementRequest, StockMovementDto } from './types'
+import type {
+  CreateStockMovementRequest,
+  StockMovementDto,
+  UpdateStockMovementRequest,
+} from './types'
 
 export function listStockMovements(
   filters: { stockUnitId?: number; customerId?: number; saleId?: number } = {},
@@ -24,4 +28,24 @@ export function createStockMovement(
     method: 'POST',
     json: payload,
   })
+}
+
+/**
+ * Correction d'une ligne : remplacement complet des trois champs corrigeables. L'appelant renvoie
+ * donc aussi ceux qu'il n'a pas modifiés. Le serveur reste le garant des règles (poids vendu dans
+ * la limite du poids pesé, montant positif) — l'écran affiche son refus, il ne l'anticipe pas.
+ */
+export function updateStockMovement(
+  id: number,
+  payload: UpdateStockMovementRequest,
+): Promise<StockMovementDto> {
+  return apiFetch<StockMovementDto>(`/api/stock-movements/${id}`, { method: 'PUT', json: payload })
+}
+
+/**
+ * Retrait d'une ligne (RG-11). Le serveur refuse la dernière ligne d'une vente — c'est alors la
+ * vente qu'il faut supprimer — et rend `disponible` toute unité qui ne porte plus aucun mouvement.
+ */
+export function deleteStockMovement(id: number): Promise<void> {
+  return apiFetch<void>(`/api/stock-movements/${id}`, { method: 'DELETE' })
 }
