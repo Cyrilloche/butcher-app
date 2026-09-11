@@ -196,3 +196,54 @@ deux poids sont identiques.
   reste-t-il maintenant », pas « comment le jambon s'est vidé ».
 - **Le nombre d'unités entamées simultanément reste petit** (quelques jambons), une activité
   artisanale annexe. Le volume de données à parcourir pour le calcul n'est pas un enjeu.
+
+## Présentation retenue *(validée le 2026-09-11)*
+
+Maquette validée par l'exploitant pour le détail d'un produit en stock. Elle fixe la mise en
+forme, pas la technique.
+
+```
+ ‹ Stock
+
+ Jambon sec
+ 4 unités en stock · 6,45 kg
+
+ 10 septembre · 2ᵉ fournée        24,00 €/kg  🗑
+ ┌───────────────────────────────────────────────┐
+ │ SC-260910-3                          3,000 kg │
+ │ ⟨Disponible⟩                            🗑  ⋮ │
+ │ ───────────────────────────────────────────── │
+ │ SC-260910-4                    pesé 3,000 kg  │
+ │ ⟨Entamé⟩  800 g restants                🗑  ⋮ │
+ └───────────────────────────────────────────────┘
+
+ 8 septembre                      22,00 €/kg  🗑
+ ┌───────────────────────────────────────────────┐
+ │ SC-260908-1                          2,650 kg │
+ │ ⟨Disponible⟩                            🗑  ⋮ │
+ │ ───────────────────────────────────────────── │
+ │ SC-260908-2                    pesé 2,800 kg  │
+ │ ⟨Entamé⟩  0 g restants  à clôturer      🗑  ⋮ │
+ └───────────────────────────────────────────────┘
+```
+
+- **La date sort de la carte et la surmonte**, en gros, comme un titre de section. Le rang dans la
+  journée la suit quand plusieurs fournées partagent la date. Le prix de la fournée et sa
+  corbeille s'alignent à droite, sur la même ligne que ce titre.
+- **La carte ne contient plus que les unités**, séparées par un filet léger.
+- **Chaque unité tient sur deux lignes de hauteur fixe**, pour qu'aucune information ne passe à la
+  ligne sur un téléphone. En haut, le numéro d'étiquette, le plus gros caractère de la ligne
+  puisque c'est lui qu'on recopie à la main, et à droite le poids pesé. En bas, l'état, puis le
+  poids encore vendable, puis les deux boutons.
+- **Le poids figure deux fois sur une unité entamée**, et une seule sur une unité intacte. En haut
+  en gris, le poids pesé à la fabrication, précédé de « pesé » sur une unité entamée pour lever
+  l'ambiguïté. En bas en noir, ce qu'il reste à vendre. Sur une unité intacte, la ligne du bas n'a
+  rien à ajouter.
+- **Deux corbeilles, deux portées.** Celle du titre supprime la fournée entière, comportement
+  existant. Celle d'une ligne supprime cette unité seule, correction d'une erreur de pesée, et
+  s'éteint dès que l'unité porte un mouvement, ce que le serveur refuse déjà.
+- **« Déclarer une perte » change d'icône** dans le menu à trois points. Sa corbeille actuelle
+  entrerait en collision de sens avec la corbeille de suppression, à quelques millimètres d'elle.
+- **La mention « à clôturer »** accompagne un poids restant nul. Elle est validée sur l'esthétique
+  et reste décorative pour l'instant : aucune action ne lui est rattachée dans cette vague. La
+  clôture continue de passer par le menu à trois points.
