@@ -44,8 +44,8 @@ C'est le motif dominant : le backend sait faire, l'utilisateur ne peut pas le d�
 | E-01 | **RF-21** — marquer une unité en `perso` (autoconsommation) ou `perdu` | ✅ `POST /api/stock-units/{id}/movements` accepte `personal` / `loss` | ✅ **traité le 2026-09-04** — menu d'actions par unité dans Détail Stock (`StockUnitOutcomeMenu.vue`), avec confirmation | Clos |
 | E-02 | **RF-08 / RF-09** — référence matière première et DLC d'un lot | ✅ colonnes `raw_material_ref`, `expiry_date` | ❌ non saisissables dans « Ajout Stock » | Moyenne : données de traçabilité perdues à la saisie |
 | E-03 | **RG-10** — lot partiellement modifiable après création | ✅ `PUT /api/production-batches/{id}` | ❌ aucun écran d'édition de lot | Moyenne : une erreur de prix ne se corrige pas depuis l'app |
-| E-04 | **RG-14** — vente modifiable et supprimable | ✅ `PUT` et `DELETE /api/sales/{id}` | ❌ seul le paiement est modifiable | Moyenne : une vente saisie par erreur est définitive côté utilisateur |
-| E-05 | **RG-11** — mouvement modifiable et supprimable | ✅ `PUT` / `DELETE /api/stock-movements/{id}` | ❌ non exposé | Faible : recouvert en partie par E-04 |
+| E-04 | **RG-14** — vente modifiable et supprimable | ✅ `PUT` et `DELETE /api/sales/{id}` | ✅ **traité le 2026-09-11** — correction de l'en-tête et suppression depuis Détail Vente (`specs/003-sale-correction/`) | Clos |
+| E-05 | **RG-11** — mouvement modifiable et supprimable | ✅ `PUT` / `DELETE /api/stock-movements/{id}` | ✅ **traité le 2026-09-11** — une ligne de vente se corrige ou se retire depuis Détail Vente (`SaleLineEditDialog.vue`) | Clos pour les lignes de vente ; une sortie perso ou perte reste non corrigeable |
 | E-06 | **RF-31** — ventes filtrables par client, paiement et période | ✅ `GET /api/sales` accepte ces filtres | ⚠️ partiel : recherche texte (nom, numéro) et regroupement par mois seulement | Faible : l'usage réel reste couvert |
 
 ### Autres écarts
@@ -76,12 +76,12 @@ C'est le motif dominant : le backend sait faire, l'utilisateur ne peut pas le d�
 Dans l'ordre de valeur décroissante :
 
 1. ~~**E-01 — sorties `perso` et `perte` depuis l'interface.**~~ ✅ **Fait le 2026-09-04** : menu d'actions sur chaque unité de Détail Stock (usage perso, perte, clôture), confirmation obligatoire, poids enregistré = **restant estimé** et non poids d'origine (voir §7).
-2. **E-04 — corriger ou supprimer une vente.** Filet de rattrapage d'une saisie erronée, dans une app utilisée par des personnes non techniques qui n'ont aucun autre recours.
+2. ~~**E-04 — corriger ou supprimer une vente.**~~ ✅ **Fait le 2026-09-11** : en-tête corrigeable (client, date, paiement, note), ligne corrigeable ou retirable, vente supprimable, chaque geste destructif sous confirmation. Emporte E-05 pour les lignes de vente. Aucun travail serveur, les règles étaient déjà là (`specs/003-sale-correction/`).
 3. **E-02 — DLC et référence matière première à la création d'un lot.** Deux champs facultatifs dans un formulaire existant ; sans eux, la traçabilité annoncée est amputée à la source.
 4. **E-03 — édition d'un lot.** Même logique de rattrapage que E-04, moins fréquente.
 5. **E-08 — premiers tests frontend** sur les composables purs, pour équilibrer la couverture.
 
-E-05, E-06, E-07 et E-09 relèvent du confort ou de la V2 : à laisser tels quels, mais tracés ici.
+E-06, E-07 et E-09 relèvent du confort ou de la V2 : à laisser tels quels, mais tracés ici.
 
 ---
 

@@ -14,7 +14,7 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 
 ## 2. État d'avancement & feuille de route
 
-**Phase actuelle : backend Vague 1 complet, socle de déploiement livré (ADR-010), frontend presque au niveau — les sorties perso/perte sont exposées, restent la correction d'une vente et la saisie DLC/matière première (voir `docs/etat-des-lieux.md`).**
+**Phase actuelle : backend Vague 1 complet, socle de déploiement livré (ADR-010), frontend au niveau à un manque près — une vente se corrige et se supprime désormais depuis l'interface, seule reste la saisie DLC/matière première d'un lot (voir `docs/etat-des-lieux.md`).**
 
 | Étape | Statut |
 |---|---|
@@ -31,8 +31,9 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 | Vente à la tranche (RF-19/RF-20) | ✅ Vendre/clôturer une unité entamée ; `allow_partial_sale` par produit, garde-fou poids côté serveur |
 | Sorties perso / perte (RF-21, RG-12) | ✅ Menu d'actions par unité dans Détail Stock, avec confirmation ; le poids enregistré est le restant estimé |
 | Modification et fin de vie d'un produit | ✅ Un produit sans lot se corrige entièrement ; code et mode de vente se figent au premier lot ; un lot intact se supprime ; la désactivation exige un stock écoulé, avec solde en perte des unités restantes (`specs/001-product-edit-lifecycle/`) |
+| Correction et suppression d'une vente (RG-14, RG-11) | ✅ En-tête corrigeable (client, date, paiement, note) ; une ligne se corrige sur son montant et son poids vendu, ou se retire ; la vente entière se supprime, rendant au stock les unités sans autre sortie. Le montant reste celui qui a été saisi, jamais recalculé (`specs/003-sale-correction/`) |
 | Numéro d'étiquette porté par l'unité | ✅ Le numéro `CODE-YYMMDD-N` identifie le sachet et non la fabrication ; registre `unit_number_sequence` sous verrou, aucun numéro jamais réémis (`specs/002-unit-numbering/`) |
-| Développement Vague 1 | 🔄 Quasi complet — reste, côté interface, la correction d'une vente (RG-14) et la saisie DLC/matière première d'un lot (RF-08/RF-09) |
+| Développement Vague 1 | 🔄 Quasi complet — reste, côté interface, la saisie DLC/matière première d'un lot (RF-08/RF-09) |
 | Analyse d'écart doc ↔ code | ✅ `docs/etat-des-lieux.md` (04/09/2026) |
 
 **Méthode : dé-risquage avant développement.** On valide les points techniques risqués par des *spikes* isolés **avant** de construire les fonctionnalités. Spikes prévus, dans l'ordre :
@@ -241,6 +242,7 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 | — | Politique de mot de passe Identity (valeurs par défaut, non revues pour 2 utilisateurs non techniques) | Ouvert, non bloquant |
 | — | Stratégie de sauvegarde PostgreSQL (le VPS et le déploiement sont en place) | Ouvert — seul point d'exploitation non traité par ADR-010 |
 | RF-21 | Sorties `perso` / `perte` | ✅ **Close (2026-09-04)** : exposées dans Détail Stock (`StockUnitOutcomeMenu.vue`) |
+| RG-14 | Correction et suppression d'une vente depuis l'interface | ✅ **Close (2026-09-11)** : écran de détail d'une vente (`SaleDetailView.vue`, `SaleLineEditDialog.vue`, `SaleDeleteAction.vue`) |
 
 ---
 
