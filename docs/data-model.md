@@ -4,10 +4,10 @@
 |---|---|
 | **Projet** | Mini-ERP Charcuterie (repo : `butcher-app`) |
 | **Document** | Modèle de données détaillé (V1) |
-| **Version** | 0.7 |
-| **Date** | 4 septembre 2026 |
+| **Version** | 0.10 |
+| **Date** | 11 septembre 2026 |
 | **Statut** | Implémenté (backend, cœur métier V1 complet) |
-| **Documents liés** | PRD v0.5, Journal ADR (10 décisions, ADR-010 accepté), `docs/etat-des-lieux.md` |
+| **Documents liés** | PRD v0.7, Journal ADR (10 décisions, ADR-010 accepté), `docs/etat-des-lieux.md` |
 
 ### Historique des révisions
 
@@ -21,6 +21,7 @@
 | 0.6 | 2026-09-04 | Ajout de `product.allow_partial_sale` (booléen, défaut `false`, pertinent uniquement si `sale_mode = by_weight`) : la vente à la tranche (RF-19) n'est plus possible sur n'importe quel produit au poids, elle doit être explicitement autorisée. Contrôle appliqué côté serveur (`409` sinon), pas seulement dans l'UI. |
 | 0.8 | 2026-09-09 | **Mutabilité du produit conditionnée à son usage** : `code` et `sale_mode` redeviennent modifiables tant qu'aucun lot n'est rattaché, et se figent au premier lot (§3.3). **Suppression d'un lot intact** ouverte (§3.4), avec ses unités. Nouvelle entité `batch_number_sequence` (§3.9) : la numérotation ne peut plus être dérivée d'un comptage, puisqu'un lot peut disparaître — un numéro émis n'est jamais réattribué (§4.1). **Désactivation d'un produit conditionnée au stock restant** (§3.3), assortie d'un solde en perte des unités restantes. Poids d'une sortie perso ou perte désormais **calculé par le serveur** (§3.8). |
 | 0.9 | 2026-09-10 | **Le numéro d'étiquette descend du lot vers l'unité** : nouvelle colonne `stock_unit.unit_number` (unique, non nulle, §3.5), suppression de `production_batch.batch_number` (§3.4), registre requalifié en `unit_number_sequence` et comptant des unités (§3.9). Motif : le double numéro affiché, `SC-260910-2-1`, était lu comme un sous-lot. Une fournée n'a plus de numéro et s'annonce par sa date, son prix et son rang dans la journée. Rupture de contrat sur trois DTO. |
+| 0.10 | 2026-09-11 | Aucune modification de schéma. `raw_material_ref` et `expiry_date` (§3.4) documentés comme **non exposés en V1** : RF-08/RF-09 reportées en V2 (PRD v0.7) au nom de la prise en main par des utilisateurs non techniques. Colonnes et API conservées, réouverture sans coût. |
 | 0.7 | 2026-09-04 | RG-05 précisée (pas remplacée) : garde-fou serveur empêchant la somme des `sold_weight` d'une unité entamée de dépasser son `weight` pesé, à la création comme à la modification d'un mouvement de vente. Calcul à la volée, aucune colonne « poids restant » ajoutée — conforme à l'intention initiale de RG-05. |
 
 ### Objet du document
@@ -98,7 +99,7 @@ Un produit fabriqué. Le **mode de vente** est la propriété structurante (RG-0
 
 ### 3.4 `production_batch`
 
-Une fabrication d'un produit, à une date, avec un **prix propre au lot** (RG-02). Depuis la v0.9, elle **ne porte plus de numéro** : c'est l'unité physique qui en porte un (§3.5, §4.1). Elle reste le lieu où le prix, la DLC et la matière première d'une fournée entière se saisissent en une fois. À l'écran, une fournée s'annonce par sa date de production, son prix et, lorsque plusieurs fournées partagent la date, son rang dans la journée — un libellé d'affichage, jamais stocké.
+Une fabrication d'un produit, à une date, avec un **prix propre au lot** (RG-02). Depuis la v0.9, elle **ne porte plus de numéro** : c'est l'unité physique qui en porte un (§3.5, §4.1). Elle reste le lieu où le prix, la DLC et la matière première d'une fournée entière se rattachent en une fois. À l'écran, une fournée s'annonce par sa date de production, son prix et, lorsque plusieurs fournées partagent la date, son rang dans la journée — un libellé d'affichage, jamais stocké.
 
 | Attribut | Type | Contraintes | Rôle |
 |---|---|---|---|
@@ -106,11 +107,13 @@ Une fabrication d'un produit, à une date, avec un **prix propre au lot** (RG-02
 | `product_id` | integer | FK → `product`, non nul | Produit fabriqué |
 | `production_date` | date | non nul | Date de fabrication |
 | `sale_price` | decimal(10,2) | non nul | Prix **par kg** (`by_weight`) ou **par pièce** (`by_piece`) (RF-07) |
-| `raw_material_ref` | varchar | nullable | Texte libre en V1 (RF-08) |
-| `expiry_date` | date | nullable | DLC éventuelle (RF-09) |
+| `raw_material_ref` | varchar | nullable | Texte libre (RF-08) — **non saisissable en V1**, voir la note ci-dessous |
+| `expiry_date` | date | nullable | DLC éventuelle (RF-09) — **non saisissable en V1**, voir la note ci-dessous |
 | `notes` | text | nullable | Observations |
 | `created_by` | uuid | FK → `app_user`, nullable | Auteur (RF-27) |
 | `created_at` / `updated_at` | timestamptz | | Audit |
+
+> **`raw_material_ref` et `expiry_date` ne sont pas exposés en V1** *(décision du 2026-09-11, PRD v0.7)*. Les colonnes existent, l'API les accepte à la création comme à la modification d'un lot, et les alertes DLC de la V2 s'appuieront dessus (§8). Mais le formulaire d'ajout au stock les laisse de côté : deux saisies facultatives de plus sur le parcours le plus fragile (R-01), alors que la prise en main de l'outil est déjà le défi principal. Ne pas les rajouter au formulaire sans rouvrir RF-08/RF-09.
 
 **Règles complémentaires (implémentation, RG-10, révisées en v0.9)** : `product_id` et `production_date` sont **définitifs** après création. `sale_price`, `raw_material_ref`, `expiry_date`, `notes` restent modifiables (correction d'erreur de saisie). Un lot **peut être supprimé**, avec l'intégralité de ses `stock_unit`, **tant qu'aucune de ces unités ne porte de `stock_movement`** — vente, perso ou perte confondues ; sinon la suppression est refusée (`409`). C'est une correction d'erreur de saisie, pas une opération de gestion : elle est la soupape qui rend vivable le gel du code produit (§3.3). Les unités sont supprimées explicitement par le service, dans une transaction ; le `RESTRICT` en base est conservé comme filet. Les numéros de ses unités **ne sont pas libérés** (§3.9). La création d'un lot est **bloquée** si le produit référencé est inactif ou inexistant.
 

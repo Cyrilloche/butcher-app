@@ -14,14 +14,14 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 
 ## 2. État d'avancement & feuille de route
 
-**Phase actuelle : backend Vague 1 complet, socle de déploiement livré (ADR-010), frontend au niveau à un manque près — une vente se corrige et se supprime désormais depuis l'interface, seule reste la saisie DLC/matière première d'un lot (voir `docs/etat-des-lieux.md`).**
+**Phase actuelle : Vague 1 complète côté périmètre fonctionnel. Backend complet, socle de déploiement livré (ADR-010), frontend au niveau de l'API. La saisie DLC/matière première d'un lot (RF-08/RF-09) est reportée en V2 le 2026-09-11 : deux champs facultatifs de plus sur le parcours le plus fragile, alors que la prise en main de l'outil est déjà le vrai défi. Reste à dérouler la recette manuelle de la correction d'une vente (`specs/003-sale-correction/quickstart.md`).**
 
 | Étape | Statut |
 |---|---|
 | Cadrage métier (discovery) | ✅ Terminé |
-| PRD | ✅ Rédigé (v0.4) |
+| PRD | ✅ Rédigé (v0.7, règles réalignées sur le code livré) |
 | Décisions d'architecture (ADR) | ✅ Rédigées (ADR-006 tranché : Vuetify) |
-| Modèle de données | ✅ Rédigé (v0.7, aligné sur l'implémentation) |
+| Modèle de données | ✅ Rédigé (v0.10, aligné sur l'implémentation) |
 | Maquettes (Claude Design) | ✅ Toutes vues Vague 1 maquettées (Stock, Produits, Clients, Ventes) ; itération ensuite en code (voir §10) |
 | Backend — cœur métier (9 entités dont `sale`, CRUD + logique métier) | ✅ Exposé en API, 127 tests |
 | Spike authentification (JWT) | ✅ Réalisé et vérifié — ADR-009 accepté (Identity allégé, refresh token rotatif en base, cookie httpOnly/Secure, seed par variable d'environnement) |
@@ -33,7 +33,7 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 | Modification et fin de vie d'un produit | ✅ Un produit sans lot se corrige entièrement ; code et mode de vente se figent au premier lot ; un lot intact se supprime ; la désactivation exige un stock écoulé, avec solde en perte des unités restantes (`specs/001-product-edit-lifecycle/`) |
 | Correction et suppression d'une vente (RG-14, RG-11) | ✅ En-tête corrigeable (client, date, paiement, note) ; une ligne se corrige sur son montant et son poids vendu, ou se retire ; la vente entière se supprime, rendant au stock les unités sans autre sortie. Le montant reste celui qui a été saisi, jamais recalculé (`specs/003-sale-correction/`) |
 | Numéro d'étiquette porté par l'unité | ✅ Le numéro `CODE-YYMMDD-N` identifie le sachet et non la fabrication ; registre `unit_number_sequence` sous verrou, aucun numéro jamais réémis (`specs/002-unit-numbering/`) |
-| Développement Vague 1 | 🔄 Quasi complet — reste, côté interface, la saisie DLC/matière première d'un lot (RF-08/RF-09) |
+| Développement Vague 1 | ✅ Complet côté périmètre — RF-08/RF-09 (DLC, matière première) reportées en V2 le 2026-09-11 ; recette manuelle de la correction d'une vente à dérouler |
 | Analyse d'écart doc ↔ code | ✅ `docs/etat-des-lieux.md` (04/09/2026) |
 
 **Méthode : dé-risquage avant développement.** On valide les points techniques risqués par des *spikes* isolés **avant** de construire les fonctionnalités. Spikes prévus, dans l'ordre :
@@ -50,7 +50,7 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 - Sorties : vente (unité entière + jambon « entamé » en plusieurs fois), usage perso, perte.
 - Historique d'achats par client + traçabilité lot ↔ client.
 
-**Reporté en Vague 2+** : coût de revient et rentabilité, gestion des achats de matière première, recettes versionnées, multi-comptes avec journalisation, alertes (stock bas, DLC).
+**Reporté en Vague 2+** : coût de revient et rentabilité, gestion des achats de matière première, **saisie de la référence de matière première et de la DLC d'un lot (RF-08/RF-09)**, recettes versionnées, multi-comptes avec journalisation, alertes (stock bas, DLC).
 
 ---
 
@@ -212,6 +212,7 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 - ❌ Afficher des valeurs techniques anglaises à l'utilisateur → passer par la table de correspondance FR.
 - ❌ Recalculer `amount` à la volée en ignorant la valeur saisie → conserver le montant réel.
 - ❌ Modéliser le stock `by_piece` avec un compteur parallèle → garder le mécanisme uniforme.
+- ❌ Ajouter la DLC ou la référence de matière première au formulaire de création d'un lot → reportées en V2 le 2026-09-11 (RF-08/RF-09). Les colonnes et l'API existent, c'est l'exposition à l'écran qui est volontairement écartée : deux saisies facultatives de plus sur le parcours le plus fragile.
 - ❌ Réintroduire une unité de mesure sur le produit → supprimée le 2026-09-04 (`sale_mode` suffit, voir `data-model.md` §3.2). Un produit doit rester créable sur une base vierge.
 - ❌ Dupliquer le client sur `stock_movement` (une seule source de vérité : `sale.customer_id`).
 - ❌ Supprimer un client qui a des ventes → refusé (`409`), ça effacerait la traçabilité lot ↔ client (RF-24).

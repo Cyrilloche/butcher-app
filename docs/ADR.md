@@ -4,10 +4,10 @@
 |---|---|
 | **Projet** | Mini-ERP Charcuterie (repo : `butcher-app`) |
 | **Document** | Architecture Decision Record — Journal |
-| **Version** | 0.1 |
-| **Date** | 2 septembre 2026 |
-| **Statut** | En cours de cadrage technique |
-| **Document lié** | PRD Mini-ERP Charcuterie v0.1 |
+| **Version** | 0.2 |
+| **Date** | 11 septembre 2026 |
+| **Statut** | Cadrage technique clos pour la V1 — les 10 décisions sont acceptées et toutes implémentées |
+| **Documents liés** | PRD Mini-ERP Charcuterie v0.7, `docs/data-model.md` v0.10 |
 
 ### À propos de ce document
 

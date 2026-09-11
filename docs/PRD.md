@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Nom de projet** | Mini-ERP Charcuterie (nom de code : *à définir*) |
-| **Version du document** | 0.5 |
-| **Date** | 4 septembre 2026 |
-| **Statut** | En cours d'implémentation — backend V1 complet, déploiement livré (ADR-010), frontend en rattrapage sur quelques parcours V1 (voir `docs/etat-des-lieux.md`) |
+| **Nom de projet** | Mini-ERP Charcuterie (application : **Saloir**) |
+| **Version du document** | 0.7 |
+| **Date** | 11 septembre 2026 |
+| **Statut** | Vague 1 complète côté périmètre — backend V1 complet, déploiement livré (ADR-010), frontend au niveau de l'API ; reste la recette manuelle de la correction d'une vente (voir `docs/etat-des-lieux.md`) |
 | **Auteur** | Cyril, avec assistance à l'architecture |
 | **Destinataires** | Utilisateurs finaux (exploitants), équipe de développement |
 
@@ -17,6 +17,8 @@
 | 0.2 | 2026-09-03 | Cyril, avec assistance à l'implémentation | Ajout des règles de gestion RG-08 à RG-12, apparues pendant l'implémentation du backend (cœur métier V1 entièrement exposé en API à cette date) ; précision sur RF-10 |
 | 0.4 | 2026-09-04 | Cyril | **Retrait des unités de mesure du périmètre V1** : RF-03, RF-04, RF-05 et RG-08 abandonnés (marqués, non effacés). Le mode de vente suffit à piloter l'affichage du prix (€/kg ou €/pièce) ; l'unité choisie n'avait aucun effet sur le calcul (RG-03) et imposait d'alimenter un référentiel avant de pouvoir créer le moindre produit. |
 | 0.5 | 2026-09-04 | Cyril, avec assistance à l'implémentation | Statut réaligné sur la réalité après analyse d'écart (`docs/etat-des-lieux.md`) : aucune exigence modifiée, mais RF-21 (sorties `perso`/`perte`) et RF-08/RF-09 (DLC, matière première) sont implémentés côté API sans être atteignables depuis l'interface — écarts tracés, Vague 1 non close tant que RF-21 ne l'est pas. |
+| 0.6 | 2026-09-11 | Cyril, avec assistance à l'implémentation | **RF-08 et RF-09 reportées en V2** (référence de matière première et DLC d'un lot) : facultatives, informatives, et deux saisies de plus sur le parcours le plus fragile. La prise en main de l'outil par des utilisateurs non techniques prime (H-06, RNF-02). Exigences conservées et réversibles sans coût — le modèle et l'API les portent déjà. Vague 1 close côté périmètre fonctionnel. |
+| 0.7 | 2026-09-11 | Cyril, avec assistance à l'implémentation | **Remise en cohérence des règles avec le code livré** : RG-09 révisée (la désactivation d'un produit exige un stock écoulé), RG-10 révisée (suppression d'un lot intact ouverte, le lot n'a plus de numéro), ajout de RG-16 (mutabilité du produit conditionnée à son usage) et RG-17 (numéro d'étiquette porté par l'unité, jamais réémis). §9 réaligné : unité de mesure retirée, numéro d'étiquette et registre de numérotation ajoutés. Aucune décision nouvelle — le document rattrape trois fonctionnalités déjà livrées. |
 | 0.3 | 2026-09-04 | Cyril, avec assistance à l'implémentation | **Q-04 et Q-05 résolus et implémentés** : ajout de l'entité *vente* (numéro unique, statut de paiement, regroupement de plusieurs unités) — nouvelles exigences RF-28 à RF-31 et règles RG-13 à RG-15 ; RF-17/RG-07 (client obligatoire) désormais garantis par le modèle ; §9 mis en cohérence (le client n'est plus optionnel) |
 
 ---
@@ -80,7 +82,7 @@ Le projet suit une approche **agile par vagues**. Le périmètre ci-dessous dist
 ### 4.1 Dans le périmètre — V1 (noyau)
 
 - Gestion des **produits** et de leur mode de vente.
-- Gestion des **lots de production** (produit, date, prix de vente, référence libre de matière première).
+- Gestion des **lots de production** (produit, date, prix de vente). La référence de matière première et la DLC sont reportées en V2 *(voir RF-08/RF-09)*.
 - Suivi du **stock à l'unité physique** (chaque sachet, chaque jambon), avec poids et statut individuels.
 - Enregistrement des **ventes**, des **sorties personnelles** et des **pertes/casses**.
 - Gestion des **clients** et de l'historique associé.
@@ -91,6 +93,7 @@ Le projet suit une approche **agile par vagues**. Le périmètre ci-dessous dist
 
 - **Coût de revient et rentabilité** : coût de la matière première réparti sur les lots, marge réelle (encaissé − coût), valorisation de la production.
 - **Gestion des achats de matière première** (viande et autres intrants) comme entité à part entière, reliée aux lots.
+- **Saisie de la référence de matière première et de la DLC d'un lot** *(RF-08/RF-09, reportées le 2026-09-11)* : déjà portées par le modèle et par l'API, à exposer dans l'interface une fois l'outil pris en main.
 - **Recettes** : capitalisation des recettes, puis versionnement des recettes rattaché aux lots (lien `lot → version de recette → produit`) pour ajuster les productions futures selon les retours.
 - **Gestion multi-comptes avec journalisation** (« qui a fait quoi »).
 - **Alertes** (seuil de stock bas, DLC approchante).
@@ -150,9 +153,15 @@ Les exigences sont identifiées `RF-xx`. Les règles de gestion associées sont 
 |---|---|
 | RF-06 | L'utilisateur peut créer un **lot de production**, caractérisé par : un produit, une date de production, un prix de vente (au kg ou à la pièce selon le mode du produit). |
 | RF-07 | Le prix de vente est défini **au niveau du lot** (et non figé au niveau du produit) : deux lots d'un même produit peuvent avoir des prix différents selon la demande ou le coût des matières. |
-| RF-08 | Un lot porte une **référence libre de matière première** (champ texte, ex. « porc — grossiste X »), à titre informatif en V1. |
-| RF-09 | Un lot peut porter une **date de péremption (DLC)**. |
+| RF-08 | Un lot porte une **référence libre de matière première** (champ texte, ex. « porc — grossiste X »). — **Reporté en V2 le 2026-09-11** : le champ reste porté par le modèle et par l'API, mais n'est pas exposé dans l'interface V1. |
+| RF-09 | Un lot peut porter une **date de péremption (DLC)**. — **Reporté en V2 le 2026-09-11**, dans les mêmes termes que RF-08. |
 | RF-10 | La création d'un lot génère les **unités physiques de stock** correspondantes (§6.4). |
+
+> **Pourquoi ce report.** Ces deux champs sont facultatifs et purement informatifs en V1 : rien dans la chaîne production → stock → vente ne les lit. Les exposer allongerait le formulaire de création d'un lot de deux saisies supplémentaires, sur le parcours déjà identifié comme le plus fragile (R-01, pesée unité par unité). Or le vrai risque du projet n'est pas la richesse fonctionnelle, c'est l'adoption par deux utilisateurs non techniques (H-06, RNF-02) : la seule prise en main de l'outil est déjà un défi en soi. On garde donc le formulaire au strict nécessaire, et on rouvrira la question quand l'outil sera entré dans les habitudes.
+>
+> **Ce qu'on perd.** La trace écrite de la provenance de la viande et de la DLC d'une fournée, qui restent sur le papier en V1.
+>
+> **Réversibilité.** Totale et sans coût : les colonnes `raw_material_ref` et `expiry_date` existent, l'API les accepte déjà à la création comme à la modification d'un lot. Rouvrir ces exigences ne demande que deux champs dans le formulaire d'ajout au stock. C'est aussi le socle des alertes DLC prévues en V2 (§4.2).
 
 > **Note d'implémentation** — Au niveau de l'API, la création du lot et la génération des unités physiques sont **deux actions distinctes** (deux appels), pas une seule opération atomique : ça permet d'ajouter des unités en plusieurs fois (pesée étalée sur plusieurs jours pour un même lot). Le frontend peut tout à fait enchaîner les deux appels pour donner l'impression d'un flux unique à l'utilisateur ; ça reste un choix d'implémentation, pas un changement du besoin exprimé par RF-10.
 
@@ -215,12 +224,14 @@ Le stock n'est pas un compteur abstrait : il représente des **objets physiques 
 | RG-06 | Les statuts de sortie (`vendu`, `perso`, `perdu`) sont exclusifs et s'appliquent à l'échelle de l'unité physique individuelle. |
 | RG-07 | **(Modifié 2026-09-04, remplace la règle initiale)** Un mouvement de vente doit être rattaché à un client — plus de vente anonyme. V1 limitée à la vente à des particuliers (nom + prénom) ; la vente à des professionnels (raison sociale) est reportée à une évolution ultérieure si le besoin se confirme. |
 | ~~RG-08~~ | ~~Une **unité de mesure** ne peut pas être désactivée tant qu'elle est utilisée par un produit actif.~~ **Abandonnée le 2026-09-04** avec RF-04/RF-05. Identifiant conservé, non réattribué. |
-| RG-09 | La **désactivation d'un produit** n'est jamais bloquée, y compris s'il a déjà des lots de production. Elle n'empêche que la création de **nouveaux** lots pour ce produit à l'avenir ; l'historique (lots, stock, ventes) reste consultable normalement. |
-| RG-10 | Un **lot de production** reste partiellement modifiable après création (prix de vente, référence matière première, DLC, notes), pour corriger une erreur de saisie. Le produit, la date de production et le numéro de lot sont **définitifs** dès la création : ils sont indissociables du numéro de lot lui-même (§4.1 du modèle de données) et de l'identité du lot. Aucune suppression de lot n'est possible. |
+| RG-09 | **(révisée le 2026-09-09)** La **désactivation d'un produit** est refusée tant qu'il lui reste une unité physique `disponible` ou `entamé` : un produit retiré du catalogue ne doit pas laisser du stock fantôme derrière lui. Pour débloquer la désactivation, l'utilisateur solde les unités restantes en **perte**, sur une sélection qu'il choisit. Une fois le produit désactivé, seule la création de **nouveaux** lots est empêchée ; l'historique (lots, stock, ventes) reste consultable normalement. *Formulation initiale (« la désactivation n'est jamais bloquée ») abandonnée : elle laissait un produit désactivé conserver du stock vendable, incohérence constatée à l'implémentation.* |
+| RG-10 | **(révisée les 2026-09-09 et 2026-09-10)** Un **lot de production** reste partiellement modifiable après création (prix de vente, référence matière première, DLC, notes), pour corriger une erreur de saisie. Le produit et la date de production sont **définitifs** dès la création : les numéros d'étiquette déjà émis en dépendent (§4.1 du modèle de données). Un lot **peut être supprimé**, avec toutes ses unités, **tant qu'aucune de ses unités ne porte de mouvement** — vente, perso ou perte confondues ; sinon la suppression est refusée. C'est une correction d'erreur de saisie, pas un geste de gestion : elle est ce qui rend acceptable le gel du code produit (RG-16). Les numéros des unités supprimées ne sont **jamais** réémis (RG-17). *Un lot ne porte plus de numéro depuis le 2026-09-10 : c'est l'unité physique qui en porte un.* |
 | RG-11 | Contrairement au lot de production, un **mouvement de stock** (vente, perso, perte) reste **modifiable et supprimable** après création — choix assumé pour une activité amateur sans contrainte comptable formelle, plutôt qu'un principe strict d'immuabilité de l'historique. Supprimer le dernier mouvement rattaché à une unité physique la remet au statut `disponible` ; dans les autres cas (ex. une vente parmi plusieurs sur un jambon entamé), le statut de l'unité n'est pas recalculé automatiquement. |
 | RG-12 | Une unité physique peut être marquée `perso` ou `perdu` aussi bien depuis le statut `disponible` que depuis `entamé` (ex. un jambon entamé qui tourne peut être déclaré perdu sans repasser par une vente complète). |
 | RG-13 | **(2026-09-04)** Une vente comporte **au moins une ligne** et est enregistrée **en une seule opération** (en-tête + lignes) : si une ligne est invalide, rien n'est enregistré. À l'inverse d'un lot de production, dont les unités sont ajoutées progressivement (pesée étalée), une vente est un instant unique. Des lignes peuvent néanmoins être ajoutées après coup à une vente existante. |
 | RG-14 | **(2026-09-04)** Une vente est **modifiable** (client, date, paiement, notes) et **supprimable** (prolongement de RG-11). La supprimer supprime ses lignes ; toute unité physique ne portant alors plus aucun mouvement redevient `disponible`. Supprimer la dernière ligne d'une vente est refusé : c'est la vente qu'il faut supprimer. |
+| RG-16 | **(2026-09-09)** Le **code** et le **mode de vente** d'un produit restent modifiables tant qu'aucun lot ne lui est rattaché, et se figent dès le premier lot : le code est alors recopié à la main sur des étiquettes déjà en circulation, et le mode de vente conditionne la lecture des ventes passées. Le nom et l'autorisation de vente à la tranche restent modifiables à tout moment. L'état « utilisé » est **déduit** de l'existence d'un lot, jamais stocké : supprimer le dernier lot (RG-10) rend au produit sa modifiabilité. |
+| RG-17 | **(2026-09-10)** Le numéro recopié sur l'étiquette identifie l'**unité physique** (le sachet, le jambon), pas la fabrication : format `CODE-AAMMJJ-N`, attribué par le serveur au moment de la pesée, jamais modifié ensuite — le papier, lui, ne se réécrit pas. `N` court par produit et par date de production ; une seconde fournée du même jour poursuit la numérotation. Un numéro émis n'est **jamais** réattribué, même après suppression de son unité ou de son lot : deux étiquettes manuscrites identiques seraient indiscernables. Une unité `disponible` ne portant aucun mouvement peut être supprimée (erreur de pesée), sans libérer son numéro. |
 | RG-15 | **(2026-09-04)** Le **total d'une vente** est la somme des montants réellement encaissés sur ses lignes ; il est calculé, jamais saisi ni figé — chaque ligne conserve son montant réel (RG-05, montant stocké et non recalculé). |
 
 ---
@@ -246,10 +257,11 @@ Le stock n'est pas un compteur abstrait : il représente des **objets physiques 
 
 **Entités du noyau V1**
 
-- **Produit** — code, nom, mode de vente.
-- **Unité de mesure** — libellé, abréviation.
-- **Lot de production** — produit, date, prix de vente, référence matière première (texte), DLC, auteur de création.
-- **Unité physique** — rattachée à un lot ; poids (si applicable), statut.
+- **Produit** — code, nom, mode de vente, autorisation de vente à la tranche, actif/inactif.
+- ~~**Unité de mesure**~~ — *entité supprimée le 2026-09-04 (RF-04/RF-05 abandonnées).*
+- **Lot de production** — produit, date, prix de vente, référence matière première (texte), DLC, auteur de création. Ne porte **aucun numéro** depuis le 2026-09-10.
+- **Unité physique** — rattachée à un lot ; **numéro d'étiquette** (RG-17), poids (si applicable), statut.
+- **Registre de numérotation** — dernier numéro émis par produit et par date de production ; garantit qu'aucun numéro n'est réémis (RG-17).
 - **Vente** — numéro unique, date, client (obligatoire), statut de paiement, notes, auteur de création ; regroupe une ou plusieurs lignes.
 - **Mouvement** (ligne) — rattaché à une unité physique ; type (vente/perso/casse), montant, poids vendu, date, auteur de création ; rattaché à une `Vente` si et seulement si son type est « vente ».
 - **Client** — nom, prénom, téléphone.
@@ -278,7 +290,7 @@ Le stock n'est pas un compteur abstrait : il représente des **objets physiques 
 | H-01 | Activité annexe, à faible volume ; l'outil n'a pas vocation à gérer une production industrielle. |
 | H-02 | La vente reste informelle (particuliers, espèces) ; aucune contrainte de facturation légale en V1. |
 | H-03 | Les recettes ne sont pas stockées en V1 ; elles restent hors application jusqu'à une vague ultérieure. |
-| H-04 | La matière première n'est pas tracée en V1 (champ texte informatif uniquement). |
+| H-04 | La matière première n'est pas tracée en V1. Le champ texte informatif existe dans le modèle mais n'est pas saisissable depuis l'interface (RF-08, reportée le 2026-09-11). |
 | H-05 | L'application sera exposée sur Internet, ce qui impose l'authentification dès la V1. |
 | H-06 | Les utilisateurs finaux sont non techniques : la simplicité prime sur la richesse fonctionnelle. |
 
@@ -299,7 +311,7 @@ Le stock n'est pas un compteur abstrait : il représente des **objets physiques 
 
 | Réf. | Question |
 |---|---|
-| Q-01 | Choix de la plateforme d'hébergement et de la stratégie d'authentification (à traiter en phase technique). |
+| ~~Q-01~~ | ~~Choix de la plateforme d'hébergement et de la stratégie d'authentification~~ — ✅ **Résolu** : authentification tranchée par ADR-009 (jeton d'accès court en mémoire, jeton de rafraîchissement rotatif en base, cookie `httpOnly`), hébergement tranché et livré par ADR-010 (Docker Compose sur VPS, reverse proxy Caddy, tunnel Cloudflare). |
 | Q-02 | Faut-il, à l'usage, passer à deux comptes distincts avec journalisation dès la V1 ou attendre une vague ultérieure ? (décision reportée à la phase de développement). |
 | Q-03 | Existe-t-il des produits futurs (terrines, etc.) dont le mode de vente n'entre pas dans `poids_variable` / `piece_simple` ? (à valider avec les exploitants). |
 | ~~Q-04~~ | ~~Statut de paiement de la vente (`payée` / `à payer`)~~ — ✅ **Résolu et implémenté le 2026-09-04** : voir RF-30 et `data-model.md` §3.7. |
