@@ -98,12 +98,19 @@ async function saveHeader() {
 // --- Bascule rapide du paiement, depuis l'écran de lecture ------------------------------------
 
 const togglingPayment = ref(false)
+const paymentError = ref<string | null>(null)
+
 async function markPaid() {
   if (!sale.value) return
   togglingPayment.value = true
+  paymentError.value = null
   try {
     await setSalePayment(sale.value.id, { paid: true })
     await reload()
+  } catch (err) {
+    // Sans ça, un refus (vente supprimée ailleurs, serveur injoignable) se soldait par un bouton
+    // qui s'éteint sans rien dire : l'utilisateur croyait la vente payée.
+    paymentError.value = apiErrorMessage(err, 'Changement impossible, réessaie.')
   } finally {
     togglingPayment.value = false
   }
@@ -221,7 +228,7 @@ async function onSaleDeleted() {
       <!-- Les lignes : un appui ouvre la correction de la ligne -->
       <AppCard>
         <div class="sale-detail-view__section-title text-secondary">
-          {{ sale.itemCount }} lot{{ sale.itemCount > 1 ? 's' : '' }} vendu{{ sale.itemCount > 1 ? 's' : '' }}
+          {{ sale.itemCount }} article{{ sale.itemCount > 1 ? 's' : '' }} vendu{{ sale.itemCount > 1 ? 's' : '' }}
         </div>
         <button
           v-for="line in lineViews"
@@ -261,6 +268,7 @@ async function onSaleDeleted() {
           <v-icon start size="18">phosphor:check-circle</v-icon>
           Marquer comme payée
         </AppButton>
+        <p v-if="paymentError" class="sale-detail-view__error text-error">{{ paymentError }}</p>
 
         <AppButton block height="56" color="secondary" variant="outlined" @click="openEdit">
           <v-icon start size="18">phosphor:pencil-simple</v-icon>

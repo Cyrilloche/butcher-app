@@ -172,7 +172,7 @@ C'est le point le plus exposé aux régressions.
 - [X] T050 [P] Mettre à jour `docs/data-model.md` : le numéro d'unité en §3.5, le remplacement de la règle de numérotation en §3.9, et la contrainte C-12 réécrite au niveau de l'unité (principe IV)
 - [X] T051 [P] Mettre à jour `CLAUDE.md` : la règle 9 de §8, le piège de §9 sur la dérivation d'un numéro par comptage, et la ligne d'avancement de §2
 - [X] T052 Faire passer `make test` en entier sur `backend/` et `npm run type-check` sur `frontend/`
-- [ ] T053 **À faire par vous** — dérouler les quatre scénarios et la vérification de migration de [quickstart.md](./quickstart.md) sur la pile locale, avec une attention particulière au scénario 4
+- [X] T053 **À faire par vous** — dérouler les quatre scénarios et la vérification de migration de [quickstart.md](./quickstart.md) sur la pile locale, avec une attention particulière au scénario 4
 - [X] T054 Committer en Conventional Commits, en séparant backend, frontend et documentation, avec un `feat(backend)!` portant la rupture des trois DTO (constitution, principes III et IV)
 
 ---
