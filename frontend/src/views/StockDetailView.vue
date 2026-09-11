@@ -53,12 +53,14 @@ async function onOutcomeDone() {
     <div class="stock-detail-view__batches">
       <section v-for="batch in detail.batches" :key="batch.id">
         <div class="stock-detail-view__day">
-          <h3 class="stock-detail-view__day-title">
-            {{ batch.dateLabel }}
+          <div class="stock-detail-view__day-label">
+            <h3 class="stock-detail-view__day-title">{{ batch.dateLabel }}</h3>
+            <!-- Sous la date, jamais à côté : accolé, le rang poussait la ligne à se couper en
+                 plein milieu du titre sur un téléphone. -->
             <span v-if="batch.dayRankLabel" class="stock-detail-view__day-rank text-secondary">
-              · {{ batch.dayRankLabel }}
+              {{ batch.dayRankLabel }}
             </span>
-          </h3>
+          </div>
           <div class="stock-detail-view__day-meta">
             <span class="text-secondary font-weight-medium">{{ batch.priceLabel }}</span>
             <BatchDeleteAction
@@ -121,19 +123,25 @@ async function onOutcomeDone() {
   border-bottom: 2px solid rgb(var(--v-theme-secondary));
 }
 
+.stock-detail-view__day-label {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .stock-detail-view__day-title {
   font-family: var(--font-heading);
   font-size: 21px;
   font-weight: 600;
-  line-height: 1.1;
+  line-height: 1.15;
   margin: 0;
-  min-width: 0;
 }
 
 .stock-detail-view__day-rank {
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
+  line-height: 1.2;
 }
 
 .stock-detail-view__day-meta {

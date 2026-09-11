@@ -53,12 +53,14 @@ const showsRemaining = computed(
   row-gap: 2px;
   column-gap: 10px;
   min-height: 68px;
-  border-top: 1px solid rgb(var(--v-theme-status-neutral-container));
   padding: 8px 0;
 }
 
-.stock-unit-row:first-child {
-  border-top: none;
+/* Un filet *entre* les unités, jamais au-dessus de la première : il sépare, il n'encadre pas.
+   Le voisinage plutôt que `:first-child`, qui ne mordait pas — la ligne n'est pas le premier
+   enfant de la carte. */
+.stock-unit-row + .stock-unit-row {
+  border-top: 1px solid rgb(var(--v-theme-status-neutral-container));
 }
 
 .stock-unit-row__num {

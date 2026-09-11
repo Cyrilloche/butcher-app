@@ -184,7 +184,9 @@ export async function getStockDashboard(): Promise<{
       .reduce((sum, u) => sum + (u.remainingWeight != null ? weightToGrams(u.remainingWeight) : 0), 0)
 
     const metaParts = [product.saleMode === 'by_weight' ? 'Au poids' : 'À la pièce']
-    if (product.saleMode === 'by_weight' && totalGrams > 0) metaParts.push(`${formatWeight(totalGrams)} au total`)
+    if (product.saleMode === 'by_weight' && inStock > 0) {
+      metaParts.push(`${formatWeight(totalGrams)} à vendre`)
+    }
 
     return {
       code: product.code,
@@ -265,7 +267,11 @@ export async function getStockDetail(code: string): Promise<StockDetail | null> 
     .filter((batch) => batch.units.length > 0)
 
   const summaryParts = [`${count} ${pluralize(product.unitLabel, count)} en stock`]
-  if (product.saleMode === 'by_weight' && totalGrams > 0) summaryParts.push(formatWeight(totalGrams))
+  // Un produit au poids annonce toujours son restant, même nul : « 1 unité · 0 g » dit qu'il ne
+  // reste rien à vendre et qu'une clôture est due. Masquer le zéro laisserait croire à un bug.
+  if (product.saleMode === 'by_weight' && count > 0) {
+    summaryParts.push(`${formatWeight(totalGrams)} à vendre`)
+  }
 
   return { name: product.name, isActive: productDto.isActive, summary: summaryParts.join(' · '), batches }
 }
