@@ -18,7 +18,13 @@ public class StockUnitServiceTests(PostgresDatabaseFixture fixture) : IAsyncLife
     private static async Task<ProductionBatch> SeedBatchAsync(
         AppDbContext dbContext, SaleMode saleMode, string code = "SC", DateOnly? productionDate = null)
     {
-        var product = new Product { Code = code, Name = "Saucisse curry", SaleMode = saleMode };
+        var product = new Product
+        {
+            Code = code,
+            Name = "Saucisse curry",
+            SaleMode = saleMode,
+            AllowPartialSale = saleMode == SaleMode.ByWeight,
+        };
         dbContext.Products.Add(product);
         await dbContext.SaveChangesAsync();
 
@@ -307,5 +313,157 @@ public class StockUnitServiceTests(PostgresDatabaseFixture fixture) : IAsyncLife
         var next = await service.AddUnitsAsync(batch.Id, new AddStockUnitsRequest { Weights = [1m] });
 
         Assert.Equal(["SC-260831-3"], next.Select(u => u.UnitNumber));
+    }
+
+    // ----------------------------------------------------------------------------------------
+    // Poids encore vendable (RG-05) — calculé à chaque lecture, jamais stocké.
+    // ----------------------------------------------------------------------------------------
+
+    /// <summary>L'enveloppe qu'attend un mouvement de type vente : une <c>Sale</c> et son client.</summary>
+    private static async Task<Sale> SeedSaleAsync(AppDbContext dbContext)
+    {
+        var customer = new Customer { LastName = "Dupont", FirstName = "Jean" };
+        dbContext.Customers.Add(customer);
+        await dbContext.SaveChangesAsync();
+
+        var sale = new Sale
+        {
+            SaleNumber = $"V-260911-{Guid.NewGuid().ToString()[..8]}",
+            CustomerId = customer.Id,
+            Date = DateTimeOffset.UtcNow,
+        };
+        dbContext.Sales.Add(sale);
+        await dbContext.SaveChangesAsync();
+        return sale;
+    }
+
+    private static Task SellSliceAsync(AppDbContext dbContext, int stockUnitId, int saleId, decimal soldWeight) =>
+        new StockMovementService(dbContext).CreateAsync(stockUnitId, new CreateStockMovementRequest
+        {
+            Type = MovementType.Sale,
+            SaleId = saleId,
+            IsFullSale = false,
+            SoldWeight = soldWeight,
+            Amount = 10m,
+        });
+
+    [Fact]
+    public async Task GetAllAsync_UnitWithNoSale_RemainingWeightEqualsWeighedWeight()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var batch = await SeedBatchAsync(dbContext, SaleMode.ByWeight);
+        var service = new StockUnitService(dbContext);
+        await service.AddUnitsAsync(batch.Id, new AddStockUnitsRequest { Weights = [3.000m] });
+
+        var units = await service.GetAllAsync(batch.Id, null, null);
+
+        var unit = Assert.Single(units);
+        Assert.Equal(3.000m, unit.Weight);
+        Assert.Equal(3.000m, unit.RemainingWeight);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_PartiallySoldUnit_RemainingWeightIsTheDifference()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var batch = await SeedBatchAsync(dbContext, SaleMode.ByWeight);
+        var service = new StockUnitService(dbContext);
+        var created = await service.AddUnitsAsync(batch.Id, new AddStockUnitsRequest { Weights = [3.000m] });
+        var sale = await SeedSaleAsync(dbContext);
+
+        await SellSliceAsync(dbContext, created[0].Id, sale.Id, 1.200m);
+        await SellSliceAsync(dbContext, created[0].Id, sale.Id, 1.000m);
+
+        var unit = Assert.Single(await service.GetAllAsync(batch.Id, null, null));
+        Assert.Equal(StockUnitStatus.Opened, unit.Status);
+        Assert.Equal(3.000m, unit.Weight);
+        Assert.Equal(0.800m, unit.RemainingWeight);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_FullySlicedUnit_RemainingWeightIsZeroAndUnitStaysOpened()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var batch = await SeedBatchAsync(dbContext, SaleMode.ByWeight);
+        var service = new StockUnitService(dbContext);
+        var created = await service.AddUnitsAsync(batch.Id, new AddStockUnitsRequest { Weights = [2.800m] });
+        var sale = await SeedSaleAsync(dbContext);
+
+        await SellSliceAsync(dbContext, created[0].Id, sale.Id, 2.800m);
+
+        var unit = Assert.Single(await service.GetAllAsync(batch.Id, null, null));
+        // Zéro, jamais négatif : la clôture est manuelle, l'unité reste en stock (RG-04).
+        Assert.Equal(0m, unit.RemainingWeight);
+        Assert.Equal(StockUnitStatus.Opened, unit.Status);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_ByPieceUnit_HasNoRemainingWeight()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var batch = await SeedBatchAsync(dbContext, SaleMode.ByPiece, code: "TR");
+        var service = new StockUnitService(dbContext);
+        await service.AddUnitsAsync(batch.Id, new AddStockUnitsRequest { Quantity = 2 });
+
+        var units = await service.GetAllAsync(batch.Id, null, null);
+
+        // Absent, et non zéro : la notion de poids n'existe pas pour ce produit.
+        Assert.All(units, u => Assert.Null(u.RemainingWeight));
+    }
+
+    [Fact]
+    public async Task GetAllAsync_UnweighedUnit_HasNoRemainingWeight()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var batch = await SeedBatchAsync(dbContext, SaleMode.ByWeight);
+        dbContext.StockUnits.Add(new StockUnit { UnitNumber = TestUnitNumber.Next(), BatchId = batch.Id, Weight = null });
+        await dbContext.SaveChangesAsync();
+
+        var unit = Assert.Single(await new StockUnitService(dbContext).GetAllAsync(batch.Id, null, null));
+        Assert.Null(unit.RemainingWeight);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_PersonalOutcome_IsNotSubtractedFromRemainingWeight()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var batch = await SeedBatchAsync(dbContext, SaleMode.ByWeight);
+        var service = new StockUnitService(dbContext);
+        var created = await service.AddUnitsAsync(batch.Id, new AddStockUnitsRequest { Weights = [1.500m] });
+
+        await new StockMovementService(dbContext).CreateAsync(
+            created[0].Id, new CreateStockMovementRequest { Type = MovementType.Personal });
+
+        var unit = Assert.Single(await service.GetAllAsync(batch.Id, null, null));
+        // Seul le type vente se retranche. Un filtre trop large donnerait ici un restant nul.
+        Assert.Equal(StockUnitStatus.Personal, unit.Status);
+        Assert.Equal(1.500m, unit.RemainingWeight);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_PartiallySoldUnit_ReturnsTheSameRemainingWeight()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var batch = await SeedBatchAsync(dbContext, SaleMode.ByWeight);
+        var service = new StockUnitService(dbContext);
+        var created = await service.AddUnitsAsync(batch.Id, new AddStockUnitsRequest { Weights = [3.000m] });
+        var sale = await SeedSaleAsync(dbContext);
+
+        await SellSliceAsync(dbContext, created[0].Id, sale.Id, 0.750m);
+
+        var unit = await service.GetByIdAsync(created[0].Id);
+        Assert.Equal(2.250m, unit.RemainingWeight);
+    }
+
+    [Fact]
+    public async Task AddUnitsAsync_ReturnsRemainingWeightEqualToWeighedWeight()
+    {
+        await using var dbContext = fixture.CreateDbContext();
+        var batch = await SeedBatchAsync(dbContext, SaleMode.ByWeight);
+        var service = new StockUnitService(dbContext);
+
+        var created = await service.AddUnitsAsync(batch.Id, new AddStockUnitsRequest { Weights = [0.320m, 0.315m] });
+
+        Assert.Equal([0.320m, 0.315m], created.Select(u => u.RemainingWeight));
     }
 }

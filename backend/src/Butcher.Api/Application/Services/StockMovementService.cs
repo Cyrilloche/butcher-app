@@ -55,7 +55,7 @@ public class StockMovementService(AppDbContext dbContext) : IStockMovementServic
         // Le poids fourni par le client reste alors la seule information disponible.
         var soldWeight = request.Type == MovementType.Sale || unit.Weight is null
             ? request.SoldWeight
-            : StockMovementRules.ComputeOutcomeWeight(
+            : StockMovementRules.ComputeRemainingWeight(
                 unit, await SumSoldWeightForSaleMovementsAsync(unit.Id, excludingMovementId: null));
 
         StockMovementRules.ValidateSoldWeight(unit, soldWeight);

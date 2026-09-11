@@ -72,22 +72,28 @@ internal static class StockMovementRules
     }
 
     /// <summary>
-    /// Poids à enregistrer sur une sortie qui n'est pas une vente (usage perso ou perte) : le poids
-    /// pesé si l'unité est intacte, le restant estimé si elle est entamée, <c>null</c> si l'unité n'a
-    /// pas de poids. Une unité au poids pas encore pesée n'offre aucune base de calcul : l'appelant
-    /// retombe alors sur le poids fourni par l'utilisateur.
+    /// Poids encore vendable d'une unité : son poids pesé moins <paramref name="soldWeightSoFar"/>,
+    /// la somme des poids déjà vendus sur elle (RG-05). Vaut le poids pesé sur une unité intacte,
+    /// zéro sur une unité entièrement vendue, et <c>null</c> si l'unité n'a pas de poids — produit
+    /// vendu à la pièce, ou unité au poids pas encore pesée.
     /// </summary>
     /// <remarks>
-    /// Sur une unité entamée, repartir du poids pesé compterait deux fois la part déjà vendue : on
-    /// retranche donc <paramref name="soldWeightSoFar"/>, la somme des poids déjà vendus (RG-05).
-    /// Un restant nul signifie que l'unité a été vendue en totalité : il n'y a plus rien à sortir,
-    /// l'appelant doit la clôturer plutôt que d'enregistrer une perte de poids nul, que
-    /// <see cref="ValidateSoldWeight"/> rejetterait.
+    /// Deux appelants, un seul calcul. <see cref="StockMovementService"/> et
+    /// <see cref="ProductService"/> s'en servent pour le poids à **inscrire** sur une sortie perso
+    /// ou perte : repartir du poids pesé y compterait deux fois la part déjà vendue. Le service des
+    /// unités s'en sert pour le poids à **afficher** comme encore vendable. Le nom dit la valeur
+    /// calculée, pas son premier usage.
+    ///
+    /// Un restant nul signifie que l'unité a été vendue en totalité. Côté sortie de stock, il n'y a
+    /// alors plus rien à sortir et l'appelant doit la clôturer, plutôt qu'enregistrer une perte de
+    /// poids nul que <see cref="ValidateSoldWeight"/> rejetterait. Côté affichage, c'est le signal
+    /// qu'une clôture manuelle reste à faire (RG-04).
     ///
     /// Cette règle vit ici, et non dans le client : le principe II de la constitution fait du backend
     /// le garant des règles métier, et deux implémentations de celle-ci finiraient par diverger.
+    /// Le poids ainsi calculé n'est jamais stocké — aucune colonne, aucun cache.
     /// </remarks>
-    public static decimal? ComputeOutcomeWeight(StockUnit unit, decimal soldWeightSoFar)
+    public static decimal? ComputeRemainingWeight(StockUnit unit, decimal soldWeightSoFar)
     {
         if (unit.Weight is null)
         {

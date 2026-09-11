@@ -157,7 +157,7 @@ public class ProductService(AppDbContext dbContext) : IProductService
 
         foreach (var unit in toWriteOff)
         {
-            var soldWeight = StockMovementRules.ComputeOutcomeWeight(
+            var soldWeight = StockMovementRules.ComputeRemainingWeight(
                 unit, await SumSoldWeightAsync(unit.Id));
 
             if (unit.Weight is not null && soldWeight == 0m)

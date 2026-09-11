@@ -28,13 +28,25 @@ public class StockUnitService(AppDbContext dbContext) : IStockUnitService
             query = query.Where(u => u.Status == status);
         }
 
-        return await query.OrderBy(u => u.Id).Select(u => ToDto(u)).ToListAsync();
+        // Le poids déjà vendu s'agrège en SQL, par sous-requête sur la navigation : une seule
+        // requête part, quel que soit le nombre d'unités. Le calcul métier, lui, reste en C# —
+        // la projection finale d'EF Core accepte un appel de méthode.
+        var rows = await query
+            .OrderBy(u => u.Id)
+            .Select(u => new { Unit = u, SoldWeight = SoldWeightOf(u) })
+            .ToListAsync();
+
+        return rows.Select(row => ToDto(row.Unit, row.SoldWeight)).ToList();
     }
 
     public async Task<StockUnitDto> GetByIdAsync(int id)
     {
         var unit = await FindOrThrowAsync(id);
-        return ToDto(unit);
+        var soldWeight = await dbContext.StockMovements
+            .Where(m => m.StockUnitId == id && m.Type == MovementType.Sale)
+            .SumAsync(m => m.SoldWeight ?? 0m);
+
+        return ToDto(unit, soldWeight);
     }
 
     /// <summary>
@@ -76,7 +88,8 @@ public class StockUnitService(AppDbContext dbContext) : IStockUnitService
         await dbContext.SaveChangesAsync();
         await transaction.CommitAsync();
 
-        return units.Select(ToDto).ToList();
+        // Des unités qui viennent d'être pesées ne portent aucune vente : leur restant vaut leur poids.
+        return units.Select(unit => ToDto(unit, 0m)).ToList();
     }
 
     /// <summary>
@@ -199,13 +212,25 @@ public class StockUnitService(AppDbContext dbContext) : IStockUnitService
         await dbContext.StockUnits.Include(u => u.Batch).FirstOrDefaultAsync(u => u.Id == id)
             ?? throw new NotFoundException($"Unité de stock {id} introuvable.");
 
-    private static StockUnitDto ToDto(StockUnit unit) =>
+    /// <summary>
+    /// Somme des poids vendus sur une unité. Traduite en sous-requête corrélée par EF Core.
+    /// </summary>
+    /// <remarks>
+    /// Seul le type vente est retranché. Une sortie perso ou une perte <b>finalise</b> l'unité :
+    /// elle quitte le stock et n'est plus affichée, donc retrancher son poids ne servirait à rien
+    /// et masquerait un filtre trop large derrière un restant faussement nul.
+    /// </remarks>
+    private static decimal SoldWeightOf(StockUnit unit) =>
+        unit.StockMovements.Where(m => m.Type == MovementType.Sale).Sum(m => m.SoldWeight ?? 0m);
+
+    private static StockUnitDto ToDto(StockUnit unit, decimal soldWeight) =>
         new()
         {
             Id = unit.Id,
             BatchId = unit.BatchId,
             UnitNumber = unit.UnitNumber,
             Weight = unit.Weight,
+            RemainingWeight = StockMovementRules.ComputeRemainingWeight(unit, soldWeight),
             Status = unit.Status,
         };
 }
