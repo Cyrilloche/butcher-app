@@ -14,7 +14,7 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 
 ## 2. État d'avancement & feuille de route
 
-**Phase actuelle : Vague 1 complète côté périmètre fonctionnel. Backend complet, socle de déploiement livré (ADR-010), frontend au niveau de l'API. La saisie DLC/matière première d'un lot (RF-08/RF-09) est reportée en V2 le 2026-09-11 : deux champs facultatifs de plus sur le parcours le plus fragile, alors que la prise en main de l'outil est déjà le vrai défi. Reste à dérouler la recette manuelle de la correction d'une vente (`specs/003-sale-correction/quickstart.md`).**
+**Phase actuelle : Vague 1 complète côté périmètre fonctionnel. Backend complet, socle de déploiement livré (ADR-010), frontend au niveau de l'API. La saisie DLC/matière première d'un lot (RF-08/RF-09) est reportée en V2 le 2026-09-11 : deux champs facultatifs de plus sur le parcours le plus fragile, alors que la prise en main de l'outil est déjà le vrai défi. La recette manuelle de la correction d'une vente est déroulée et validée (2026-09-11).**
 
 | Étape | Statut |
 |---|---|
@@ -33,7 +33,7 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 | Modification et fin de vie d'un produit | ✅ Un produit sans lot se corrige entièrement ; code et mode de vente se figent au premier lot ; un lot intact se supprime ; la désactivation exige un stock écoulé, avec solde en perte des unités restantes (`specs/001-product-edit-lifecycle/`) |
 | Correction et suppression d'une vente (RG-14, RG-11) | ✅ En-tête corrigeable (client, date, paiement, note) ; une ligne se corrige sur son montant et son poids vendu, ou se retire ; la vente entière se supprime, rendant au stock les unités sans autre sortie. Le montant reste celui qui a été saisi, jamais recalculé (`specs/003-sale-correction/`) |
 | Numéro d'étiquette porté par l'unité | ✅ Le numéro `CODE-YYMMDD-N` identifie le sachet et non la fabrication ; registre `unit_number_sequence` sous verrou, aucun numéro jamais réémis (`specs/002-unit-numbering/`) |
-| Développement Vague 1 | ✅ Complet côté périmètre — RF-08/RF-09 (DLC, matière première) reportées en V2 le 2026-09-11 ; recette manuelle de la correction d'une vente à dérouler |
+| Développement Vague 1 | ✅ **Complet** — RF-08/RF-09 (DLC, matière première) reportées en V2 le 2026-09-11 ; recette manuelle de la correction d'une vente déroulée et validée le 2026-09-11 |
 | Analyse d'écart doc ↔ code | ✅ `docs/etat-des-lieux.md` (04/09/2026) |
 
 **Méthode : dé-risquage avant développement.** On valide les points techniques risqués par des *spikes* isolés **avant** de construire les fonctionnalités. Spikes prévus, dans l'ordre :

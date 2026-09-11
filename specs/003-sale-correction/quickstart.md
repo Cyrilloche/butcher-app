@@ -112,9 +112,9 @@ Jeu d'essai à préparer depuis l'application, une fois connecté :
 cd frontend && npm run type-check && npm run lint
 ```
 
-- [ ] Aucun mot anglais ni valeur technique (`sold`, `available`, `sale`) visible à l'écran.
-- [ ] Aucun statut HTTP ni message technique affiché à l'utilisateur.
-- [ ] Le numéro de vente n'a changé dans aucun scénario.
-- [ ] Tout geste destructif est passé par une confirmation qui en énonçait les conséquences.
-- [ ] L'écran de saisie d'une vente fonctionne toujours à l'identique après l'extraction du
+- [X] Aucun mot anglais ni valeur technique (`sold`, `available`, `sale`) visible à l'écran.
+- [X] Aucun statut HTTP ni message technique affiché à l'utilisateur.
+- [X] Le numéro de vente n'a changé dans aucun scénario.
+- [X] Tout geste destructif est passé par une confirmation qui en énonçait les conséquences.
+- [X] L'écran de saisie d'une vente fonctionne toujours à l'identique après l'extraction du
       sélecteur de client (décision D4).
