@@ -47,6 +47,13 @@ const router = createRouter({
       component: () => import('@/views/ProductDetailView.vue'),
       props: true,
     },
+    {
+      path: '/overview',
+      name: 'overview',
+      component: () => import('@/views/OverviewView.vue'),
+      // Ses chiffres relèvent des rapports, réservés à l'administrateur (FR-027).
+      meta: { requiresAdmin: true },
+    },
     { path: '/my-account', name: 'my-account', component: () => import('@/views/MyAccountView.vue') },
     {
       path: '/accounts',

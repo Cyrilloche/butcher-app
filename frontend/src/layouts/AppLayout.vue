@@ -30,8 +30,12 @@ interface NavItem {
   icon: string
 }
 
-/** Entrées de la barre latérale ; l'ordre suit la maquette PC. */
+/**
+ * Entrées de la barre latérale ; l'ordre suit la maquette PC. La vue d'ensemble et les comptes sont
+ * réservés à l'administrateur, comme leurs routes.
+ */
 const sidebarItems = computed<NavItem[]>(() => [
+  ...(auth.isAdmin ? [{ to: '/overview', label: "Vue d'ensemble", icon: 'squares-four' }] : []),
   { to: '/sales', label: 'Ventes', icon: 'cash-register' },
   { to: '/', label: 'Stock', icon: 'package' },
   { to: '/products', label: 'Produits', icon: 'cooking-pot' },

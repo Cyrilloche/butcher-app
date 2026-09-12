@@ -25,6 +25,9 @@ import {
   PhWarningOctagon,
   PhPencilSimple,
   PhUser,
+  PhSquaresFour,
+  PhTrendUp,
+  PhTrendDown,
 } from '@phosphor-icons/vue'
 
 /**
@@ -57,6 +60,9 @@ const phosphorIcons: Record<string, unknown> = {
   'warning-octagon': PhWarningOctagon,
   'pencil-simple': PhPencilSimple,
   user: PhUser,
+  'squares-four': PhSquaresFour,
+  'trend-up': PhTrendUp,
+  'trend-down': PhTrendDown,
 }
 
 export const phosphor: IconSet = {
