@@ -149,7 +149,7 @@ export async function listActiveProducts(): Promise<Product[]> {
 
 export async function getStockDashboard(): Promise<{
   products: StockDashboardProduct[]
-  totalAvailableUnits: number
+  totalUnitsInStock: number
 }> {
   const [productDtos, batchDtos, unitDtos] = await Promise.all([
     listProducts(false),
@@ -193,15 +193,17 @@ export async function getStockDashboard(): Promise<{
       name: product.name,
       href: `/stock/${product.code}`,
       meta: metaParts.join(' · '),
-      qty: available.length,
-      qtyLabel: pluralize(product.unitLabel, available.length),
-      openedLabel: opened.length > 0 ? `${opened.length} entamé${opened.length > 1 ? 's' : ''}` : null,
+      // Un jambon entamé reste un objet sur l'étagère : il compte dans le nombre d'unités, et le
+      // badge précise seulement combien le sont. L'exclure affichait « 0 unité » face à du stock.
+      qty: inStock,
+      qtyLabel: pluralize(product.unitLabel, inStock),
+      openedLabel: opened.length > 0 ? `dont ${opened.length} entamé${opened.length > 1 ? 's' : ''}` : null,
       isEmpty: inStock === 0,
     }
   })
 
-  const totalAvailableUnits = products.reduce((sum, p) => sum + p.qty, 0)
-  return { products, totalAvailableUnits }
+  const totalUnitsInStock = products.reduce((sum, p) => sum + p.qty, 0)
+  return { products, totalUnitsInStock }
 }
 
 /** Détail d'un produit (Détail Stock) : lots + unités encore en stock (available/opened). */

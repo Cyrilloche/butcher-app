@@ -10,7 +10,7 @@ const {
   data: dashboard,
   loading,
   error,
-} = useAsyncData(getStockDashboard, { products: [], totalAvailableUnits: 0 })
+} = useAsyncData(getStockDashboard, { products: [], totalUnitsInStock: 0 })
 </script>
 
 <template>
@@ -21,7 +21,7 @@ const {
       <div class="stock-view__title-row">
         <h1 class="text-h4 font-weight-bold">Stock</h1>
         <span class="stock-view__total text-secondary font-weight-medium">
-          {{ dashboard.totalAvailableUnits }} unités disponibles
+          {{ dashboard.totalUnitsInStock }} unités en stock
         </span>
       </div>
     </header>
