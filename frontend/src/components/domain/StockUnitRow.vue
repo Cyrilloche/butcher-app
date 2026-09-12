@@ -12,7 +12,7 @@ import type { StockDetailUnit } from '@/composables/useStock'
  * auparavant sur une ligne qui passait à la suivante au premier libellé un peu long.
  *
  * Le poids apparaît deux fois sur une unité entamée, et c'est délibéré : en haut le poids pesé à la
- * fabrication, préfixé de « pesé » pour lever l'ambiguïté, en bas ce qu'il reste à vendre. Sur une
+ * fabrication, en bas ce qu'il reste à vendre, que le mot « restants » suffit à distinguer. Sur une
  * unité intacte les deux seraient identiques, donc la ligne du bas n'affiche rien.
  */
 const props = defineProps<{ unit: StockDetailUnit }>()
@@ -27,7 +27,7 @@ const showsRemaining = computed(
   <div class="stock-unit-row">
     <span class="stock-unit-row__num">{{ unit.number }}</span>
     <span v-if="unit.weightLabel" class="stock-unit-row__weighed text-secondary">
-      <template v-if="showsRemaining">pesé </template>{{ unit.weightLabel }}
+      {{ unit.weightLabel }}
     </span>
 
     <div class="stock-unit-row__state">

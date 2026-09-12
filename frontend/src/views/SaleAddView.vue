@@ -210,13 +210,15 @@ async function save() {
               Poids restant : {{ formatWeight(Math.round(remainingWeightKg * 1000)) }}
             </p>
 
+            <!-- Libellé hors de la rangée : dans le flex, il se faisait écraser mot par mot. -->
+            <label for="slice-grams" class="sale-add-view__pending-label">Poids de la tranche</label>
             <div class="sale-add-view__pending-weight">
               <AppTextField
+                id="slice-grams"
                 v-model="sliceGrams"
                 type="number"
                 inputmode="numeric"
                 min="0"
-                label="Poids de la tranche"
                 suffix="g"
                 hide-details
               />
@@ -229,7 +231,7 @@ async function save() {
                 :disabled="!(Number(sliceGrams) > 0) || exceedsRemaining"
                 @click="confirmSlice"
               >
-                Ajouter au panier
+                Ajouter
               </AppButton>
             </div>
 
@@ -259,11 +261,13 @@ async function save() {
               class="sale-add-view__result"
               @click="pickLot(lot)"
             >
-              <span class="sale-add-view__result-name">
-                {{ lot.label }}
-                <span v-if="lot.status === 'opened'" class="sale-add-view__result-opened">Entamé</span>
+              <span class="sale-add-view__result-info">
+                <span class="sale-add-view__result-name">
+                  {{ lot.label }}
+                  <span v-if="lot.status === 'opened'" class="sale-add-view__result-opened">Entamé</span>
+                </span>
+                <span class="sale-add-view__result-detail text-secondary">{{ lot.detail }}</span>
               </span>
-              <span class="text-secondary">{{ lot.detail }}</span>
               <span v-if="lot.status === 'available'" class="sale-add-view__result-price">
                 {{ lot.price.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} €
               </span>
@@ -377,15 +381,29 @@ async function save() {
   min-height: 48px;
 }
 
-.sale-add-view__result-name {
+.sale-add-view__result-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Le numéro d'étiquette ne se coupe jamais : il se recopie à la main. */
+.sale-add-view__result-name {
   font-size: 16px;
   font-weight: 500;
   color: rgb(var(--v-theme-on-surface));
+  white-space: nowrap;
+}
+
+.sale-add-view__result-detail {
+  font-size: 14px;
 }
 
 .sale-add-view__result-price {
+  flex-shrink: 0;
+  white-space: nowrap;
   font-weight: 600;
   color: rgb(var(--v-theme-success));
 }
@@ -447,8 +465,15 @@ async function save() {
   gap: 10px;
 }
 
+.sale-add-view__pending-label {
+  font-size: 15px;
+  font-weight: 500;
+  color: rgb(var(--v-theme-on-surface));
+}
+
 .sale-add-view__pending-weight > :first-child {
   flex: 1;
+  min-width: 0;
 }
 
 .sale-add-view__pending-amount {
