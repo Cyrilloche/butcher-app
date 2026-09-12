@@ -27,8 +27,9 @@ Chaque décision porte un **statut** : `Proposé` (en débat), `Accepté` (valid
 | ADR-006 | Bibliothèque de composants UI (Vuetify ou PrimeVue) | Accepté |
 | ADR-007 | PostgreSQL comme système de gestion de base de données | Accepté |
 | ADR-008 | Entity Framework Core + Npgsql comme couche d'accès aux données | Accepté |
-| ADR-009 | Authentification par jetons JWT, adossée à ASP.NET Core Identity | Accepté |
+| ADR-009 | Authentification par jetons JWT, adossée à ASP.NET Core Identity | Accepté — remplacé en partie par ADR-011 |
 | ADR-010 | Déploiement conteneurisé (Docker Compose + reverse proxy HTTPS) | Accepté |
+| ADR-011 | Comptes nominatifs avec deux rôles (administrateur, utilisateur) | Accepté |
 
 ---
 
@@ -276,7 +277,10 @@ L'accès aux données se fait via **Entity Framework Core** (l'ORM standard de .
 
 ## ADR-009 — Authentification par jetons JWT, adossée à ASP.NET Core Identity
 
-**Statut :** Accepté — spike réalisé et vérifié
+**Statut :** Accepté — spike réalisé et vérifié. **Remplacé en partie par ADR-011** (2026-09-12) :
+le compte unique partagé et l'absence de rôles cèdent la place à des comptes nominatifs porteurs
+d'un rôle. Le mécanisme de jetons, le refresh rotatif et l'absence d'inscription publique restent
+en vigueur.
 
 ### Contexte
 
@@ -360,6 +364,78 @@ Chaque composant est **conteneurisé (Docker)** et l'ensemble est orchestré par
 
 - **Déploiement sans conteneurs (services installés directement sur le VPS)** : plus fragile, moins reproductible, et moins formateur sur les pratiques actuelles.
 - **Plateforme managée (PaaS)** : contraire à l'objectif d'auto-hébergement (cf. ADR-002).
+
+---
+
+## ADR-011 — Comptes nominatifs avec deux rôles (administrateur, utilisateur)
+
+**Statut :** Accepté (2026-09-12). **Remplace en partie ADR-009** sur deux points : le compte unique
+partagé (RF-26) et l'absence de rôles.
+
+### Contexte
+
+La V1 fonctionne avec un seul compte partagé par les trois personnes qui utilisent l'outil (ADR-009,
+RF-26). Ce choix tenait tant que personne n'avait besoin de savoir qui a saisi quoi. Il bute
+désormais sur trois besoins exprimés pour le backoffice (`specs/005-backoffice`) :
+
+- **tracer l'auteur** des fabrications, ventes et sorties, prévu par RF-27 mais impossible à
+  renseigner avec un compte commun ;
+- **réserver** au porteur de projet la gestion des comptes, les gestes qui engagent le catalogue
+  (désactivation et solde en perte d'un produit), le journal et les rapports ;
+- **isoler les accès** : changer le mot de passe commun déconnecte tout le monde, et un exploitant
+  ne peut pas être retiré seul.
+
+### Décision
+
+- **Comptes nominatifs.** Chaque personne a son compte : adresse email comme identifiant, nom
+  affiché, état actif ou désactivé. Un compte n'est jamais supprimé, seulement désactivé, parce
+  qu'il est l'auteur d'enregistrements dont la traçabilité doit survivre. Il n'y a toujours pas
+  d'inscription publique : seul un administrateur crée un compte.
+- **Deux rôles fixes, portés par une colonne** `app_user.role` (`admin`, `user`). Pas de tables de
+  rôles Identity : deux rôles exclusifs, sans droits à la carte, n'ont pas besoin d'une relation
+  plusieurs-à-plusieurs ni d'un `RoleManager`. Identity reste utilisé en version allégée.
+- **Droits relus en base.** Le jeton d'accès porte l'identité ; la base porte les droits. Une
+  politique d'autorisation `AdminOnly` et la politique par défaut relisent le compte (actif,
+  administrateur) à chaque requête. Une rétrogradation ou une désactivation prend donc effet
+  immédiatement, sans attendre l'expiration du jeton. Désactiver un compte révoque aussi ses
+  refresh tokens.
+- **Le dernier administrateur actif est protégé** : aucune opération ne peut laisser l'outil sans
+  administrateur.
+- **Auteur posé à l'enregistrement.** `AppDbContext.SaveChanges` renseigne `created_by` à partir du
+  compte de la requête, au même endroit que les dates d'audit. Aucun service n'a à y penser.
+- **Politique de mot de passe par rôle** : 20 caractères au minimum pour un utilisateur, 32 pour un
+  administrateur, par un validateur Identity qui lit le rôle du compte. Promouvoir un compte exige
+  un nouveau mot de passe conforme au rôle cible.
+- **Le compte courant est exposé** par `GET /api/auth/me`, relu en base, pour que l'interface
+  adapte ce qu'elle propose. L'interface ne fait que masquer : le serveur refuse (`403`).
+
+### Conséquences
+
+**Positives**
+- RF-27 devient effective : 100 % des saisies portent un auteur, sans modifier chaque service.
+- Un exploitant peut être ajouté, retiré ou voir son mot de passe réinitialisé seul, sans toucher
+  aux autres.
+- Le socle du journal « qui a fait quoi » et du multi-comptes prévu en V2 est posé.
+
+**Négatives / à surveiller**
+- Une lecture en base par requête authentifiée pour vérifier le compte. Négligeable à trois
+  comptes ; à mettre en cache si le nombre de comptes ou le trafic changeait d'ordre de grandeur.
+- Trois routes produit répondent désormais `403` à un utilisateur : rupture de contrat, versionnée
+  comme telle.
+- Les enregistrements antérieurs n'ont pas d'auteur et ne sont pas réattribués : l'interface les
+  présente comme « Compte partagé (avant comptes nominatifs) ».
+- Le compte partagé existant devient le compte administrateur à la migration : ses identifiants ne
+  doivent plus être communiqués aux exploitants.
+
+### Alternatives écartées
+
+- **`IdentityDbContext` complet avec `IdentityRole`** : trois tables, un gestionnaire et un seed de
+  rôles pour deux rôles exclusifs.
+- **Rôle en claim Identity** (`app_user_claim`) : paire clé/valeur sans contrainte en base.
+- **Rôle lu uniquement dans le jeton** (`[Authorize(Roles = …)]`) : un administrateur rétrogradé
+  garderait ses droits jusqu'à l'expiration du jeton d'accès.
+- **Garder le compte partagé et ajouter un « nom de saisie » libre** : déclaratif, non vérifié,
+  et sans réponse au besoin de restriction.
 
 ---
 

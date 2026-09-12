@@ -39,7 +39,7 @@ vérifié**, poussé sur `feat/backoffice`, sans merge ni tag.
 
 **Purpose**: poser la décision structurante avant le code (constitution, principe IV)
 
-- [ ] T001 Rédiger ADR-011 « Comptes nominatifs avec deux rôles » dans `docs/ADR.md` : contexte (compte partagé, besoin de traçabilité et de restriction), décision (rôle en colonne `admin`/`user`, droits relus en base par la politique `AdminOnly`, auteur posé dans `SaveChanges`, mot de passe 20/32 caractères, `GET /api/auth/me`), conséquences, alternatives écartées (research R-01 à R-06) ; ajouter la ligne à l'index ; passer ADR-009 au statut « Accepté — remplacé en partie par ADR-011 (compte partagé, absence de rôles) » avec un renvoi dans sa section Conséquences
+- [X] T001 Rédiger ADR-011 « Comptes nominatifs avec deux rôles » dans `docs/ADR.md` : contexte (compte partagé, besoin de traçabilité et de restriction), décision (rôle en colonne `admin`/`user`, droits relus en base par la politique `AdminOnly`, auteur posé dans `SaveChanges`, mot de passe 20/32 caractères, `GET /api/auth/me`), conséquences, alternatives écartées (research R-01 à R-06) ; ajouter la ligne à l'index ; passer ADR-009 au statut « Accepté — remplacé en partie par ADR-011 (compte partagé, absence de rôles) » avec un renvoi dans sa section Conséquences
 
 ---
 
