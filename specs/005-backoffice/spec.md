@@ -8,6 +8,15 @@
 
 **Input**: User description: "Backoffice PC avec comptes séparés et rôles admin / user. Même application, avec une mise en page desktop et des écrans réservés à l'admin. Le porteur de projet est admin, les deux exploitants (non techniques) sont users. Fin du compte partagé : chacun son compte. L'admin peut tout faire ; lui sont réservés la gestion des comptes, les gestes destructifs, le journal « qui a fait quoi » (RF-27) et des rapports chiffrés (ventes par période, par client, montants à encaisser). Déclencheurs : saisie confortable sur PC (tableaux, filtres de ventes E-06), comptes séparés, contrôle et correction de la saisie terrain, socle multi-comptes pour la V2. ADR-009 (compte partagé sans rôles) devra être remplacé par un nouvel ADR."
 
+## Clarifications
+
+### Session 2026-09-12
+
+- Q: Avec quoi les exploitants se connectent-ils ? → A: Adresse email, comme aujourd'hui (pas d'identifiant court).
+- Q: Que couvre la mise en page PC ? → A: Listes en tableaux et navigation latérale ; les formulaires existants sont centrés et bornés en largeur, sans refonte. La maquette PC réalisée avec Claude Design fait référence pour la présentation.
+- Q: Jusqu'où va le journal ? → A: Qui, quand, quoi pour toutes les opérations ; contenu complet uniquement pour les suppressions ; pas de détail avant/après des modifications.
+- Q: Qui voit l'auteur d'une saisie ? → A: Tous les comptes, sur le détail d'une vente, d'une fournée et d'une sortie ; le journal reste réservé à l'administrateur.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 — Chacun son compte (Priority: P1)
@@ -28,12 +37,14 @@ connecte avec le sien et enregistre une vente ; la fiche de chaque vente indique
 
 **Acceptance Scenarios**:
 
-1. **Given** l'administrateur connecté, **When** il crée un compte en saisissant un nom, un
-   identifiant et en choisissant le rôle « Utilisateur », **Then** le compte apparaît dans la
+1. **Given** l'administrateur connecté, **When** il crée un compte en saisissant un nom, une
+   adresse email et en choisissant le rôle « Utilisateur », **Then** le compte apparaît dans la
    liste des comptes et la personne peut se connecter avec le mot de passe que l'administrateur
    lui a transmis.
 2. **Given** un exploitant connecté avec son compte, **When** il enregistre une fabrication, une
-   vente ou une sortie perso/perte, **Then** l'enregistrement mémorise ce compte comme auteur.
+   vente ou une sortie perso/perte, **Then** l'enregistrement mémorise ce compte comme auteur, et
+   son nom s'affiche sur le détail de l'enregistrement pour tous les comptes, utilisateurs
+   compris.
 3. **Given** un exploitant dont le compte a été désactivé, **When** il tente de se connecter ou
    poursuit une session déjà ouverte, **Then** l'accès lui est refusé avec un message en français,
    et ses enregistrements passés conservent son nom.
@@ -102,7 +113,10 @@ utilisable sur téléphone.
    avec leur nombre et leur total.
 3. **Given** un téléphone, **When** l'utilisateur ouvre les mêmes écrans, **Then** il retrouve la
    présentation mobile actuelle, sans régression.
-4. **Given** un compte utilisateur sur écran large, **When** il navigue, **Then** aucune entrée
+4. **Given** un écran large, **When** l'utilisateur ouvre un formulaire (nouvelle vente, ajout au
+   stock), **Then** il retrouve le formulaire actuel, centré et d'une largeur lisible, et non
+   étiré sur toute la largeur de l'écran.
+5. **Given** un compte utilisateur sur écran large, **When** il navigue, **Then** aucune entrée
    de menu réservée à l'administrateur n'est visible.
 
 ---
@@ -128,9 +142,12 @@ la date et l'objet concerné.
    période, **Then** seules les opérations correspondantes sont affichées.
 3. **Given** une vente supprimée, **When** l'administrateur la retrouve dans le journal, **Then**
    il lit ce qu'elle contenait au moment de sa suppression (client, date, lignes, montant).
-4. **Given** un compte utilisateur, **When** il cherche à consulter le journal, **Then** l'accès
+4. **Given** une vente dont le montant a été corrigé, **When** l'administrateur la retrouve dans
+   le journal, **Then** il lit qui l'a modifiée et quand, et peut ouvrir la vente pour voir sa
+   valeur actuelle ; l'ancienne valeur n'est pas conservée.
+5. **Given** un compte utilisateur, **When** il cherche à consulter le journal, **Then** l'accès
    lui est refusé.
-5. **Given** des enregistrements antérieurs à la mise en service des comptes, **When** ils sont
+6. **Given** des enregistrements antérieurs à la mise en service des comptes, **When** ils sont
    affichés, **Then** leur auteur apparaît comme « Compte partagé (avant comptes nominatifs) ».
 
 ---
@@ -175,8 +192,8 @@ par période, par client et le reste à encaisser sont exacts au centime.
   l'expiration de son jeton d'accès court ; aucune nouvelle session ne peut être obtenue.
 - **Suppression d'un compte.** Un compte n'est jamais supprimé, seulement désactivé : il est
   l'auteur d'enregistrements dont la traçabilité doit survivre.
-- **Identifiant déjà pris.** La création d'un compte avec un identifiant existant, même désactivé,
-  est refusée avec un message clair.
+- **Adresse email déjà prise.** La création d'un compte avec une adresse déjà utilisée par un
+  autre compte, même désactivé, est refusée avec un message clair.
 - **Rôle changé en cours de session.** Le nouveau rôle s'applique au plus tard à l'expiration du
   jeton d'accès court ; le serveur, lui, vérifie le rôle à chaque action réservée.
 - **Mot de passe non conforme.** La création ou la réinitialisation est refusée avec la règle
@@ -200,8 +217,9 @@ par période, par client et le reste à encaisser sont exacts au centime.
 
 **Comptes et rôles**
 
-- **FR-001**: Le système DOIT gérer des comptes nominatifs, chacun porteur d'un nom affiché, d'un
-  identifiant de connexion unique, d'un rôle et d'un état actif/désactivé.
+- **FR-001**: Le système DOIT gérer des comptes nominatifs, chacun porteur d'un nom affiché, d'une
+  adresse email unique servant d'identifiant de connexion, d'un rôle et d'un état
+  actif/désactivé. L'adresse ne sert qu'à se connecter : aucun message n'y est envoyé.
 - **FR-002**: Le système DOIT connaître exactement deux rôles : « Administrateur » et
   « Utilisateur ». Aucun autre rôle ni droit à la carte n'est prévu dans cette vague.
 - **FR-003**: Seul un administrateur DOIT pouvoir créer un compte, modifier son nom ou son rôle,
@@ -240,7 +258,11 @@ par période, par client et le reste à encaisser sont exacts au centime.
 **Mise en page PC**
 
 - **FR-015**: Sur écran large, l'application DOIT présenter une navigation latérale et afficher ses
-  listes (stock, ventes, clients, produits) sous forme de tableaux exploitant la largeur.
+  listes (stock, ventes, clients, produits) sous forme de tableaux exploitant la largeur. La
+  présentation DOIT suivre la maquette PC réalisée avec Claude Design.
+- **FR-015a**: Sur écran large, les formulaires existants (ajout au stock et pesée, nouvelle vente,
+  fiche client, fiche produit) DOIVENT rester ceux d'aujourd'hui, centrés et bornés à une largeur
+  lisible ; aucune refonte de leur parcours n'est prévue dans cette vague.
 - **FR-016**: Sur téléphone, l'application DOIT conserver sa présentation actuelle ; aucun parcours
   mobile existant NE DOIT régresser.
 - **FR-017**: La liste des ventes DOIT pouvoir être filtrée par client, par statut de paiement et
@@ -254,12 +276,17 @@ par période, par client et le reste à encaisser sont exacts au centime.
 
 - **FR-020**: Le système DOIT enregistrer l'auteur de chaque création d'une fabrication, d'une
   vente et d'un mouvement de stock (RF-27).
+- **FR-020a**: Le nom de l'auteur DOIT s'afficher, pour tous les comptes quel que soit leur rôle,
+  sur le détail d'une vente, d'une fournée et d'une sortie de stock. Cet affichage ne donne accès
+  à rien d'autre : le journal reste réservé à l'administrateur (FR-023).
 - **FR-021**: Le système DOIT tenir un journal des opérations de création, modification et
   suppression portant sur les produits, fabrications, unités de stock, ventes, lignes de vente,
   sorties de stock, clients et comptes, avec pour chacune : date et heure, auteur, nature de
   l'opération, objet concerné.
-- **FR-022**: Pour une modification, le journal DOIT indiquer les valeurs avant et après ; pour une
-  suppression, le contenu de l'objet au moment où il a été supprimé.
+- **FR-022**: Pour une suppression, le journal DOIT conserver le contenu complet de l'objet au
+  moment où il a été supprimé, suffisant pour le ressaisir (pour une vente : client, date, statut
+  de paiement, lignes avec unité, poids et montant). Pour une création ou une modification, il
+  n'enregistre que l'opération et l'objet concerné, sans détail des valeurs avant/après.
 - **FR-023**: Le journal DOIT être consultable par l'administrateur seul, du plus récent au plus
   ancien, filtrable par auteur, type d'objet et période, et paginé.
 - **FR-024**: Le journal NE DOIT être ni modifiable ni supprimable depuis l'interface.
@@ -302,13 +329,13 @@ par période, par client et le reste à encaisser sont exacts au centime.
 
 ### Key Entities
 
-- **Compte** : une personne qui accède à l'outil. Porte un nom affiché, un identifiant de
-  connexion, un rôle, un état actif/désactivé, et la date de sa dernière connexion. N'est jamais
+- **Compte** : une personne qui accède à l'outil. Porte un nom affiché, une adresse email servant
+  d'identifiant de connexion, un rôle, un état actif/désactivé, et la date de sa dernière connexion. N'est jamais
   supprimé.
 - **Rôle** : « Administrateur » ou « Utilisateur ». Détermine les gestes et les écrans accessibles.
 - **Entrée de journal** : la trace d'une opération. Porte sa date, son auteur, sa nature
   (création, modification, suppression, connexion…), le type et l'identité de l'objet concerné, et
-  le détail avant/après. Immuable.
+  pour une suppression seulement, le contenu de l'objet supprimé. Immuable.
 - **Auteur d'un enregistrement** : le compte qui a créé une fabrication, une vente ou un mouvement
   de stock (RF-27), déjà prévu par le modèle et désormais renseigné.
 - **Rapport** : une lecture agrégée des ventes sur une période ; ce n'est pas une donnée stockée.
@@ -345,7 +372,7 @@ par période, par client et le reste à encaisser sont exacts au centime.
 - **Le mot de passe initial est choisi par l'administrateur** et transmis de vive voix. Aucun envoi
   d'email ni lien de réinitialisation automatique n'est prévu : l'outil n'envoie pas de courrier.
 - **L'identifiant de connexion reste une adresse email**, comme aujourd'hui, même si elle ne sert
-  pas à envoyer de message.
+  pas à envoyer de message *(confirmé le 2026-09-12)*.
 - **Un utilisateur a accès à la mise en page PC** : elle n'est pas réservée à l'administrateur.
   Seuls les écrans de comptes, journal et rapports le sont.
 - **Le journal est conservé sans limite de durée** : le volume d'une activité artisanale annexe
@@ -358,5 +385,9 @@ par période, par client et le reste à encaisser sont exacts au centime.
 - **La séparation frontend / backend est préservée** : les rôles et restrictions sont portés par
   le contrat d'API, et le serveur reste le seul garant des droits (principe II de la
   constitution).
+- **Dépendance — maquette PC.** La maquette PC réalisée avec Claude Design (FR-015) n'est pas
+  encore versionnée : `design/` ne contient que le guide de style. Elle DOIT être exportée dans
+  `design/` avant la planification du récit 3, pour que le plan s'appuie sur elle et non sur une
+  interprétation.
 - **Découpage de livraison** : US1 et US2 forment le premier lot livrable ; US3 peut être livrée
   indépendamment ; US4 et US5 suivent. Chaque récit reste testable et livrable seul.
