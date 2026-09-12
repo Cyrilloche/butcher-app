@@ -1,3 +1,4 @@
+using Butcher.Api.Common.Authorization;
 using Butcher.Api.Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -5,7 +6,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Butcher.Api.Infrastructure.Data;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityUserContext<AppUser, Guid>(options)
+/// <param name="options">Options EF Core.</param>
+/// <param name="currentAccount">
+/// Compte à l'origine des écritures, pour renseigner l'auteur. Facultatif : absent hors requête
+/// HTTP (commandes hors ligne, migrations), où l'auteur reste inconnu.
+/// </param>
+public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentAccount? currentAccount = null)
+    : IdentityUserContext<AppUser, Guid>(options)
 {
     public DbSet<AppUser> AppUsers => Set<AppUser>();
 
@@ -44,13 +51,42 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityUser
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         StampAuditDates();
+        StampAuthor();
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
     public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
         StampAuditDates();
+        StampAuthor();
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    /// <summary>
+    /// Renseigne <c>created_by</c> à l'insertion, sur toute entité qui porte cette colonne, à partir
+    /// du compte de la requête (RF-27, ADR-011).
+    /// </summary>
+    /// <remarks>
+    /// Même logique que <see cref="StampAuditDates"/> : un seul endroit, pour qu'aucun service n'ait à
+    /// y penser et qu'aucune nouvelle entité ne l'oublie. Un auteur déjà posé par l'appelant est
+    /// respecté ; sans compte courant, l'auteur reste inconnu.
+    /// </remarks>
+    private void StampAuthor()
+    {
+        if (currentAccount?.AccountId is not { } accountId)
+        {
+            return;
+        }
+
+        foreach (var entry in ChangeTracker.Entries())
+        {
+            if (entry.State == EntityState.Added
+                && entry.Metadata.FindProperty("CreatedById") is not null
+                && entry.Property("CreatedById").CurrentValue is null)
+            {
+                entry.Property("CreatedById").CurrentValue = accountId;
+            }
+        }
     }
 
     /// <summary>

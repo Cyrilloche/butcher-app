@@ -1,3 +1,4 @@
+using Butcher.Api.Common.Authorization;
 using Butcher.Api.Domain.Entities;
 using Butcher.Api.Infrastructure.Data;
 using Butcher.Api.Infrastructure.Identity;
@@ -30,14 +31,16 @@ public class PostgresDatabaseFixture : IAsyncLifetime
         await _container.DisposeAsync();
     }
 
-    public AppDbContext CreateDbContext()
+    /// <param name="currentAccount">Compte à l'origine des écritures ; aucun par défaut, comme hors
+    /// requête HTTP.</param>
+    public AppDbContext CreateDbContext(ICurrentAccount? currentAccount = null)
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseNpgsql(_container.GetConnectionString())
             .UseSnakeCaseNamingConvention()
             .Options;
 
-        return new AppDbContext(options);
+        return new AppDbContext(options, currentAccount);
     }
 
     public async Task ResetAsync()
