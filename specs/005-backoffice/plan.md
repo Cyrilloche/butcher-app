@@ -35,7 +35,8 @@ réservés sont la désactivation, la réactivation et le solde en perte d'un pr
 **Language/Version**: C# / .NET 10 (backend), TypeScript 5 / Vue 3 (frontend)
 
 **Primary Dependencies**: ASP.NET Core Web API, ASP.NET Core Identity (allégé), EF Core + Npgsql ;
-Vue 3, Vuetify 3 (`useDisplay`, `v-navigation-drawer`), Pinia, Phosphor
+Vue 3, Vuetify 4 (`useDisplay` — point de rupture `md` à 840 px —, `v-navigation-drawer`), Pinia,
+Phosphor
 
 **Storage**: PostgreSQL. **Lot 1** : une migration sur `app_user` (`display_name`, `role`,
 `is_active`, `last_login_at`, `updated_at`) avec reprise des comptes existants en administrateurs.
@@ -43,8 +44,10 @@ Vue 3, Vuetify 3 (`useDisplay`, `v-navigation-drawer`), Pinia, Phosphor
 
 **Testing**: xUnit sur PostgreSQL réel via Testcontainers (`Support/PostgresDatabaseFixture.cs`).
 Tests de service pour les comptes, la politique de mot de passe, l'invariant du dernier
-administrateur, l'auteur posé par `SaveChanges`, et le handler d'autorisation. Pas de test frontend
-(existant) : validation par [quickstart.md](./quickstart.md), typage et build.
+administrateur, l'auteur posé par `SaveChanges`, et le handler d'autorisation. Côté frontend, premiers
+tests unitaires Vitest sur les fonctions pures (`useOverview`), lancés dans un conteneur Node : le
+binaire natif de rolldown manque sous WSL, `node_modules` étant installé côté Windows. Les écrans se
+valident par typage, build Docker et [quickstart.md](./quickstart.md).
 
 **Target Platform**: PWA mobile d'abord, et écran de travail à partir de 840 px, servie par Caddy
 sur la même origine que l'API (ADR-010)
@@ -117,22 +120,26 @@ specs/005-backoffice/
 
 ```text
 backend/src/Butcher.Api/
-├── Domain/Entities/
-│   ├── AppUser.cs                        # + DisplayName, Role, IsActive, LastLoginAt, UpdatedAt
-│   └── AccountRole.cs                    # nouveau : enum Admin | User
+├── Domain/
+│   ├── Entities/AppUser.cs               # + DisplayName, Role, IsActive, LastLoginAt, UpdatedAt
+│   └── Enums/AccountRole.cs              # nouveau : enum User | Admin
 ├── Infrastructure/
 │   ├── Data/
 │   │   ├── AppDbContext.cs               # + pose de CreatedById dans SaveChanges
 │   │   ├── Configurations/AppUserConfiguration.cs   # nouveau : colonnes, enum snake_case
 │   │   └── Migrations/…_AddAccountRoles.cs          # nouveau : colonnes + reprise en admin
 │   └── Identity/
-│       ├── IdentityPolicy.cs             # socle 20 caractères
-│       └── AdminPasswordValidator.cs     # nouveau : 32 caractères pour un admin
+│       ├── IdentityPolicy.cs             # socle 20 caractères, AddSaloirPasswordRules
+│       ├── AdminPasswordValidator.cs     # nouveau : 32 caractères pour un admin
+│       └── FrenchIdentityErrorDescriber.cs  # nouveau : refus Identity en français
 ├── Common/
 │   ├── Authorization/
-│   │   ├── AuthorizationPolicies.cs      # nouveau : AdminOnly
-│   │   ├── ActiveAccountHandler.cs       # nouveau : compte actif et rôle relus en base
-│   │   └── ICurrentAccount.cs, HttpCurrentAccount.cs  # nouveau : compte de la requête
+│   │   ├── AuthorizationPolicies.cs      # nouveau : ActiveAccount (défaut), AdminOnly
+│   │   ├── AccountRequirement.cs         # nouveau : compte actif, et administrateur si exigé
+│   │   ├── AccountAuthorizationHandler.cs        # nouveau : compte relu en base, raison du refus
+│   │   ├── AccountAuthorizationResultHandler.cs  # nouveau : 401 compte désactivé, 403 réservé
+│   │   ├── AccountClaims.cs, CurrentAccountExtensions.cs  # nouveau : lecture du compte du jeton
+│   │   └── ICurrentAccount.cs, HttpCurrentAccount.cs      # nouveau : compte de la requête
 │   ├── Exceptions/ForbiddenException.cs  # nouveau : 403
 │   └── ExceptionHandlingMiddleware.cs    # + 403
 ├── Application/
@@ -141,7 +148,8 @@ backend/src/Butcher.Api/
 │   │                                     # + CreatedByName sur Sale/ProductionBatch/StockMovement
 │   └── Services/
 │       ├── AccountService.cs, IAccountService.cs    # nouveau : comptes, dernier admin
-│       ├── AuthService.cs                # compte désactivé, last_login_at, change-password
+│       ├── RefreshTokenRevocation.cs     # nouveau : fermeture des sessions, partagée
+│       ├── AuthService.cs                # compte désactivé, last_login_at, me, change-password
 │       └── Sale/ProductionBatch/StockMovement services  # projection de CreatedByName
 ├── Controllers/
 │   ├── AccountsController.cs             # nouveau, AdminOnly
@@ -151,22 +159,31 @@ backend/src/Butcher.Api/
 
 backend/tests/Butcher.Api.Tests/
 ├── Application/Services/AccountServiceTests.cs      # nouveau
-├── Application/Services/AuthServiceTests.cs         # + compte désactivé, change-password
+├── Application/Services/AuthServiceTests.cs         # + compte désactivé, me, change-password
+├── Application/Services/CreatedByNameProjectionTests.cs  # nouveau : nom de l'auteur exposé
 ├── Infrastructure/Data/CreatedByStampingTests.cs     # nouveau
-├── Infrastructure/Identity/IdentityPolicyTests.cs   # politique par rôle
-└── Common/Authorization/ActiveAccountHandlerTests.cs # nouveau
+├── Infrastructure/Identity/IdentityPolicyTests.cs   # politique par rôle, messages en français
+├── Common/Authorization/AccountAuthorizationHandlerTests.cs  # nouveau
+├── Controllers/ReservedActionsTests.cs              # nouveau : inventaire des gestes réservés
+└── Support/FixedCurrentAccount.cs                   # nouveau : compte courant figé
 
 frontend/src/
 ├── api/accounts.ts, api/auth.ts, api/types.ts       # comptes, me, change-password, createdByName
-├── stores/auth.ts                         # + account, isAdmin, chargement de /me
-├── layouts/AppLayout.vue                  # barre latérale ≥ md, barre du bas sinon (lot US3)
+├── stores/auth.ts                         # + account, isAdmin, compte chargé à l'ouverture de session
+├── layouts/AppLayout.vue                  # barre latérale ≥ md (840 px), barre du bas sinon
+├── assets/main.css                        # app-form-container, app-fixed-footer
+├── composables/useAccounts.ts             # nouveau : libellés des rôles, règle de mot de passe
+├── composables/useOverview.ts (+ __tests__)  # nouveau : chiffres de la vue d'ensemble, Vitest
+├── components/base/AppBrandHeader.vue     # mobile seulement, menu du compte
+├── components/domain/AccountMenu.vue      # nouveau : Mon compte, Comptes, Se déconnecter
+├── components/domain/AccountEditDialog.vue, AccountPasswordResetDialog.vue  # nouveau
+├── components/domain/AuthorLabel.vue      # nouveau : « Saisie par … »
 ├── views/AccountsView.vue                 # nouveau, administrateur
 ├── views/MyAccountView.vue                # nouveau : changer son mot de passe
-├── views/OverviewView.vue                 # nouveau, lot US3, d'après la maquette
-├── components/domain/AuthorLabel.vue      # nouveau : « Saisie par … »
+├── views/OverviewView.vue                 # nouveau, administrateur, d'après la maquette
 ├── views/ProductDetailView.vue            # gestes réservés masqués pour un utilisateur
 ├── views/SaleDetailView.vue, StockDetailView.vue    # affichage de l'auteur
-└── router/index.ts                        # routes comptes / mon compte, garde administrateur
+└── router/index.ts                        # comptes, mon compte, vue d'ensemble, garde administrateur
 
 docs/
 ├── ADR.md                                 # ADR-011, statut d'ADR-009 mis à jour

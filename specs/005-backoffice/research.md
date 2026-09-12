@@ -89,8 +89,11 @@ type d'utilisateur) ; valider la longueur dans le contrôleur (contournable par 
 ## R-06 — L'interface connaît le compte par `GET /api/auth/me`
 
 **Décision** : un endpoint `GET /api/auth/me` renvoie `id`, `email`, `displayName`, `role`. Le store
-d'authentification l'appelle après chaque connexion et chaque rafraîchissement, et expose
-`account` et `isAdmin`.
+d'authentification l'appelle à l'ouverture de la session — connexion, ou rétablissement après un F5
+— et expose `account` et `isAdmin`. *Précisé à l'implémentation* : pas à chaque rafraîchissement de
+jeton, car `me()` passe par `apiFetch`, qui rafraîchit lui-même sur un `401` ; le rappeler à ce
+moment ouvrirait une boucle. Un changement de rôle se voit donc à l'écran au chargement suivant, ce
+qui est sans risque puisque le serveur relit les droits à chaque requête (R-02).
 
 **Justification** : le jeton est opaque pour le client dans ce projet (aucun décodage JWT côté
 frontend), et le nom affiché n'y figure pas. Un endpoint dédié garde le contrat explicite et
