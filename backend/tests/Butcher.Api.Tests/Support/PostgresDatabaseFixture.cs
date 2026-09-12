@@ -67,7 +67,9 @@ public class PostgresDatabaseFixture : IAsyncLifetime
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton(dbContext);
-        services.AddIdentityCore<AppUser>(IdentityPolicy.Configure).AddEntityFrameworkStores<AppDbContext>();
+        services.AddIdentityCore<AppUser>(IdentityPolicy.Configure)
+            .AddSaloirPasswordRules()
+            .AddEntityFrameworkStores<AppDbContext>();
         return services.BuildServiceProvider().GetRequiredService<UserManager<AppUser>>();
     }
 

@@ -62,6 +62,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services
     .AddIdentityCore<AppUser>(IdentityPolicy.Configure)
+    .AddSaloirPasswordRules()
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 
