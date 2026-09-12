@@ -23,6 +23,7 @@ import {
   PhDotsThreeVertical,
   PhHouse,
   PhWarningOctagon,
+  PhPencilSimple,
 } from '@phosphor-icons/vue'
 
 /**
@@ -53,6 +54,7 @@ const phosphorIcons: Record<string, unknown> = {
   'dots-three-vertical': PhDotsThreeVertical,
   house: PhHouse,
   'warning-octagon': PhWarningOctagon,
+  'pencil-simple': PhPencilSimple,
 }
 
 export const phosphor: IconSet = {

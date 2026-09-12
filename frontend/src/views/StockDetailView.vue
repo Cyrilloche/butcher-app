@@ -4,6 +4,7 @@ import AppPageHeader from '@/components/base/AppPageHeader.vue'
 import AppCard from '@/components/base/AppCard.vue'
 import StockUnitRow from '@/components/domain/StockUnitRow.vue'
 import StockUnitOutcomeMenu from '@/components/domain/StockUnitOutcomeMenu.vue'
+import BatchPriceEditAction from '@/components/domain/BatchPriceEditAction.vue'
 import BatchDeleteAction from '@/components/domain/BatchDeleteAction.vue'
 import StockUnitDeleteAction from '@/components/domain/StockUnitDeleteAction.vue'
 import ProductStatusBadge from '@/components/domain/ProductStatusBadge.vue'
@@ -63,6 +64,7 @@ async function onOutcomeDone() {
           </div>
           <div class="stock-detail-view__day-meta">
             <span class="text-secondary font-weight-medium">{{ batch.priceLabel }}</span>
+            <BatchPriceEditAction :batch="batch" @done="onOutcomeDone" />
             <BatchDeleteAction
               :batch="batch"
               @done="onOutcomeDone"

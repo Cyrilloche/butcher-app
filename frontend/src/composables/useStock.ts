@@ -58,6 +58,14 @@ export interface StockDetailBatch {
   dayRankLabel: string | null
   dateLabel: string
   priceLabel: string
+  /** Prix brut du lot et unité d'affichage (« kg », « pièce ») — pour corriger le prix (RG-10). */
+  salePrice: number
+  priceUnit: string
+  /**
+   * Champs du lot absents de l'écran (RF-08/RF-09 reportées en V2) mais écrasés par un `PUT` :
+   * ils repartent tels quels à chaque correction du prix, sous peine d'être effacés.
+   */
+  untouched: { rawMaterialRef: string | null; expiryDate: string | null; notes: string | null }
   units: StockDetailUnit[]
 }
 
@@ -239,6 +247,13 @@ export async function getStockDetail(code: string): Promise<StockDetail | null> 
         dayRankLabel: rankLabels.get(batch.id) ?? null,
         dateLabel: formatDateLabel(batch.productionDate),
         priceLabel: formatPriceLabel(batch.salePrice, product.priceUnit),
+        salePrice: batch.salePrice,
+        priceUnit: product.priceUnit,
+        untouched: {
+          rawMaterialRef: batch.rawMaterialRef,
+          expiryDate: batch.expiryDate,
+          notes: batch.notes,
+        },
         units: batchUnits
           .filter((unit) => isInStock(unit))
           .map((unit) => {
