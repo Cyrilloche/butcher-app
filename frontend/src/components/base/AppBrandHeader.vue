@@ -72,6 +72,7 @@ async function confirmLogout() {
   <v-dialog v-model="confirmOpen" max-width="360">
     <v-card class="app-brand-header__dialog">
       <h2 class="text-h6 font-weight-bold mb-2">Se déconnecter ?</h2>
+      <p v-if="auth.account" class="mb-2">Connecté en tant que {{ auth.account.displayName }}.</p>
       <p class="text-secondary mb-5">Il faudra saisir à nouveau l'email et le mot de passe.</p>
       <div class="app-brand-header__dialog-actions">
         <v-btn variant="text" color="secondary" @click="confirmOpen = false">Annuler</v-btn>
