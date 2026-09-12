@@ -93,6 +93,9 @@ builder.Services.AddCors(options =>
     options.AddPolicy("Frontend", policy =>
         policy.WithOrigins(allowedOrigin!).AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
 
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentAccount, HttpCurrentAccount>();
+
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IProductService, ProductService>();
