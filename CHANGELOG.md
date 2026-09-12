@@ -3,6 +3,43 @@
 Généré à partir des messages de commit ([Conventional Commits](https://www.conventionalcommits.org/fr/)).
 Ne pas éditer à la main : régénérer avec `make changelog`.
 
+## frontend-v0.4.0 — 12/09/2026
+
+### Nouveautés
+
+- **backend** : Modification et fin de vie d'un produit ⚠️ **rupture** (fdca710)
+- **frontend** : Corriger un produit, supprimer un lot, solder le stock (0c19cde)
+- **backend** : Le numéro d'étiquette est porté par l'unité ⚠️ **rupture** (b4be76d)
+- **frontend** : Afficher le numéro d'étiquette de chaque unité (e43f2f1)
+- **frontend** : Corriger et supprimer une vente (RG-14, RG-11) (163f4c6)
+- **backend** : Expose le poids encore vendable d'une unité (RG-05) (156f2ba)
+- **frontend** : Affiche ce qu'il reste à vendre sur un jambon entamé (52e0bca)
+
+### Corrections
+
+- **frontend** : Trier les unités vendables par numéro d'étiquette (4ffdc19)
+- **frontend** : Un refus de paiement se voit, un article n'est plus un lot (d9007c9)
+- **frontend** : Retouches de mise en forme du détail stock (c569fe8)
+- **backend** : Le poids restant lu en liste compte enfin les tranches vendues (RG-05) (8ca50e1)
+- **frontend** : Un jambon entamé compte comme une unité en stock (6b05914)
+- **frontend** : La saisie d'une vente ne coupe plus le numéro ni le libellé de la tranche (5257e6c)
+- **backend** : Renseigne created_at et updated_at à chaque enregistrement (RF-27) (ca42747)
+
+### Documentation
+
+- Update docs with speckit & specify and plan new feature (dfc112d)
+- Modèle de données et spec de la modification d'un produit (6463a11)
+- Le numéro d'étiquette identifie l'unité, pas la fabrication (32633cc)
+- Coche les tâches réalisées de la renumérotation (6816220)
+- Spécification et plan de la correction d'une vente (24dfd91)
+- Reporte la DLC et la matière première en V2, réaligne les règles (e220b33)
+- La recette de la correction d'une vente est déroulée et validée (a6669e4)
+- Spécification du poids encore vendable d'une unité entamée (dce1b62)
+- Fige la maquette validée du détail d'un produit en stock (0d97085)
+- Plan technique du poids encore vendable (b2dbe92)
+- Découpe le poids encore vendable en tâches (394863f)
+- RG-05 interdit le stockage du restant, pas son calcul (163f69f)
+
 ## frontend-v0.3.1 — 04/09/2026
 
 ### Corrections
