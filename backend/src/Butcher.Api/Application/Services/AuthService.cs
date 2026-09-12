@@ -146,19 +146,8 @@ public class AuthService(AppDbContext dbContext, UserManager<AppUser> userManage
         await userManager.FindByIdAsync(accountId.ToString())
             ?? throw new UnauthorizedException(DeactivatedAccountMessage);
 
-    private async Task RevokeAllActiveTokensAsync(Guid userId, string? exceptTokenHash = null)
-    {
-        var activeTokens = await dbContext.RefreshTokens
-            .Where(t => t.UserId == userId && t.RevokedAt == null && t.TokenHash != exceptTokenHash)
-            .ToListAsync();
-
-        foreach (var token in activeTokens)
-        {
-            token.RevokedAt = DateTimeOffset.UtcNow;
-        }
-
-        await dbContext.SaveChangesAsync();
-    }
+    private Task RevokeAllActiveTokensAsync(Guid userId, string? exceptTokenHash = null) =>
+        RefreshTokenRevocation.RevokeAllAsync(dbContext, userId, exceptTokenHash);
 
     private async Task<AuthResult> IssueTokensAsync(AppUser user)
     {
