@@ -108,7 +108,7 @@ async function save() {
 </script>
 
 <template>
-  <v-container class="stock-add-view">
+  <v-container class="stock-add-view app-form-container">
     <AppPageHeader to="/" back-label="Stock" title="Ajouter au stock" />
 
     <div class="stock-add-view__sections">
@@ -198,7 +198,7 @@ async function save() {
       </template>
     </div>
 
-    <div class="stock-add-view__footer">
+    <div class="stock-add-view__footer app-fixed-footer">
       <p v-if="saveError" class="stock-add-view__save-error text-error">{{ saveError }}</p>
       <AppButton
         block
@@ -309,14 +309,5 @@ async function save() {
   font-weight: 500;
   text-align: center;
   margin: 0 0 10px;
-}
-
-.stock-add-view__footer {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 56px;
-  padding: 14px 16px;
-  background: linear-gradient(to top, rgb(var(--v-theme-background)) 70%, transparent);
 }
 </style>

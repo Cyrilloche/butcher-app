@@ -55,7 +55,7 @@ async function save() {
 </script>
 
 <template>
-  <v-container class="product-add-view">
+  <v-container class="product-add-view app-form-container">
     <AppPageHeader to="/products" back-label="Produits" title="Nouveau produit" />
 
     <div class="product-add-view__sections">
@@ -89,7 +89,7 @@ async function save() {
       </AppCard>
     </div>
 
-    <div class="product-add-view__footer">
+    <div class="product-add-view__footer app-fixed-footer">
       <p v-if="saveError" class="product-add-view__save-error text-error">{{ saveError }}</p>
       <AppButton block height="60" :color="canSave ? 'primary' : undefined" :disabled="!canSave || saving" @click="save">
         {{ saving ? 'Création...' : 'Créer le produit' }}
@@ -130,14 +130,5 @@ async function save() {
   font-weight: 500;
   text-align: center;
   margin: 0 0 10px;
-}
-
-.product-add-view__footer {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 56px;
-  padding: 14px 16px;
-  background: linear-gradient(to top, rgb(var(--v-theme-background)) 70%, transparent);
 }
 </style>

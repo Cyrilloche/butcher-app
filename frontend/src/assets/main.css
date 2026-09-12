@@ -14,6 +14,29 @@ body,
   font-family: var(--font-body) !important;
 }
 
+/*
+ * Mise en page PC (specs/005-backoffice, FR-015a) : un formulaire garde une largeur lisible au lieu de
+ * s'étirer sur tout l'écran. Sans effet sur un téléphone, plus étroit que la borne.
+ */
+.v-container.app-form-container {
+  max-width: 720px;
+}
+
+/*
+ * Barre d'action fixée en bas d'un formulaire. Elle suit la mise en page : Vuetify publie sur v-main la
+ * place prise par la barre latérale (écran large) et par la barre du bas (mobile). Son contenu reste
+ * aligné sur la largeur du formulaire.
+ */
+.app-fixed-footer {
+  position: fixed;
+  left: var(--v-layout-left, 0px);
+  right: var(--v-layout-right, 0px);
+  bottom: var(--v-layout-bottom, 0px);
+  padding-block: 14px;
+  padding-inline: max(16px, calc((100% - 720px) / 2));
+  background: linear-gradient(to top, rgb(var(--v-theme-background)) 70%, transparent);
+}
+
 .v-application .text-h1,
 .v-application .text-h2,
 .v-application .text-h3,
