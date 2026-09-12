@@ -109,6 +109,66 @@ public class AuthServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifetime
         await Assert.ThrowsAsync<UnauthorizedException>(() => service.LoginAsync(Email, "wrong-password"));
     }
 
+    private static async Task DeactivateAsync(UserManager<AppUser> userManager, AppUser user)
+    {
+        user.IsActive = false;
+        await userManager.UpdateAsync(user);
+    }
+
+    [Fact]
+    public async Task LoginAsync_WithValidCredentials_RecordsLastLogin()
+    {
+        var (dbContext, userManager, service) = CreateSut(fixture);
+        var user = await SeedUserAsync(userManager);
+        var before = DateTimeOffset.UtcNow;
+
+        await service.LoginAsync(Email, Password);
+
+        var stored = await dbContext.AppUsers.AsNoTracking().SingleAsync(u => u.Id == user.Id);
+        Assert.NotNull(stored.LastLoginAt);
+        Assert.True(stored.LastLoginAt >= before);
+    }
+
+    [Fact]
+    public async Task LoginAsync_DeactivatedAccountWithCorrectPassword_IsRefusedAsDeactivated()
+    {
+        var (dbContext, userManager, service) = CreateSut(fixture);
+        var user = await SeedUserAsync(userManager);
+        await DeactivateAsync(userManager, user);
+
+        var error = await Assert.ThrowsAsync<UnauthorizedException>(() => service.LoginAsync(Email, Password));
+
+        Assert.Equal("Ce compte est désactivé.", error.Message);
+        Assert.Equal(0, await dbContext.RefreshTokens.CountAsync(t => t.UserId == user.Id));
+    }
+
+    [Fact]
+    public async Task LoginAsync_DeactivatedAccountWithWrongPassword_DoesNotRevealDeactivation()
+    {
+        var (_, userManager, service) = CreateSut(fixture);
+        var user = await SeedUserAsync(userManager);
+        await DeactivateAsync(userManager, user);
+
+        var error = await Assert.ThrowsAsync<UnauthorizedException>(() => service.LoginAsync(Email, "wrong-password"));
+
+        Assert.Equal("Email ou mot de passe invalide.", error.Message);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_DeactivatedAccount_IsRefusedAndRevokesAllSessions()
+    {
+        var (dbContext, userManager, service) = CreateSut(fixture);
+        var user = await SeedUserAsync(userManager);
+        var firstSession = await service.LoginAsync(Email, Password);
+        await service.LoginAsync(Email, Password);
+        await DeactivateAsync(userManager, user);
+
+        var error = await Assert.ThrowsAsync<UnauthorizedException>(() => service.RefreshAsync(firstSession.RefreshToken));
+
+        Assert.Equal("Ce compte est désactivé.", error.Message);
+        Assert.Equal(0, await dbContext.RefreshTokens.CountAsync(t => t.UserId == user.Id && t.RevokedAt == null));
+    }
+
     [Fact]
     public async Task RefreshAsync_WithValidToken_RotatesAndRevokesOldToken()
     {

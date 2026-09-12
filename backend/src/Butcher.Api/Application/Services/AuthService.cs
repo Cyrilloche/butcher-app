@@ -11,6 +11,7 @@ public class AuthService(AppDbContext dbContext, UserManager<AppUser> userManage
 {
     private const string InvalidCredentialsMessage = "Email ou mot de passe invalide.";
     private const string InvalidRefreshTokenMessage = "Jeton de rafraîchissement invalide ou expiré.";
+    private const string DeactivatedAccountMessage = "Ce compte est désactivé.";
 
     public async Task<AuthResult> LoginAsync(string email, string password)
     {
@@ -35,7 +36,17 @@ public class AuthService(AppDbContext dbContext, UserManager<AppUser> userManage
             throw new UnauthorizedException(InvalidCredentialsMessage);
         }
 
+        // Après le mot de passe, jamais avant : sans lui, l'état d'un compte n'a pas à être révélé.
+        if (!user.IsActive)
+        {
+            throw new UnauthorizedException(DeactivatedAccountMessage);
+        }
+
         await userManager.ResetAccessFailedCountAsync(user);
+
+        user.LastLoginAt = DateTimeOffset.UtcNow;
+        await userManager.UpdateAsync(user);
+
         return await IssueTokensAsync(user);
     }
 
@@ -67,6 +78,13 @@ public class AuthService(AppDbContext dbContext, UserManager<AppUser> userManage
         if (existingToken.ExpiresAt <= DateTimeOffset.UtcNow)
         {
             throw new UnauthorizedException(InvalidRefreshTokenMessage);
+        }
+
+        // Un compte désactivé ne prolonge aucune session, et perd celles qui restaient ouvertes (FR-007).
+        if (!existingToken.User!.IsActive)
+        {
+            await RevokeAllActiveTokensAsync(existingToken.UserId);
+            throw new UnauthorizedException(DeactivatedAccountMessage);
         }
 
         var result = await IssueTokensAsync(existingToken.User!);
