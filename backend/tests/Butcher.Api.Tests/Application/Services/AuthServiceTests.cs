@@ -13,7 +13,7 @@ namespace Butcher.Api.Tests.Application.Services;
 public class AuthServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifetime
 {
     private const string Email = "jean@saloir.local";
-    private const string Password = "Correct-Password-123!";
+    private const string Password = "Correct-Horse4-Battery-Staple-Saloir";
 
     public Task InitializeAsync() => fixture.ResetAsync();
 

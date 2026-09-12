@@ -15,12 +15,14 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 
-// Commande hors-ligne de création de compte (`create-user <email> <mot-de-passe>`),
-// lancée dans le conteneur en prod. Les arguments positionnels ne sont pas passés
-// au builder : le fournisseur de configuration ligne de commande les rejetterait.
+// Commandes hors-ligne de gestion de compte, lancées dans le conteneur en prod :
+// `create-user <email> <mot-de-passe>` et `set-password <email> <mot-de-passe>`.
+// Les arguments positionnels ne sont pas passés au builder : le fournisseur de
+// configuration ligne de commande les rejetterait.
 var createUserCommand = args is ["create-user", ..];
+var setPasswordCommand = args is ["set-password", ..];
 
-var builder = WebApplication.CreateBuilder(createUserCommand ? [] : args);
+var builder = WebApplication.CreateBuilder(createUserCommand || setPasswordCommand ? [] : args);
 
 // Add services to the container.
 
@@ -104,6 +106,11 @@ var app = builder.Build();
 if (createUserCommand)
 {
     return await CreateUserAsync(app, args);
+}
+
+if (setPasswordCommand)
+{
+    return await SetPasswordAsync(app, args);
 }
 
 // Configure the HTTP request pipeline.
@@ -206,5 +213,51 @@ static async Task<int> CreateUserAsync(WebApplication app, string[] args)
     }
 
     Console.WriteLine($"Compte créé pour {email}.");
+    return 0;
+}
+
+// Remplace le mot de passe d'un compte existant. La politique de mot de passe ne s'applique qu'à
+// l'écriture : sans cette commande, un compte créé avant son durcissement garderait son ancien mot
+// de passe. Le changement révoque aussi toutes les sessions ouvertes du compte.
+static async Task<int> SetPasswordAsync(WebApplication app, string[] args)
+{
+    if (args.Length != 3)
+    {
+        await Console.Error.WriteLineAsync("Usage : set-password <email> <mot-de-passe>");
+        return 1;
+    }
+
+    var email = args[1];
+    var password = args[2];
+
+    using var scope = app.Services.CreateScope();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    var user = await userManager.FindByEmailAsync(email);
+    if (user is null)
+    {
+        await Console.Error.WriteLineAsync($"Aucun compte pour {email}.");
+        return 1;
+    }
+
+    var token = await userManager.GeneratePasswordResetTokenAsync(user);
+    var result = await userManager.ResetPasswordAsync(user, token, password);
+
+    if (!result.Succeeded)
+    {
+        await Console.Error.WriteLineAsync(
+            $"Échec du changement de mot de passe : {string.Join(", ", result.Errors.Select(e => e.Description))}");
+        return 1;
+    }
+
+    var now = DateTimeOffset.UtcNow;
+    await dbContext.RefreshTokens
+        .Where(t => t.UserId == user.Id && t.RevokedAt == null)
+        .ExecuteUpdateAsync(s => s.SetProperty(t => t.RevokedAt, now));
+    await userManager.ResetAccessFailedCountAsync(user);
+    await userManager.SetLockoutEndDateAsync(user, null);
+
+    Console.WriteLine($"Mot de passe changé pour {email}. Les sessions ouvertes sont révoquées.");
     return 0;
 }
