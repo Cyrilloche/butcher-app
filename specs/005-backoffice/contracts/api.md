@@ -26,8 +26,10 @@ Compte connecté, relu en base.
 { "currentPassword": "…", "newPassword": "…" }
 ```
 
-`204` ; `400` si le nouveau mot de passe ne respecte pas la politique du rôle (FR-034) ;
-`401` si le mot de passe actuel est faux. Révoque les autres sessions du compte (FR-006).
+`204` ; `400` si le nouveau mot de passe ne respecte pas la politique du rôle (FR-034), ou si le
+mot de passe actuel est faux — une erreur de saisie, pas une session invalide : un `401` ferait
+tenter au client un rafraîchissement de session inutile. Révoque les sessions des **autres**
+appareils ; la session en cours est conservée (FR-006).
 
 ### Changements sur l'existant
 

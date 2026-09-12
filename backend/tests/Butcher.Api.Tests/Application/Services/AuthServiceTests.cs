@@ -1,6 +1,7 @@
 using Butcher.Api.Application.Services;
 using Butcher.Api.Common.Exceptions;
 using Butcher.Api.Domain.Entities;
+using Butcher.Api.Domain.Enums;
 using Butcher.Api.Infrastructure.Data;
 using Butcher.Api.Infrastructure.Identity;
 using Butcher.Api.Tests.Support;
@@ -167,6 +168,70 @@ public class AuthServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifetime
 
         Assert.Equal("Ce compte est désactivé.", error.Message);
         Assert.Equal(0, await dbContext.RefreshTokens.CountAsync(t => t.UserId == user.Id && t.RevokedAt == null));
+    }
+
+    [Fact]
+    public async Task GetAccountAsync_ReturnsDisplayNameAndRole()
+    {
+        var (_, userManager, service) = CreateSut(fixture);
+        var user = await SeedUserAsync(userManager);
+        user.DisplayName = "Mireille";
+        user.Role = AccountRole.Admin;
+        await userManager.UpdateAsync(user);
+
+        var me = await service.GetAccountAsync(user.Id);
+
+        Assert.Equal(user.Id, me.Id);
+        Assert.Equal(Email, me.Email);
+        Assert.Equal("Mireille", me.DisplayName);
+        Assert.Equal(AccountRole.Admin, me.Role);
+    }
+
+    [Fact]
+    public async Task ChangePasswordAsync_WithCorrectCurrentPassword_ReplacesPasswordAndKeepsOnlyCurrentSession()
+    {
+        var (dbContext, userManager, service) = CreateSut(fixture);
+        var user = await SeedUserAsync(userManager);
+        var otherDevice = await service.LoginAsync(Email, Password);
+        var thisDevice = await service.LoginAsync(Email, Password);
+        const string newPassword = "Saucisse-Curry-2026-Terrine";
+
+        await service.ChangePasswordAsync(user.Id, Password, newPassword, thisDevice.RefreshToken);
+
+        await Assert.ThrowsAsync<UnauthorizedException>(() => service.LoginAsync(Email, Password));
+        await service.LoginAsync(Email, newPassword);
+
+        var tokenService = new TokenService(PostgresDatabaseFixture.CreateJwtConfiguration());
+        var otherHash = tokenService.HashRefreshToken(otherDevice.RefreshToken);
+        var thisHash = tokenService.HashRefreshToken(thisDevice.RefreshToken);
+        Assert.NotNull((await dbContext.RefreshTokens.AsNoTracking().SingleAsync(t => t.TokenHash == otherHash)).RevokedAt);
+        Assert.Null((await dbContext.RefreshTokens.AsNoTracking().SingleAsync(t => t.TokenHash == thisHash)).RevokedAt);
+    }
+
+    [Fact]
+    public async Task ChangePasswordAsync_WithWrongCurrentPassword_IsRefusedAsInputError()
+    {
+        var (_, userManager, service) = CreateSut(fixture);
+        var user = await SeedUserAsync(userManager);
+
+        var error = await Assert.ThrowsAsync<BadRequestException>(
+            () => service.ChangePasswordAsync(user.Id, "wrong-password", "Saucisse-Curry-2026-Terrine", null));
+
+        Assert.Equal("Le mot de passe actuel est incorrect.", error.Message);
+        await service.LoginAsync(Email, Password);
+    }
+
+    [Fact]
+    public async Task ChangePasswordAsync_WithNonCompliantNewPassword_StatesRuleInFrench()
+    {
+        var (_, userManager, service) = CreateSut(fixture);
+        var user = await SeedUserAsync(userManager);
+
+        var error = await Assert.ThrowsAsync<BadRequestException>(
+            () => service.ChangePasswordAsync(user.Id, Password, "Court-1!", null));
+
+        Assert.Contains("au moins 20 caractères", error.Message);
+        await service.LoginAsync(Email, Password);
     }
 
     [Fact]

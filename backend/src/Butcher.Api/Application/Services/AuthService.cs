@@ -1,3 +1,4 @@
+using Butcher.Api.Application.Dtos;
 using Butcher.Api.Common.Exceptions;
 using Butcher.Api.Domain.Entities;
 using Butcher.Api.Infrastructure.Data;
@@ -96,6 +97,39 @@ public class AuthService(AppDbContext dbContext, UserManager<AppUser> userManage
         return result;
     }
 
+    public async Task<MeDto> GetAccountAsync(Guid accountId)
+    {
+        var user = await FindAccountOrThrowAsync(accountId);
+        return new MeDto
+        {
+            Id = user.Id,
+            Email = user.Email ?? string.Empty,
+            DisplayName = user.DisplayName,
+            Role = user.Role,
+        };
+    }
+
+    public async Task ChangePasswordAsync(
+        Guid accountId, string currentPassword, string newPassword, string? currentRefreshTokenValue)
+    {
+        var user = await FindAccountOrThrowAsync(accountId);
+
+        // Un mot de passe actuel erroné est une erreur de saisie (400), pas une session invalide (401) :
+        // un 401 déclencherait côté client un rafraîchissement de session inutile.
+        var result = await userManager.ChangePasswordAsync(user, currentPassword, newPassword);
+        if (!result.Succeeded)
+        {
+            throw new BadRequestException(string.Join(" ", result.Errors.Select(e => e.Description)));
+        }
+
+        // Les autres appareils perdent leur session (FR-006) ; celui qui vient de changer le mot de
+        // passe garde la sienne.
+        var keptTokenHash = currentRefreshTokenValue is null
+            ? null
+            : tokenService.HashRefreshToken(currentRefreshTokenValue);
+        await RevokeAllActiveTokensAsync(user.Id, exceptTokenHash: keptTokenHash);
+    }
+
     public async Task LogoutAsync(string refreshTokenValue)
     {
         var tokenHash = tokenService.HashRefreshToken(refreshTokenValue);
@@ -108,10 +142,14 @@ public class AuthService(AppDbContext dbContext, UserManager<AppUser> userManage
         }
     }
 
-    private async Task RevokeAllActiveTokensAsync(Guid userId)
+    private async Task<AppUser> FindAccountOrThrowAsync(Guid accountId) =>
+        await userManager.FindByIdAsync(accountId.ToString())
+            ?? throw new UnauthorizedException(DeactivatedAccountMessage);
+
+    private async Task RevokeAllActiveTokensAsync(Guid userId, string? exceptTokenHash = null)
     {
         var activeTokens = await dbContext.RefreshTokens
-            .Where(t => t.UserId == userId && t.RevokedAt == null)
+            .Where(t => t.UserId == userId && t.RevokedAt == null && t.TokenHash != exceptTokenHash)
             .ToListAsync();
 
         foreach (var token in activeTokens)
