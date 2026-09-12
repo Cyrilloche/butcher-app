@@ -6,6 +6,8 @@
 export type SaleMode = 'by_weight' | 'by_piece'
 export type StockUnitStatus = 'available' | 'opened' | 'sold' | 'personal' | 'lost'
 export type MovementType = 'sale' | 'personal' | 'loss'
+/** Rôle d'un compte (ADR-011). Affichage : « Administrateur » / « Utilisateur ». */
+export type AccountRole = 'admin' | 'user'
 
 // --- Auth --------------------------------------------------------------
 
@@ -17,6 +19,50 @@ export interface LoginRequest {
 export interface AuthResponseDto {
   accessToken: string
   expiresAtUtc: string
+}
+
+/** Compte connecté, relu en base par le serveur. Sert à adapter l'interface ; le serveur vérifie. */
+export interface MeDto {
+  id: string
+  email: string
+  displayName: string
+  role: AccountRole
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string
+  newPassword: string
+}
+
+// --- Account -------------------------------------------------------------
+
+export interface AccountDto {
+  id: string
+  /** Identifiant de connexion ; aucun message n'y est envoyé. */
+  email: string
+  displayName: string
+  role: AccountRole
+  isActive: boolean
+  lastLoginAt: string | null
+  createdAt: string
+}
+
+export interface CreateAccountRequest {
+  email: string
+  displayName: string
+  role: AccountRole
+  password: string
+}
+
+export interface UpdateAccountRequest {
+  displayName: string
+  role: AccountRole
+  /** Obligatoire pour promouvoir un utilisateur administrateur (32 caractères au moins). */
+  newPassword?: string
+}
+
+export interface ResetPasswordRequest {
+  newPassword: string
 }
 
 // --- Product -------------------------------------------------------------
