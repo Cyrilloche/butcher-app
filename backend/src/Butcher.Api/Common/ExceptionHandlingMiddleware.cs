@@ -19,6 +19,7 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
                 ConflictException => (StatusCodes.Status409Conflict, "Conflit"),
                 BadRequestException => (StatusCodes.Status400BadRequest, "Requête invalide"),
                 UnauthorizedException => (StatusCodes.Status401Unauthorized, "Non autorisé"),
+                TooManyRequestsException => (StatusCodes.Status429TooManyRequests, "Trop de tentatives"),
                 _ => (StatusCodes.Status500InternalServerError, "Erreur interne"),
             };
 

@@ -17,13 +17,35 @@ public class AuthService(AppDbContext dbContext, UserManager<AppUser> userManage
         var user = await userManager.FindByEmailAsync(email)
             ?? throw new UnauthorizedException(InvalidCredentialsMessage);
 
-        var passwordValid = await userManager.CheckPasswordAsync(user, password);
-        if (!passwordValid)
+        // Verrouillage vérifié avant le mot de passe : un compte verrouillé ne dit pas si le mot de
+        // passe proposé était le bon, sinon l'essai en rafale continuerait à apprendre quelque chose.
+        if (await userManager.IsLockedOutAsync(user))
         {
+            throw LockedOut(await userManager.GetLockoutEndDateAsync(user));
+        }
+
+        if (!await userManager.CheckPasswordAsync(user, password))
+        {
+            await userManager.AccessFailedAsync(user);
+            if (await userManager.IsLockedOutAsync(user))
+            {
+                throw LockedOut(await userManager.GetLockoutEndDateAsync(user));
+            }
+
             throw new UnauthorizedException(InvalidCredentialsMessage);
         }
 
+        await userManager.ResetAccessFailedCountAsync(user);
         return await IssueTokensAsync(user);
+    }
+
+    private static TooManyRequestsException LockedOut(DateTimeOffset? lockoutEnd)
+    {
+        var minutes = lockoutEnd is { } end
+            ? Math.Max(1, (int)Math.Ceiling((end - DateTimeOffset.UtcNow).TotalMinutes))
+            : 1;
+        return new TooManyRequestsException(
+            $"Trop de tentatives de connexion. Réessayez dans {minutes} minute{(minutes > 1 ? "s" : "")}.");
     }
 
     public async Task<AuthResult> RefreshAsync(string refreshTokenValue)

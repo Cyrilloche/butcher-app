@@ -2,6 +2,7 @@ using Butcher.Api.Application.Services;
 using Butcher.Api.Common.Exceptions;
 using Butcher.Api.Domain.Entities;
 using Butcher.Api.Infrastructure.Data;
+using Butcher.Api.Infrastructure.Identity;
 using Butcher.Api.Tests.Support;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -69,6 +70,42 @@ public class AuthServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifetime
         var (_, userManager, service) = CreateSut(fixture);
         await SeedUserAsync(userManager);
 
+        await Assert.ThrowsAsync<UnauthorizedException>(() => service.LoginAsync(Email, "wrong-password"));
+    }
+
+    [Fact]
+    public async Task LoginAsync_AfterTooManyWrongPasswords_LocksAccountEvenWithCorrectPassword()
+    {
+        var (_, userManager, service) = CreateSut(fixture);
+        var user = await SeedUserAsync(userManager);
+
+        for (var attempt = 1; attempt < IdentityPolicy.MaxFailedAccessAttempts; attempt++)
+        {
+            await Assert.ThrowsAsync<UnauthorizedException>(() => service.LoginAsync(Email, "wrong-password"));
+        }
+
+        // La tentative qui atteint le seuil verrouille, et le dit.
+        await Assert.ThrowsAsync<TooManyRequestsException>(() => service.LoginAsync(Email, "wrong-password"));
+        Assert.True(await userManager.IsLockedOutAsync(user));
+
+        // Le bon mot de passe ne passe plus tant que le verrou tient.
+        await Assert.ThrowsAsync<TooManyRequestsException>(() => service.LoginAsync(Email, Password));
+    }
+
+    [Fact]
+    public async Task LoginAsync_WithCorrectPassword_ResetsFailedAttempts()
+    {
+        var (_, userManager, service) = CreateSut(fixture);
+        var user = await SeedUserAsync(userManager);
+
+        for (var attempt = 1; attempt < IdentityPolicy.MaxFailedAccessAttempts; attempt++)
+        {
+            await Assert.ThrowsAsync<UnauthorizedException>(() => service.LoginAsync(Email, "wrong-password"));
+        }
+
+        await service.LoginAsync(Email, Password);
+
+        Assert.Equal(0, await userManager.GetAccessFailedCountAsync(user));
         await Assert.ThrowsAsync<UnauthorizedException>(() => service.LoginAsync(Email, "wrong-password"));
     }
 

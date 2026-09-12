@@ -29,10 +29,13 @@ async function submit() {
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
     await router.push(redirect)
   } catch (err) {
+    // 429 : compte verrouillé ou trop d'essais — le serveur dit combien de temps attendre.
     errorMessage.value =
       err instanceof ApiError && err.status === 401
         ? 'Identifiants incorrects.'
-        : "Impossible de se connecter. Vérifie que l'API est bien lancée."
+        : err instanceof ApiError && err.status === 429
+          ? err.message
+          : "Impossible de se connecter. Vérifie que l'API est bien lancée."
   } finally {
     submitting.value = false
   }

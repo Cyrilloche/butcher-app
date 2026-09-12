@@ -1,8 +1,10 @@
 using Butcher.Api.Application.Dtos;
 using Butcher.Api.Application.Services;
+using Butcher.Api.Common;
 using Butcher.Api.Common.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Butcher.Api.Controllers;
 
@@ -14,6 +16,7 @@ public class AuthController(IAuthService authService, IConfiguration configurati
     private const string RefreshCookieName = "refreshToken";
 
     [HttpPost("login")]
+    [EnableRateLimiting(RateLimitPolicies.Login)]
     public async Task<ActionResult<AuthResponseDto>> Login(LoginRequest request)
     {
         var result = await authService.LoginAsync(request.Email, request.Password);

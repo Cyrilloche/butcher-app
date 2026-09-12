@@ -1,5 +1,6 @@
 using Butcher.Api.Domain.Entities;
 using Butcher.Api.Infrastructure.Data;
+using Butcher.Api.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -63,7 +64,7 @@ public class PostgresDatabaseFixture : IAsyncLifetime
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton(dbContext);
-        services.AddIdentityCore<AppUser>().AddEntityFrameworkStores<AppDbContext>();
+        services.AddIdentityCore<AppUser>(IdentityPolicy.Configure).AddEntityFrameworkStores<AppDbContext>();
         return services.BuildServiceProvider().GetRequiredService<UserManager<AppUser>>();
     }
 

@@ -5,6 +5,7 @@ using Butcher.Api.Application.Services;
 using Butcher.Api.Common;
 using Butcher.Api.Domain.Entities;
 using Butcher.Api.Infrastructure.Data;
+using Butcher.Api.Infrastructure.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -56,9 +57,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         .UseSnakeCaseNamingConvention());
 
 builder.Services
-    .AddIdentityCore<AppUser>(options => options.User.RequireUniqueEmail = true)
+    .AddIdentityCore<AppUser>(IdentityPolicy.Configure)
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
+
+builder.Services.AddLoginRateLimiter();
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -118,6 +121,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("Frontend");
+
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
