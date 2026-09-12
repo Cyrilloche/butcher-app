@@ -181,7 +181,8 @@ public class AccountService(AppDbContext dbContext, UserManager<AppUser> userMan
             return;
         }
 
-        var message = string.Join(" ", result.Errors.Select(e => e.Description));
+        // Distinct : l'email servant aussi de nom d'utilisateur, Identity signale deux fois le même doublon.
+        var message = string.Join(" ", result.Errors.Select(e => e.Description).Distinct());
         if (result.Errors.Any(e => DuplicateErrorCodes.Contains(e.Code)))
         {
             throw new ConflictException(message);

@@ -112,12 +112,14 @@ public class AccountServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifeti
         var (_, userManager, service) = CreateSut();
         await SeedAccountAsync(userManager, "mireille@saloir.local", AccountRole.User, isActive: false);
 
-        await Assert.ThrowsAsync<ConflictException>(() => service.CreateAsync(new CreateAccountRequest
+        var error = await Assert.ThrowsAsync<ConflictException>(() => service.CreateAsync(new CreateAccountRequest
         {
             Email = "mireille@saloir.local",
             DisplayName = "Mireille",
             Password = UserPassword,
         }));
+
+        Assert.Equal("L'adresse mireille@saloir.local est déjà utilisée par un autre compte.", error.Message);
     }
 
     [Fact]
