@@ -8,17 +8,17 @@
   contraste sépare visuellement l'identité de l'app du contenu métier, et le
   rend lisible même quand la liste défile dessous (position sticky).
 
-  Le bouton de droite ouvre le menu du compte : « Mon compte », « Comptes » pour
-  l'administrateur (ADR-011), « Se déconnecter ». La barre du bas reste celle
-  des écrans métier.
+  Mobile uniquement : sur écran large, la barre latérale d'AppLayout porte déjà
+  la marque, la date et le menu du compte.
 -->
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed } from 'vue'
+import { useDisplay } from 'vuetify'
+import AccountMenu from '@/components/domain/AccountMenu.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
-const router = useRouter()
+const { mdAndUp } = useDisplay()
 
 const now = new Date()
 const todayWeekday = computed(() => now.toLocaleDateString('fr-FR', { weekday: 'long' }))
@@ -26,28 +26,11 @@ const todayDate = computed(() =>
   now.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }),
 )
 
-const initials = computed(() => (auth.account?.displayName.trim().charAt(0) ?? '?').toUpperCase())
-
-// Confirmation explicite : la déconnexion est irréversible côté session (le
-// refresh token est révoqué) et les utilisateurs visés sont peu à l'aise avec
-// le numérique — un appui accidentel ne doit pas les éjecter de l'app.
-const confirmOpen = ref(false)
-const loggingOut = ref(false)
-
-async function confirmLogout() {
-  loggingOut.value = true
-  try {
-    await auth.logout()
-    await router.push({ name: 'login' })
-  } finally {
-    loggingOut.value = false
-    confirmOpen.value = false
-  }
-}
+const initial = computed(() => (auth.account?.displayName.trim().charAt(0) ?? '?').toUpperCase())
 </script>
 
 <template>
-  <div class="app-brand-header">
+  <div v-if="!mdAndUp" class="app-brand-header">
     <div class="app-brand-header__identity">
       <div class="app-brand-header__logo">
         <v-icon size="22">phosphor:storefront</v-icon>
@@ -64,7 +47,7 @@ async function confirmLogout() {
         <div class="app-brand-header__date">{{ todayDate }}</div>
       </div>
 
-      <v-menu location="bottom end">
+      <AccountMenu>
         <template #activator="{ props: menuProps }">
           <button
             type="button"
@@ -73,43 +56,12 @@ async function confirmLogout() {
             :title="auth.account?.displayName"
             v-bind="menuProps"
           >
-            {{ initials }}
+            {{ initial }}
           </button>
         </template>
-        <v-list density="comfortable" class="app-brand-header__menu">
-          <v-list-item
-            v-if="auth.account"
-            :title="auth.account.displayName"
-            :subtitle="auth.account.email"
-            class="app-brand-header__menu-identity"
-          />
-          <v-divider />
-          <v-list-item title="Mon compte" prepend-icon="phosphor:user" :to="{ name: 'my-account' }" />
-          <v-list-item
-            v-if="auth.isAdmin"
-            title="Comptes"
-            prepend-icon="phosphor:users"
-            :to="{ name: 'accounts' }"
-          />
-          <v-list-item title="Se déconnecter" prepend-icon="phosphor:sign-out" @click="confirmOpen = true" />
-        </v-list>
-      </v-menu>
+      </AccountMenu>
     </div>
   </div>
-
-  <v-dialog v-model="confirmOpen" max-width="360">
-    <v-card class="app-brand-header__dialog">
-      <h2 class="text-h6 font-weight-bold mb-2">Se déconnecter ?</h2>
-      <p v-if="auth.account" class="mb-2">Connecté en tant que {{ auth.account.displayName }}.</p>
-      <p class="text-secondary mb-5">Il faudra saisir à nouveau l'email et le mot de passe.</p>
-      <div class="app-brand-header__dialog-actions">
-        <v-btn variant="text" color="secondary" @click="confirmOpen = false">Annuler</v-btn>
-        <v-btn color="primary" variant="flat" :loading="loggingOut" @click="confirmLogout">
-          Se déconnecter
-        </v-btn>
-      </div>
-    </v-card>
-  </v-dialog>
 </template>
 
 <style scoped>
@@ -218,20 +170,5 @@ async function confirmLogout() {
 
 .app-brand-header__account:hover {
   filter: brightness(0.92);
-}
-
-.app-brand-header__menu-identity {
-  pointer-events: none;
-}
-
-.app-brand-header__dialog {
-  padding: 20px;
-  border-radius: 16px;
-}
-
-.app-brand-header__dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
 }
 </style>
