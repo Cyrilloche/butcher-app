@@ -3,6 +3,20 @@
 Généré à partir des messages de commit ([Conventional Commits](https://www.conventionalcommits.org/fr/)).
 Ne pas éditer à la main : régénérer avec `make changelog`.
 
+## frontend-v0.5.0 — 12/09/2026
+
+### Nouveautés
+
+- **frontend** : Corriger le prix d'une fournée depuis Détail Stock (RG-10) (859f1f9)
+- **backend** : Protège la connexion contre l'essai en rafale (5fe83a5)
+- **deploy** : En-têtes de sécurité sur toutes les réponses Caddy (27ce927)
+- **backend** : Politique de mot de passe forte et commande set-password ⚠️ **rupture** (8996289)
+
+### Documentation
+
+- État des lieux v2.0 et durcissement de la connexion (37400c6)
+- En-têtes de sécurité et redirection HTTPS constatés en prod (3b3a81d)
+
 ## frontend-v0.4.0 — 12/09/2026
 
 ### Nouveautés
