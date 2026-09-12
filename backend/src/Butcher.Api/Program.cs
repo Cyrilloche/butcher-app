@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Butcher.Api.Application.Services;
 using Butcher.Api.Common;
+using Butcher.Api.Common.Authorization;
 using Butcher.Api.Domain.Entities;
 using Butcher.Api.Domain.Enums;
 using Butcher.Api.Infrastructure.Data;
