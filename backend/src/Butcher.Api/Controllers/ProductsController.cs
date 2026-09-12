@@ -1,5 +1,7 @@
 using Butcher.Api.Application.Dtos;
 using Butcher.Api.Application.Services;
+using Butcher.Api.Common.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Butcher.Api.Controllers;
@@ -33,7 +35,10 @@ public class ProductsController(IProductService productService) : ControllerBase
         return Ok(await productService.UpdateAsync(id, request));
     }
 
+    // Désactiver, réactiver et solder le stock engagent le catalogue entier : gestes réservés à
+    // l'administrateur (FR-011). Les corrections de saisie, elles, restent ouvertes à tous.
     [HttpPost("{id:int}/deactivate")]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     public async Task<IActionResult> Deactivate(int id)
     {
         await productService.DeactivateAsync(id);
@@ -41,6 +46,7 @@ public class ProductsController(IProductService productService) : ControllerBase
     }
 
     [HttpPost("{id:int}/write-off")]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     public async Task<ActionResult<WriteOffProductStockResult>> WriteOffStock(
         int id, WriteOffProductStockRequest request)
     {
@@ -48,6 +54,7 @@ public class ProductsController(IProductService productService) : ControllerBase
     }
 
     [HttpPost("{id:int}/reactivate")]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     public async Task<IActionResult> Reactivate(int id)
     {
         await productService.ReactivateAsync(id);
