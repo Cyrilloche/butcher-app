@@ -4,9 +4,10 @@
 |---|---|
 | **Projet** | Mini-ERP Charcuterie (`butcher-app`) — application « Saloir » |
 | **Document** | Analyse d'écart documentation ↔ implémentation |
-| **Version** | 1.0 |
-| **Date** | 4 septembre 2026 |
-| **Méthode** | Relecture de `PRD.md`, `ADR.md`, `data-model.md`, `CLAUDE.md`, confrontée au code réellement présent (contrôleurs, entités, vues, workflows) |
+| **Version** | 2.0 |
+| **Date** | 12 septembre 2026 |
+| **Méthode** | Relecture de `PRD.md`, `ADR.md`, `data-model.md`, `CLAUDE.md`, confrontée au code réellement présent (contrôleurs, services, vues, workflows, `Caddyfile`) et à la réponse de la prod |
+| **Remplace** | Version 1.0 du 4 septembre 2026 |
 
 > Ce document est une **photographie datée**, pas une référence permanente : il constate, il ne décide pas. Les décisions qu'il appelle doivent redescendre dans le PRD, les ADR ou `CLAUDE.md`.
 
@@ -14,7 +15,7 @@
 
 ## 1. Verdict en trois lignes
 
-Le **backend V1 est complet et conforme** au PRD : toutes les entités, règles de gestion et exigences fonctionnelles de la Vague 1 sont implémentées et couvertes par 84 tests. Le **socle de déploiement (ADR-010) est non seulement décidé mais livré** — ce que la documentation présentait encore comme « le prochain spike ». L'écart réel n'est donc ni dans le modèle ni dans l'exploitation : il est dans le **frontend, qui n'expose qu'une partie de l'API déjà disponible**.
+Le **périmètre fonctionnel de la Vague 1 est livré**, backend comme frontend : l'écart « API disponible, interface absente » qui dominait la version 1.0 est résorbé pour tout ce qui compte à l'usage. Le **durcissement de l'authentification** relevé par l'audit du 5 septembre est fait dans le code. Ce qui sépare encore l'outil d'un usage réel n'est plus du fonctionnel : c'est de l'**exploitation** — pas de sauvegarde, et un `Caddyfile` que la CI ne dépose pas sur le VPS.
 
 ---
 
@@ -22,82 +23,98 @@ Le **backend V1 est complet et conforme** au PRD : toutes les entités, règles 
 
 | Prévu | Réalisé | Preuve dans le code |
 |---|---|---|
-| 8 entités métier (`product`, `production_batch`, `stock_unit`, `stock_movement`, `sale`, `customer`, `app_user`, `refresh_token`) | ✅ | `backend/src/Butcher.Api/Domain/Entities/` |
-| API REST couvrant le cœur métier | ✅ 7 contrôleurs, ~35 routes | `backend/src/Butcher.Api/Controllers/` |
-| Mécanisme de stock uniforme, y compris `by_piece` (QM-01) | ✅ | `StockUnitService`, tests dédiés |
-| Vente à la tranche + garde-fou de poids (RF-19/RF-20, RG-05) | ✅ back **et** front | `SaleService`, `StockDetailView.vue` |
-| Vente comme entité avec numéro et statut de paiement (RF-29/RF-30) | ✅ | `SalesController`, `SaleDetailView.vue` |
-| Client obligatoire sur une vente (RF-17/RG-07) | ✅ garanti par le modèle | `Sale.CustomerId` non nul |
+| Entités métier, dont `sale` et le registre `unit_number_sequence` | ✅ | `backend/src/Butcher.Api/Domain/Entities/` |
+| API REST couvrant le cœur métier | ✅ 7 contrôleurs | `backend/src/Butcher.Api/Controllers/` |
+| Tests backend | ✅ **145 tests** (84 au 04/09) | `backend/tests/Butcher.Api.Tests/` |
+| Produits : création, correction, gel du code et du mode de vente au premier lot, désactivation avec solde en perte (RG-09, RG-16) | ✅ back **et** front | `ProductDetailView.vue`, `ProductWriteOffDialog.vue` |
+| Lots : création avec pesée, **correction du prix** (RG-10), suppression d'un lot intact | ✅ back **et** front | `StockAddView.vue`, `BatchPriceEditAction.vue`, `BatchDeleteAction.vue` |
+| Numéro d'étiquette porté par l'unité (RG-17) | ✅ | `unit_number_sequence`, `StockUnitRow.vue` |
+| Stock à l'unité, poids restant d'une unité entamée calculé à la lecture (RG-05 révisée) | ✅ | `remaining_weight`, `StockDetailView.vue` |
+| Vente à la tranche, clôture, sorties perso et perte (RF-19 à RF-21) | ✅ | `StockUnitOutcomeMenu.vue` |
+| Vente comme entité, correction et suppression (RF-28 à RF-30, RG-14) | ✅ | `SaleDetailView.vue`, `SaleLineEditDialog.vue`, `SaleDeleteAction.vue` |
+| Client obligatoire, suppression refusée dès qu'il a une vente (RF-17, RF-24) | ✅ | `Sale.CustomerId` non nul, `409` |
 | Authentification JWT + refresh rotatif en cookie (ADR-009) | ✅ | `AuthController`, `stores/auth.ts` |
-| Déploiement conteneurisé + reverse proxy HTTPS (ADR-010) | ✅ **livré**, pas seulement décidé | `docker-compose.prod.yml`, `Caddyfile`, tunnel Cloudflare, CI/CD |
-| Système de design « Kraft » appliqué | ✅ | `plugins/vuetify.ts`, composants `base/` et `domain/` |
-| 4 dashboards branchés sur l'API réelle | ✅ | `views/{Stock,Sales,Customers,Products}View.vue` |
+| Protection de la connexion contre l'essai en rafale | ✅ **nouveau** | `IdentityPolicy`, `RateLimitPolicies` — voir §4 |
+| Déploiement conteneurisé, release par tag, changelog généré (ADR-010) | ✅ | `docker-compose.prod.yml`, `.github/workflows/`, `cliff.toml` |
 
 ---
 
-## 3. Les écarts — API disponible, interface absente
+## 3. Les écarts restants
 
-C'est le motif dominant : le backend sait faire, l'utilisateur ne peut pas le déclencher. Aucun de ces écarts ne demande de travail serveur.
+### 3.1 Écarts fonctionnels
 
-| # | Exigence | État backend | État frontend | Gravité |
-|---|---|---|---|---|
-| E-01 | **RF-21** — marquer une unité en `perso` (autoconsommation) ou `perdu` | ✅ `POST /api/stock-units/{id}/movements` accepte `personal` / `loss` | ✅ **traité le 2026-09-04** — menu d'actions par unité dans Détail Stock (`StockUnitOutcomeMenu.vue`), avec confirmation | Clos |
-| E-02 | **RF-08 / RF-09** — référence matière première et DLC d'un lot | ✅ colonnes `raw_material_ref`, `expiry_date` | ⛔ non saisissables dans « Ajout Stock » — **écart clos par décision le 2026-09-11** : exigences reportées en V2, l'écran restera sans ces champs en V1 (PRD v0.7) | Clos — n'est plus un écart mais un choix de périmètre |
-| E-03 | **RG-10** — lot partiellement modifiable après création | ✅ `PUT /api/production-batches/{id}` | ❌ aucun écran d'édition de lot | Moyenne : une erreur de prix ne se corrige pas depuis l'app |
-| E-04 | **RG-14** — vente modifiable et supprimable | ✅ `PUT` et `DELETE /api/sales/{id}` | ✅ **traité le 2026-09-11** — correction de l'en-tête et suppression depuis Détail Vente (`specs/003-sale-correction/`) | Clos |
-| E-05 | **RG-11** — mouvement modifiable et supprimable | ✅ `PUT` / `DELETE /api/stock-movements/{id}` | ✅ **traité le 2026-09-11** — une ligne de vente se corrige ou se retire depuis Détail Vente (`SaleLineEditDialog.vue`) | Clos pour les lignes de vente ; une sortie perso ou perte reste non corrigeable |
-| E-06 | **RF-31** — ventes filtrables par client, paiement et période | ✅ `GET /api/sales` accepte ces filtres | ⚠️ partiel : recherche texte (nom, numéro) et regroupement par mois seulement | Faible : l'usage réel reste couvert |
+| # | Exigence | État | Gravité |
+|---|---|---|---|
+| E-01 | RF-21 — sorties perso et perte | ✅ Clos le 2026-09-04 | — |
+| E-02 | RF-08 / RF-09 — référence matière première et DLC | ⛔ Clos par décision le 2026-09-11 : reportées en V2, le modèle et l'API portent déjà les champs | — |
+| E-03 | RG-10 — correction d'un lot | ✅ **Clos le 2026-09-12** : le prix se corrige depuis l'en-tête de la fournée dans Détail Stock. Les champs non exposés (DLC, matière première, notes) repartent tels qu'ils ont été lus, le `PUT` remplaçant le lot en entier. Les ventes déjà faites gardent leur montant. | — |
+| E-04 | RG-14 — vente modifiable et supprimable | ✅ Clos le 2026-09-11 | — |
+| E-05 | RG-11 — mouvement modifiable et supprimable | ⚠️ Clos pour les lignes de vente ; **une sortie perso ou perte reste non corrigeable** depuis l'interface | Faible : rare, et contournable par une seconde sortie |
+| E-06 | RF-31 — ventes filtrables par client, paiement et période | ⚠️ Partiel : l'API et le client HTTP acceptent les filtres, `SalesView` ne les expose pas (recherche texte et regroupement par mois seulement) | Faible ; candidat naturel pour le backoffice PC |
 
-### Autres écarts
+### 3.2 Exploitation et sécurité
 
 | # | Constat | Analyse |
 |---|---|---|
-| E-07 | **RF-27** — `created_by` existe sur `production_batch`, `sale` et `stock_movement` mais n'est jamais renseigné | Connu et documenté. Le champ prépare la journalisation V2 ; avec un compte partagé en V1, le renseigner n'apporterait rien. Non bloquant, mais le remplir coûterait quelques lignes maintenant que l'utilisateur authentifié est disponible. |
-| E-08 | **Aucun test frontend** (la CI passe `--passWithNoTests`) face à 84 tests backend | Asymétrie assumée jusqu'ici. Le risque se concentre désormais côté frontend, où vit la logique d'affichage métier (`useCustomers`, `useStock`, formatage des poids/prix). Ces fonctions pures sont le point d'entrée naturel de premiers tests. |
-| E-09 | La bascule **liste / grille** des clients (maquette « Clients Dashboard ») n'est pas implémentée | Écart volontaire : peu de valeur pour deux utilisateurs et un répertoire de quelques dizaines de fiches. À acter comme abandonné plutôt qu'à laisser en dette implicite. |
-| E-10 | `DELETE /api/customers/{id}` existe côté API, sans usage frontend | Volontaire (commit `522947d`) : la suppression d'un client casserait la traçabilité lot ↔ client (RF-24) dès qu'il a une vente. L'API refuse déjà (`409`). |
+| X-01 | **Aucune sauvegarde PostgreSQL** | Le point le plus urgent : les vraies données arrivent avec la recette utilisateur. Les migrations s'appliquent au démarrage du backend, sans filet. Traitement en cours hors dépôt (workflow n8n). |
+| X-02 | **Le `Caddyfile` n'est pas déployé par la CI** | Les workflows `release-*` copient `docker-compose.prod.yml` sur le VPS, jamais le `Caddyfile`, monté depuis `/opt/butcher-app`. Les en-têtes de sécurité (§4) n'y seront qu'après une copie manuelle suivie d'un redémarrage de Caddy. |
+| X-03 | **Mot de passe du compte de prod** | La nouvelle politique ne s'applique qu'à l'écriture d'un mot de passe : le compte existant garde l'ancien tant que `set-password` n'est pas lancé sur le VPS. |
+| X-04 | **HTTP ne redirige pas vers HTTPS** (audit du 05/09) | Réglage Cloudflare « Always Use HTTPS », hors dépôt. HSTS (§4) couvre les visites suivantes une fois le `Caddyfile` déployé. |
 
----
+### 3.3 Dette connue
 
-## 4. Écarts documentaires (corrigés dans la foulée)
-
-| Document | Écart constaté | Correction |
+| # | Constat | Analyse |
 |---|---|---|
-| `CLAUDE.md` §2 | Présentait le socle de déploiement comme « le prochain spike » alors qu'ADR-010 est **accepté et livré** (compose de prod, Caddy, tunnel Cloudflare, CI/CD, commande `create-user`) | Feuille de route réalignée |
-| `CLAUDE.md` §5 | Arborescence cible obsolète : ni `docker-compose.prod.yml`, ni `Caddyfile`, ni `Makefile`, ni `development/`, ni `.github/`, ni `CHANGELOG.md` | Arborescence mise à jour |
-| `CLAUDE.md` §11 / `ADR.md` (ADR-009) | Question ouverte sur le `SameSite` du cookie de refresh, « à trancher une fois la topologie tranchée par ADR-010 » | **Tranchée** : le `Caddyfile` sert le frontend et `/api/*` sur **la même origine** — les requêtes sont same-origin, `Lax` est le bon réglage et le reste. Question close. |
-| `docs/PRD.md` | Statut « backend exposé, frontend en cours » — en retard sur la réalité | Statut réaligné |
-| Partout | Aucun document ne décrivait **comment on publie une version** | Ajout du processus de release et du changelog automatique (`cliff.toml`, `make changelog`, `make release-*`) |
+| E-07 | RF-27 — `created_by` jamais renseigné | Inchangé. `created_at` / `updated_at` sont renseignés depuis le 2026-09-12. Le backoffice multi-comptes rendra ce champ nécessaire. |
+| E-08 | **Aucun test frontend** (la CI passe `--passWithNoTests`) face à 145 tests backend | L'asymétrie s'est creusée : la logique d'affichage métier a grossi côté frontend (`useStock`, totaux de poids, libellés de fournée). |
+| E-09 | Bascule liste / grille des clients | Abandon volontaire, peu de valeur pour deux utilisateurs. |
+| E-10 | `DELETE /api/customers/{id}` sans usage frontend | Volontaire : la suppression casserait la traçabilité lot ↔ client. |
+| E-11 | `frontend/index.html` porte encore `<title>Vite App</title>` | Cosmétique, relevé par l'audit du 05/09 ; le manifest PWA, lui, dit bien « Saloir ». |
 
 ---
 
-## 5. Ce qu'il reste pour clore la Vague 1
+## 4. Durcissement de l'authentification (2026-09-12)
+
+Réponse aux deux points « code » de l'audit du 5 septembre, et à la politique de mot de passe laissée aux valeurs par défaut d'Identity.
+
+| Mesure | Réglage | Où |
+|---|---|---|
+| Verrouillage du compte | 5 mots de passe erronés → 15 minutes. Vérifié **avant** le mot de passe : un compte verrouillé ne dit pas si l'essai était le bon. Une connexion réussie remet le compteur à zéro. | `IdentityPolicy`, `AuthService.LoginAsync` |
+| Limitation de débit | 10 tentatives de connexion par minute et par adresse IP, lue dans `CF-Connecting-IP` derrière le tunnel | `RateLimitPolicies`, `[EnableRateLimiting]` sur `login` |
+| Réponse | `429` avec un message en français, affiché tel quel par l'écran de connexion | `ExceptionHandlingMiddleware`, `LoginView.vue` |
+| Politique de mot de passe | 32 caractères minimum, majuscule, minuscule, chiffre, caractère spécial, 12 caractères distincts — une phrase de passe du type `Finlike-Scorer4-Wildfire-Grazing-Unbiased-Sessions` | `IdentityPolicy` |
+| Rotation d'un mot de passe | `set-password <email> <mot-de-passe>`, hors ligne dans le conteneur ; révoque les sessions ouvertes et lève un verrouillage | `Program.cs` |
+| En-têtes HTTP | HSTS, `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, CSP stricte (aucun script inline, polices Google seules origines externes), `Server` retiré | `Caddyfile` — **non déployé**, voir X-02 |
+
+**Vérification.** Verrouillage et politique couverts par des tests. Limitation de débit éprouvée sur une API locale : dix `401`, puis `429` à la onzième tentative depuis la même IP, une autre IP non freinée. En-têtes constatés sur un Caddy local, côté frontend comme côté API. `set-password` joué sur la base de dev : mot de passe court refusé, nouveau mot de passe accepté à la connexion, ancien refusé.
+
+**Compromis assumé.** Sur un compte partagé, le verrouillage offre une prise à qui voudrait bloquer l'accès : cinq essais suffisent à fermer la porte quinze minutes. La durée courte limite ce risque, et la limitation par IP le freine.
+
+---
+
+## 5. Ce qu'il reste avant un usage réel
 
 Dans l'ordre de valeur décroissante :
 
-1. ~~**E-01 — sorties `perso` et `perte` depuis l'interface.**~~ ✅ **Fait le 2026-09-04** : menu d'actions sur chaque unité de Détail Stock (usage perso, perte, clôture), confirmation obligatoire, poids enregistré = **restant estimé** et non poids d'origine (voir §7).
-2. ~~**E-04 — corriger ou supprimer une vente.**~~ ✅ **Fait le 2026-09-11** : en-tête corrigeable (client, date, paiement, note), ligne corrigeable ou retirable, vente supprimable, chaque geste destructif sous confirmation. Emporte E-05 pour les lignes de vente. Aucun travail serveur, les règles étaient déjà là (`specs/003-sale-correction/`).
-3. ~~**E-02 — DLC et référence matière première à la création d'un lot.**~~ ⛔ **Écart clos par décision le 2026-09-11**, sans code : RF-08/RF-09 sont reportées en V2. Deux saisies facultatives de plus sur le parcours le plus fragile pesaient plus lourd que la traçabilité qu'elles apportaient, face au vrai risque du projet — l'adoption par deux utilisateurs non techniques. Réversible sans coût, le modèle et l'API portent déjà les champs.
-4. **E-03 — édition d'un lot.** Même logique de rattrapage que E-04, moins fréquente.
-5. **E-08 — premiers tests frontend** sur les composables purs, pour équilibrer la couverture.
+1. **X-01 — sauvegarde PostgreSQL**, avant que les vraies données n'arrivent.
+2. **X-02 — déposer le `Caddyfile` sur le VPS**, puis redémarrer Caddy ; idéalement, le faire copier par la CI comme `docker-compose.prod.yml`.
+3. **X-03 — `set-password` sur le compte de prod** avec une phrase de passe, une fois le backend publié.
+4. **X-04 — « Always Use HTTPS »** côté Cloudflare.
 
-E-06, E-07 et E-09 relèvent du confort ou de la V2 : à laisser tels quels, mais tracés ici.
+Ensuite, hors usage réel : E-08 (premiers tests frontend), puis le backoffice PC, qui absorbera E-06 et E-07.
 
 ---
 
 ## 6. Ce que cette analyse ne remet pas en cause
 
-Aucune décision d'architecture n'est contredite par l'implémentation : pas d'ADR à remplacer. Le modèle de données correspond à ce qui tourne (`data-model.md` v0.7), les conventions de nommage sont tenues (`app_user`, `snake_case`, enums en `snake_case`, `decimal` pour l'argent), et les pièges listés en `CLAUDE.md` §9 n'ont pas été commis. L'écart est un **retard du frontend sur le backend**, pas une dérive de conception.
+Aucune décision d'architecture n'est contredite. Le durcissement complète ADR-009 sans le remplacer : compte partagé, JWT en mémoire et refresh rotatif en cookie restent la règle. Le multi-comptes annoncé par le backoffice appellera, lui, un ADR de remplacement sur l'absence de rôles.
 
 ---
 
 ## 7. Note d'implémentation — le poids d'une sortie perso/perte
 
-Le backend impose un `sold_weight` strictement positif sur **tout** mouvement d'un produit vendu au poids, y compris `personal` et `loss` (`StockMovementRules.ValidateSoldWeight`). Le client doit donc fournir un poids ; deux valeurs étaient candidates.
+Le backend impose un `sold_weight` strictement positif sur **tout** mouvement d'un produit vendu au poids, y compris `personal` et `loss`. Le poids enregistré est le **restant** de l'unité : poids pesé moins la somme des poids déjà vendus. Le prendre pour le poids pesé compterait deux fois la part vendue d'un jambon entamé.
 
-- **Le poids pesé de l'unité** : faux dès que l'unité est entamée — la part déjà vendue serait comptée une seconde fois.
-- **Le restant estimé** (poids pesé − somme des `sold_weight` des mouvements de vente) : c'est la valeur retenue. Elle est recalculée à la demande, jamais stockée, ce qui reste conforme à RG-05 (« le poids restant n'est pas suivi » : aucune colonne, aucun affichage permanent).
+Depuis le 2026-09-12, ce restant est calculé par le serveur seul (`ComputeRemainingWeight`) et exposé sous `remaining_weight` ; le frontend ne fait plus aucune soustraction (`CLAUDE.md` §9).
 
-Ce calcul existait déjà, dupliqué dans « Ajout Vente » ; il est désormais partagé (`getRemainingWeightKg` dans `useStock.ts`) et utilisé par les deux parcours.
-
-Cas limite : une unité entamée dont tout le poids a déjà été vendu a un restant nul. Le backend refuserait un `sold_weight` à zéro ; l'interface le détecte avant l'envoi et oriente vers la clôture (RF-20), qui est le geste correct dans cette situation.
+Cas limite : une unité entamée dont tout le poids a déjà été vendu a un restant nul. Le backend refuserait un `sold_weight` à zéro ; l'interface oriente alors vers la clôture (RF-20), qui est le geste correct.

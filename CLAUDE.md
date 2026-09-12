@@ -14,7 +14,7 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 
 ## 2. État d'avancement & feuille de route
 
-**Phase actuelle : Vague 1 complète côté périmètre fonctionnel. Backend complet, socle de déploiement livré (ADR-010), frontend au niveau de l'API. La saisie DLC/matière première d'un lot (RF-08/RF-09) est reportée en V2 le 2026-09-11 : deux champs facultatifs de plus sur le parcours le plus fragile, alors que la prise en main de l'outil est déjà le vrai défi. La recette manuelle de la correction d'une vente est déroulée et validée (2026-09-11). Depuis, le poids encore vendable d'un jambon entamé est visible et les totaux de stock disent enfin ce qui reste à vendre (2026-09-12).**
+**Phase actuelle : Vague 1 complète côté périmètre fonctionnel. Backend complet, socle de déploiement livré (ADR-010), frontend au niveau de l'API. La saisie DLC/matière première d'un lot (RF-08/RF-09) est reportée en V2 le 2026-09-11 : deux champs facultatifs de plus sur le parcours le plus fragile, alors que la prise en main de l'outil est déjà le vrai défi. La recette manuelle de la correction d'une vente est déroulée et validée (2026-09-11). Depuis, le poids encore vendable d'un jambon entamé est visible et les totaux de stock disent enfin ce qui reste à vendre (2026-09-12). Le prix d'une fournée se corrige depuis Détail Stock, et la connexion est durcie (verrouillage, limitation de débit, phrase de passe de 32 caractères, en-têtes de sécurité) — 2026-09-12. Avant l'usage réel restent des gestes d'exploitation : sauvegarde, dépôt du `Caddyfile` sur le VPS, rotation du mot de passe de prod (`docs/etat-des-lieux.md` §5).**
 
 | Étape | Statut |
 |---|---|
@@ -23,7 +23,7 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 | Décisions d'architecture (ADR) | ✅ Rédigées (ADR-006 tranché : Vuetify) |
 | Modèle de données | ✅ Rédigé (v0.11, aligné sur l'implémentation) |
 | Maquettes (Claude Design) | ✅ Toutes vues Vague 1 maquettées (Stock, Produits, Clients, Ventes) ; itération ensuite en code (voir §10) |
-| Backend — cœur métier (9 entités dont `sale`, CRUD + logique métier) | ✅ Exposé en API, 127 tests |
+| Backend — cœur métier (9 entités dont `sale`, CRUD + logique métier) | ✅ Exposé en API, 145 tests |
 | Spike authentification (JWT) | ✅ Réalisé et vérifié — ADR-009 accepté (Identity allégé, refresh token rotatif en base, cookie httpOnly/Secure, seed par variable d'environnement) |
 | Frontend — Stock, Produits, Clients, Ventes (dashboard/détail/ajout) | ✅ Branchés sur l'API réelle (branche `frontend-init`, worktree séparé) |
 | Socle de déploiement (ADR-010) | ✅ **Livré** : Docker Compose de prod, Caddy en reverse proxy, tunnel Cloudflare, images versionnées poussées par la CI, déploiement sur VPS déclenché par tag |
@@ -34,8 +34,10 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 | Correction et suppression d'une vente (RG-14, RG-11) | ✅ En-tête corrigeable (client, date, paiement, note) ; une ligne se corrige sur son montant et son poids vendu, ou se retire ; la vente entière se supprime, rendant au stock les unités sans autre sortie. Le montant reste celui qui a été saisi, jamais recalculé (`specs/003-sale-correction/`) |
 | Numéro d'étiquette porté par l'unité | ✅ Le numéro `CODE-YYMMDD-N` identifie le sachet et non la fabrication ; registre `unit_number_sequence` sous verrou, aucun numéro jamais réémis (`specs/002-unit-numbering/`) |
 | Poids encore vendable d'une unité entamée (RG-05 révisée) | ✅ Le serveur calcule le restant à chaque lecture, sans jamais le stocker ; la ligne d'une unité entamée l'affiche, et les totaux des deux écrans de stock le comptent au lieu du poids d'origine. Détail Stock refondu : la date en titre de section au-dessus de la carte, deux lignes par unité, corbeille par unité (`specs/004-remaining-weight/`) |
+| Correction du prix d'une fournée (RG-10) | ✅ Crayon dans l'en-tête de chaque fournée, Détail Stock. Le `PUT` remplaçant le lot en entier, la DLC, la matière première et les notes repartent telles qu'elles ont été lues ; les ventes passées gardent leur montant (`BatchPriceEditAction.vue`) |
+| Durcissement de la connexion (audit du 2026-09-05) | ✅ Verrouillage 15 min après 5 échecs, 10 essais/min par IP (`CF-Connecting-IP`), réponse `429` en français ; mot de passe de 32 caractères minimum et commande `set-password` ; en-têtes de sécurité et CSP dans le `Caddyfile`. Détail : `docs/etat-des-lieux.md` §4, ADR-009 |
 | Développement Vague 1 | ✅ **Complet** — RF-08/RF-09 (DLC, matière première) reportées en V2 le 2026-09-11 ; recette manuelle de la correction d'une vente déroulée et validée le 2026-09-11 |
-| Analyse d'écart doc ↔ code | ✅ `docs/etat-des-lieux.md` (04/09/2026) |
+| Analyse d'écart doc ↔ code | ✅ `docs/etat-des-lieux.md` v2.0 (12/09/2026) |
 
 **Méthode : dé-risquage avant développement.** On valide les points techniques risqués par des *spikes* isolés **avant** de construire les fonctionnalités. Spikes prévus, dans l'ordre :
 
@@ -219,6 +221,10 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 - ❌ Supprimer un client qui a des ventes → refusé (`409`), ça effacerait la traçabilité lot ↔ client (RF-24).
 - ❌ Coupler frontend et backend autrement que par le contrat d'API REST.
 - ❌ Traiter l'authentification à la légère (service exposé) → suivre le spike auth avant tout.
+- ❌ Vérifier un mot de passe par `CheckPasswordAsync` seul → passer par `AuthService.LoginAsync`, qui consulte le verrouillage **avant** le mot de passe et compte les échecs. Un appel direct contourne le verrou.
+- ❌ Régler Identity ailleurs que dans `IdentityPolicy` → l'application et les tests partagent cette classe ; un réglage posé dans `Program.cs` ne serait pas éprouvé par les tests.
+- ❌ Modifier le `Caddyfile` en croyant qu'un tag le déploie → les workflows `release-*` ne copient que `docker-compose.prod.yml`. Le `Caddyfile` du VPS (`/opt/butcher-app`) se met à jour à la main, puis Caddy se redémarre.
+- ❌ Renseigner un `SEED_ADMIN_PASSWORD` court → sur une base vierge, le seed échoue et le backend ne démarre pas. 32 caractères minimum, avec majuscule, minuscule, chiffre et caractère spécial.
 - ❌ Dériver un numéro d'étiquette d'un comptage des unités existantes → passer par `unit_number_sequence`, sous verrou de ligne. Depuis qu'une unité et une fournée peuvent être supprimées, un comptage réémettrait un numéro déjà écrit sur une seconde série d'étiquettes manuscrites, indiscernable de la première (`data-model.md` §3.9, C-12).
 - ❌ Recomposer un numéro d'unité côté client, en suffixant un numéro de lot par un rang → le numéro vient du serveur. C'est ce double numéro, `SC-260910-2-1`, qui a été lu comme un sous-lot et supprimé le 2026-09-10.
 - ❌ Calculer côté client le poids d'une sortie perso ou perte, ou le poids restant d'une unité entamée → le serveur est le seul auteur de cette soustraction, sous le nom `ComputeRemainingWeight` (`data-model.md` §3.5 et §3.8). Le dernier calcul client a été retiré le 2026-09-12 : le frontend lit `remaining_weight` et se contente d'en faire la somme pour ses totaux.
@@ -242,8 +248,9 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 |---|---|---|
 | ADR-009 | `SameSite` du cookie de refresh token | ✅ **Close (2026-09-04)** : Caddy sert le frontend et `/api/*` sur la même origine (ADR-010), les requêtes sont same-origin — `Lax` est le bon réglage et reste la valeur par défaut. |
 | RF-27 | `created_by` existe sur `production_batch`, `sale` et `stock_movement` mais **n'est jamais renseigné** : le champ prépare la journalisation V2, il ne la fait pas | Ouvert, non bloquant (compte partagé en V1) |
-| — | Politique de mot de passe Identity (valeurs par défaut, non revues pour 2 utilisateurs non techniques) | Ouvert, non bloquant |
-| — | Stratégie de sauvegarde PostgreSQL (le VPS et le déploiement sont en place) | Ouvert — seul point d'exploitation non traité par ADR-010 |
+| — | Politique de mot de passe Identity | ✅ **Close (2026-09-12)** : 32 caractères minimum, phrase de passe visée ; `set-password` pour mettre un compte existant en conformité (`IdentityPolicy`, ADR-009). Reste à lancer `set-password` sur le compte de prod. |
+| — | Stratégie de sauvegarde PostgreSQL (le VPS et le déploiement sont en place) | Ouvert — **priorité n°1 avant l'usage réel** ; piste en cours hors dépôt (workflow n8n) |
+| — | Déploiement du `Caddyfile` : aucun workflow ne le copie sur le VPS, les en-têtes de sécurité n'y sont donc pas | Ouvert — copie manuelle en attendant, ou ajout au job `deploy` des workflows |
 | RF-21 | Sorties `perso` / `perte` | ✅ **Close (2026-09-04)** : exposées dans Détail Stock (`StockUnitOutcomeMenu.vue`) |
 | RG-14 | Correction et suppression d'une vente depuis l'interface | ✅ **Close (2026-09-11)** : écran de détail d'une vente (`SaleDetailView.vue`, `SaleLineEditDialog.vue`, `SaleDeleteAction.vue`) |
 

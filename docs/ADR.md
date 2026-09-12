@@ -307,7 +307,8 @@ Par ailleurs, l'API adopte une **politique d'autorisation par défaut fail-close
 **Négatives / à surveiller**
 - Le cookie `Secure` impose HTTPS **même en développement local**, ce qui a nécessité un profil `https` dédié et le certificat de développement .NET (`dotnet dev-certs https --trust`) — un peu de friction locale en échange de la sécurité en production.
 - `SameSite` du cookie de refresh est fixé à `Lax` par défaut (configurable via `Auth:RefreshCookieSameSite`). **Point tranché le 2026-09-04** : la topologie retenue par l'ADR-010 place le frontend et `/api/*` derrière le même reverse proxy Caddy, donc sur **la même origine** — les appels d'authentification sont same-origin et `Lax` convient sans réserve. Le réglage reste configurable au cas où une topologie en sous-domaines séparés serait un jour adoptée, ce qui imposerait alors `None` + `Secure`.
-- La politique de mot de passe d'ASP.NET Core Identity utilisée est celle par défaut (non personnalisée) — à revisiter à l'usage réel par les deux utilisateurs finaux, non-techniques.
+- ~~La politique de mot de passe d'ASP.NET Core Identity utilisée est celle par défaut (non personnalisée).~~ **Revue le 2026-09-12**, voir le complément ci-dessous.
+- Sur un compte partagé, le verrouillage après échecs offre une prise à qui voudrait bloquer l'accès : cinq essais ferment la porte quinze minutes. Compromis assumé, borné par la durée courte du verrou et par la limitation de débit par IP.
 - Les tables Identity annexes (`app_user_claim`, `app_user_login`, `app_user_token`) sont créées mais **inutilisées** en V1 (pas de login externe, pas de claims personnalisées) — conservées telles quelles car standard et inoffensif, sans nettoyage particulier.
 
 ### Alternatives écartées
@@ -317,6 +318,17 @@ Par ailleurs, l'API adopte une **politique d'autorisation par défaut fail-close
 - **JWT longue durée sans refresh token, ou refresh token stateless (non stocké en base)** : plus simple, mais sans possibilité de révocation individuelle ni de détection de rejeu — jugé trop fragile pour un service exposé sur Internet (RNF-04).
 - **Access token persisté en `localStorage`** : rejeté d'emblée, vulnérable à l'exfiltration par XSS ; c'est précisément ce que le choix mémoire + cookie `httpOnly` évite.
 - **Inscription publique en V1** : inutile (un seul compte partagé) et source de risque additionnel sans bénéfice ; reportée indéfiniment tant que le besoin de plusieurs comptes ne se matérialise pas.
+
+### Complément — durcissement de la connexion (2026-09-12)
+
+Suite de l'audit de sécurité du 2026-09-05, qui ne relevait aucune faille exploitable mais une connexion ouverte à l'essai en rafale. Ce complément **précise** la décision sans la remplacer : compte partagé, access token en mémoire et refresh token rotatif en cookie restent la règle.
+
+- **Verrouillage du compte** (lockout Identity) : 5 mots de passe erronés verrouillent le compte 15 minutes. `AuthService.LoginAsync` consulte le verrou **avant** de vérifier le mot de passe, pour qu'un compte verrouillé ne révèle pas si l'essai était le bon ; une connexion réussie remet le compteur à zéro.
+- **Limitation de débit** : 10 tentatives par minute et par adresse IP sur `POST /api/auth/login` (rate limiter ASP.NET Core). L'IP est lue dans `CF-Connecting-IP` : derrière le tunnel et Caddy, l'adresse de connexion est celle d'un conteneur, commune à tous. L'en-tête n'est pas falsifiable, Caddy n'exposant aucun port.
+- **Réponse** : `429` avec un message en français, affiché tel quel par l'écran de connexion.
+- **Politique de mot de passe** : 32 caractères minimum, majuscule, minuscule, chiffre, caractère spécial, 12 caractères distincts. On vise une **phrase de passe** (`Finlike-Scorer4-Wildfire-Grazing-Unbiased-Sessions`), plus facile à recopier qu'un mot de passe court et tordu, et bien plus coûteuse à deviner. Réglages centralisés dans `IdentityPolicy`, partagé avec les tests.
+- **Rotation** : la politique ne s'applique qu'à l'écriture d'un mot de passe. La commande hors ligne `set-password <email> <mot-de-passe>` met un compte existant en conformité, révoque ses sessions et lève un éventuel verrou.
+- **En-têtes HTTP** posés par Caddy (ADR-010) : HSTS, `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy` et une CSP stricte — aucun script inline, styles inline autorisés pour le thème Vuetify, polices Google seules origines externes.
 
 ---
 

@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | **Nom de projet** | Mini-ERP Charcuterie (application : **Saloir**) |
-| **Version du document** | 0.8 |
+| **Version du document** | 0.9 |
 | **Date** | 12 septembre 2026 |
-| **Statut** | Vague 1 complète côté périmètre — backend V1 complet, déploiement livré (ADR-010), frontend au niveau de l'API ; reste la recette manuelle de la correction d'une vente (voir `docs/etat-des-lieux.md`) |
+| **Statut** | Vague 1 complète côté périmètre, backend comme frontend ; connexion durcie. Restent, avant l'usage réel, des gestes d'exploitation : sauvegarde, dépôt du `Caddyfile`, rotation du mot de passe de prod (voir `docs/etat-des-lieux.md` §5) |
 | **Auteur** | Cyril, avec assistance à l'architecture |
 | **Destinataires** | Utilisateurs finaux (exploitants), équipe de développement |
 
@@ -20,6 +20,7 @@
 | 0.6 | 2026-09-11 | Cyril, avec assistance à l'implémentation | **RF-08 et RF-09 reportées en V2** (référence de matière première et DLC d'un lot) : facultatives, informatives, et deux saisies de plus sur le parcours le plus fragile. La prise en main de l'outil par des utilisateurs non techniques prime (H-06, RNF-02). Exigences conservées et réversibles sans coût — le modèle et l'API les portent déjà. Vague 1 close côté périmètre fonctionnel. |
 | 0.7 | 2026-09-11 | Cyril, avec assistance à l'implémentation | **Remise en cohérence des règles avec le code livré** : RG-09 révisée (la désactivation d'un produit exige un stock écoulé), RG-10 révisée (suppression d'un lot intact ouverte, le lot n'a plus de numéro), ajout de RG-16 (mutabilité du produit conditionnée à son usage) et RG-17 (numéro d'étiquette porté par l'unité, jamais réémis). §9 réaligné : unité de mesure retirée, numéro d'étiquette et registre de numérotation ajoutés. Aucune décision nouvelle — le document rattrape trois fonctionnalités déjà livrées. |
 | 0.8 | 2026-09-12 | Cyril, avec assistance à l'implémentation | **RG-05 révisée** : le poids restant d'une unité entamée reste interdit au stockage, mais il est désormais calculé à la demande par le serveur et affiché comme poids encore vendable — sur la ligne de l'unité et dans les totaux des deux écrans de stock. Le garde-fou d'écriture est inchangé. Aucune exigence nouvelle : l'affichage servait déjà la question métier « puis-je encore vendre une tranche » (`specs/004-remaining-weight/`). |
+| 0.9 | 2026-09-12 | Cyril, avec assistance à l'implémentation | **Statut réaligné** : RG-10 est désormais atteignable depuis l'interface (correction du prix d'une fournée), et RNF-04 est renforcée dans le code — verrouillage du compte, limitation de débit sur la connexion, politique de mot de passe de 32 caractères, en-têtes de sécurité (ADR-009, complément du 2026-09-12). Aucune exigence modifiée. |
 | 0.3 | 2026-09-04 | Cyril, avec assistance à l'implémentation | **Q-04 et Q-05 résolus et implémentés** : ajout de l'entité *vente* (numéro unique, statut de paiement, regroupement de plusieurs unités) — nouvelles exigences RF-28 à RF-31 et règles RG-13 à RG-15 ; RF-17/RG-07 (client obligatoire) désormais garantis par le modèle ; §9 mis en cohérence (le client n'est plus optionnel) |
 
 ---
