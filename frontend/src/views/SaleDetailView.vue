@@ -5,6 +5,7 @@ import AppPageHeader from '@/components/base/AppPageHeader.vue'
 import AppCard from '@/components/base/AppCard.vue'
 import AppButton from '@/components/base/AppButton.vue'
 import AppTextField from '@/components/base/AppTextField.vue'
+import AuthorLabel from '@/components/domain/AuthorLabel.vue'
 import CustomerPicker from '@/components/domain/CustomerPicker.vue'
 import SaleDeleteAction from '@/components/domain/SaleDeleteAction.vue'
 import SaleLineEditDialog from '@/components/domain/SaleLineEditDialog.vue'
@@ -159,6 +160,7 @@ async function onSaleDeleted() {
     <div class="sale-detail-view__date text-secondary">
       {{ new Date(sale.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) }}
     </div>
+    <AuthorLabel :name="sale.createdByName" class="sale-detail-view__author" />
 
     <div class="sale-detail-view__sections">
       <!-- En-tête : lecture, puis correction sur demande -->
@@ -246,6 +248,11 @@ async function onSaleDeleted() {
               </span>
             </div>
             <div class="text-secondary">{{ line.detail }}</div>
+            <!-- Une ligne ajoutée après coup par un autre compte le dit ; sinon l'auteur de la vente suffit. -->
+            <AuthorLabel
+              v-if="line.movement.createdByName !== sale.createdByName"
+              :name="line.movement.createdByName"
+            />
           </div>
           <div class="font-weight-medium">{{ formatEuros(line.movement.amount ?? 0) }} €</div>
           <v-icon size="16" class="text-secondary">phosphor:pencil-simple</v-icon>
@@ -301,8 +308,12 @@ async function onSaleDeleted() {
 .sale-detail-view__date {
   font-size: 16px;
   font-weight: 500;
-  padding: 0 4px 16px;
+  padding: 0 4px 4px;
   text-transform: capitalize;
+}
+
+.sale-detail-view__author {
+  padding: 0 4px 16px;
 }
 
 .sale-detail-view__badge {

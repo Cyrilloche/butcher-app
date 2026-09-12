@@ -4,6 +4,7 @@ import AppPageHeader from '@/components/base/AppPageHeader.vue'
 import AppCard from '@/components/base/AppCard.vue'
 import StockUnitRow from '@/components/domain/StockUnitRow.vue'
 import StockUnitOutcomeMenu from '@/components/domain/StockUnitOutcomeMenu.vue'
+import AuthorLabel from '@/components/domain/AuthorLabel.vue'
 import BatchPriceEditAction from '@/components/domain/BatchPriceEditAction.vue'
 import BatchDeleteAction from '@/components/domain/BatchDeleteAction.vue'
 import StockUnitDeleteAction from '@/components/domain/StockUnitDeleteAction.vue'
@@ -61,6 +62,7 @@ async function onOutcomeDone() {
             <span v-if="batch.dayRankLabel" class="stock-detail-view__day-rank text-secondary">
               {{ batch.dayRankLabel }}
             </span>
+            <AuthorLabel :name="batch.createdByName" />
           </div>
           <div class="stock-detail-view__day-meta">
             <span class="text-secondary font-weight-medium">{{ batch.priceLabel }}</span>

@@ -66,6 +66,8 @@ export interface StockDetailBatch {
    * ils repartent tels quels à chaque correction du prix, sous peine d'être effacés.
    */
   untouched: { rawMaterialRef: string | null; expiryDate: string | null; notes: string | null }
+  /** Nom du compte qui a enregistré la fournée ; `null` avant les comptes nominatifs (RF-27). */
+  createdByName: string | null
   units: StockDetailUnit[]
 }
 
@@ -254,6 +256,7 @@ export async function getStockDetail(code: string): Promise<StockDetail | null> 
           expiryDate: batch.expiryDate,
           notes: batch.notes,
         },
+        createdByName: batch.createdByName,
         units: batchUnits
           .filter((unit) => isInStock(unit))
           .map((unit) => {

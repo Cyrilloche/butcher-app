@@ -119,6 +119,8 @@ export interface ProductionBatchDto {
   rawMaterialRef: string | null
   expiryDate: string | null
   notes: string | null
+  /** Nom du compte qui a enregistré la fabrication ; `null` avant les comptes nominatifs. */
+  createdByName: string | null
 }
 
 export interface CreateProductionBatchRequest {
@@ -204,6 +206,8 @@ export interface StockMovementDto {
   /** Le numéro de l'unité sortie, tel qu'il est écrit sur son étiquette. */
   unitNumber: string
   notes: string | null
+  /** Nom du compte qui a enregistré la sortie ; `null` avant les comptes nominatifs. */
+  createdByName: string | null
 }
 
 // --- Sale -------------------------------------------------------------
@@ -218,6 +222,8 @@ export interface SaleDto {
   notes: string | null
   total: number
   itemCount: number
+  /** Nom du compte qui a enregistré la vente ; `null` avant les comptes nominatifs. */
+  createdByName: string | null
   lines: StockMovementDto[]
 }
 
