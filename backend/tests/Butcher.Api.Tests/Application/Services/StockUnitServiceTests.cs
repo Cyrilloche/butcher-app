@@ -381,6 +381,28 @@ public class StockUnitServiceTests(PostgresDatabaseFixture fixture) : IAsyncLife
     }
 
     [Fact]
+    public async Task GetAllAsync_PartiallySoldUnitReadFromAFreshContext_RemainingWeightIsTheDifference()
+    {
+        int batchId;
+        await using (var writeContext = fixture.CreateDbContext())
+        {
+            var batch = await SeedBatchAsync(writeContext, SaleMode.ByWeight);
+            batchId = batch.Id;
+            var created = await new StockUnitService(writeContext)
+                .AddUnitsAsync(batch.Id, new AddStockUnitsRequest { Weights = [10.000m] });
+            var sale = await SeedSaleAsync(writeContext);
+            await SellSliceAsync(writeContext, created[0].Id, sale.Id, 0.100m);
+        }
+
+        // Un contexte neuf, comme une requête HTTP : aucun mouvement n'y est suivi en mémoire, la
+        // somme doit venir de la base. Le même contexte masquait un calcul fait sur une navigation
+        // jamais chargée.
+        await using var readContext = fixture.CreateDbContext();
+        var unit = Assert.Single(await new StockUnitService(readContext).GetAllAsync(batchId, null, null));
+        Assert.Equal(9.900m, unit.RemainingWeight);
+    }
+
+    [Fact]
     public async Task GetAllAsync_FullySlicedUnit_RemainingWeightIsZeroAndUnitStaysOpened()
     {
         await using var dbContext = fixture.CreateDbContext();

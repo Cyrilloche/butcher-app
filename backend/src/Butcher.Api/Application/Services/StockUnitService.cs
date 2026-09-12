@@ -29,11 +29,19 @@ public class StockUnitService(AppDbContext dbContext) : IStockUnitService
         }
 
         // Le poids déjà vendu s'agrège en SQL, par sous-requête sur la navigation : une seule
-        // requête part, quel que soit le nombre d'unités. Le calcul métier, lui, reste en C# —
-        // la projection finale d'EF Core accepte un appel de méthode.
+        // requête part, quel que soit le nombre d'unités. L'expression reste écrite ici, en ligne :
+        // passée par une méthode, EF Core ne la traduisait pas et l'évaluait en mémoire sur une
+        // navigation jamais chargée — somme nulle, restant égal au poids pesé. Seul le type vente
+        // est retranché : une sortie perso ou une perte finalise l'unité, qui quitte le stock.
         var rows = await query
             .OrderBy(u => u.Id)
-            .Select(u => new { Unit = u, SoldWeight = SoldWeightOf(u) })
+            .Select(u => new
+            {
+                Unit = u,
+                SoldWeight = u.StockMovements
+                    .Where(m => m.Type == MovementType.Sale)
+                    .Sum(m => m.SoldWeight ?? 0m),
+            })
             .ToListAsync();
 
         return rows.Select(row => ToDto(row.Unit, row.SoldWeight)).ToList();
@@ -211,17 +219,6 @@ public class StockUnitService(AppDbContext dbContext) : IStockUnitService
     private async Task<StockUnit> FindOrThrowAsync(int id) =>
         await dbContext.StockUnits.Include(u => u.Batch).FirstOrDefaultAsync(u => u.Id == id)
             ?? throw new NotFoundException($"Unité de stock {id} introuvable.");
-
-    /// <summary>
-    /// Somme des poids vendus sur une unité. Traduite en sous-requête corrélée par EF Core.
-    /// </summary>
-    /// <remarks>
-    /// Seul le type vente est retranché. Une sortie perso ou une perte <b>finalise</b> l'unité :
-    /// elle quitte le stock et n'est plus affichée, donc retrancher son poids ne servirait à rien
-    /// et masquerait un filtre trop large derrière un restant faussement nul.
-    /// </remarks>
-    private static decimal SoldWeightOf(StockUnit unit) =>
-        unit.StockMovements.Where(m => m.Type == MovementType.Sale).Sum(m => m.SoldWeight ?? 0m);
 
     private static StockUnitDto ToDto(StockUnit unit, decimal soldWeight) =>
         new()
