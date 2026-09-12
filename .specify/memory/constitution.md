@@ -1,5 +1,14 @@
 <!--
-Sync Impact Report
+Sync Impact Report (1.1.0, 2026-09-13)
+- Version change: 1.0.0 → 1.1.0 (MINEUR : élargissement matériel d'une contrainte technique)
+- Contrainte modifiée : « Authentification » — Identity n'est plus « sans rôles » : comptes nominatifs
+  porteurs d'un rôle admin / user, droits relus en base (ADR-011, remplace en partie ADR-009).
+- Principes : aucun renommage, aucune suppression.
+- Documents dépendants : ✅ docs/ADR.md (ADR-011), ✅ CLAUDE.md §4 et §9, ✅ docs/PRD.md (RF-26),
+  ✅ docs/data-model.md (§3.1, §4.2) ; gabarits .specify/ inchangés (aucune section concernée).
+- TODO différés : aucun
+
+Sync Impact Report (1.0.0)
 - Version change: (aucune, gabarit non rempli) → 1.0.0
 - Ratification initiale : tous les placeholders du gabarit ont été remplacés par des valeurs
   dérivées de CLAUDE.md, docs/PRD.md, docs/ADR.md et docs/data-model.md.
@@ -95,9 +104,10 @@ remplacement.
   EF Core + Npgsql ; PostgreSQL ; déploiement Docker Compose auto-hébergé derrière Caddy
   (ADR-010). Pas de BaaS.
 - **Pas de mode hors-ligne** en V1 (ADR-001). La PWA préserve la possibilité de l'ajouter.
-- **Authentification** : Identity allégé sans rôles, access token JWT en mémoire (15 min),
-  refresh token rotatif en base, cookie httpOnly/Secure (ADR-009). Le secret de seed vient d'une
-  variable d'environnement, jamais du dépôt.
+- **Authentification** : Identity allégé, access token JWT en mémoire (15 min), refresh token
+  rotatif en base, cookie httpOnly/Secure (ADR-009). Comptes nominatifs porteurs d'un rôle
+  `admin` / `user` ; les droits DOIVENT être relus en base, jamais déduits du seul jeton (ADR-011).
+  Le secret de seed vient d'une variable d'environnement, jamais du dépôt.
 - **Langue** : code et schéma en anglais, documentation et interface en français.
 - **Nommage** : `snake_case` en base, `PascalCase` en C#, conventions standards en Vue/TS. La
   table utilisateur s'appelle `app_user` et jamais `user`. Les enums sont sérialisés en
@@ -141,4 +151,4 @@ code, c'est la constitution qui s'applique, ou elle est amendée.
 - **Guidance d'exécution** : `CLAUDE.md` reste le point d'entrée opérationnel de chaque session et
   DOIT rester cohérent avec ce document.
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-03 | **Last Amended**: 2026-09-09
+**Version**: 1.1.0 | **Ratified**: 2026-09-03 | **Last Amended**: 2026-09-13

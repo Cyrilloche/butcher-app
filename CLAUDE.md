@@ -14,7 +14,7 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 
 ## 2. État d'avancement & feuille de route
 
-**Phase actuelle : Vague 1 complète côté périmètre fonctionnel. Backend complet, socle de déploiement livré (ADR-010), frontend au niveau de l'API. La saisie DLC/matière première d'un lot (RF-08/RF-09) est reportée en V2 le 2026-09-11 : deux champs facultatifs de plus sur le parcours le plus fragile, alors que la prise en main de l'outil est déjà le vrai défi. La recette manuelle de la correction d'une vente est déroulée et validée (2026-09-11). Depuis, le poids encore vendable d'un jambon entamé est visible et les totaux de stock disent enfin ce qui reste à vendre (2026-09-12). Le prix d'une fournée se corrige depuis Détail Stock, et la connexion est durcie (verrouillage, limitation de débit, phrase de passe de 32 caractères, en-têtes de sécurité) — 2026-09-12. En-têtes et redirection HTTPS sont en prod. Avant l'usage réel restent la sauvegarde et la rotation du mot de passe de prod (`docs/etat-des-lieux.md` §5).**
+**Phase actuelle : Vague 1 complète côté périmètre fonctionnel. Backend complet, socle de déploiement livré (ADR-010), frontend au niveau de l'API. La saisie DLC/matière première d'un lot (RF-08/RF-09) est reportée en V2 le 2026-09-11 : deux champs facultatifs de plus sur le parcours le plus fragile, alors que la prise en main de l'outil est déjà le vrai défi. La recette manuelle de la correction d'une vente est déroulée et validée (2026-09-11). Depuis, le poids encore vendable d'un jambon entamé est visible et les totaux de stock disent enfin ce qui reste à vendre (2026-09-12). Le prix d'une fournée se corrige depuis Détail Stock, et la connexion est durcie (verrouillage, limitation de débit, phrase de passe de 32 caractères, en-têtes de sécurité) — 2026-09-12. En-têtes et redirection HTTPS sont en prod. Avant l'usage réel restent la sauvegarde et la rotation du mot de passe de prod (`docs/etat-des-lieux.md` §5). Le backoffice PC est lancé sur la branche `feat/backoffice` (`specs/005-backoffice`) : son lot 1 — comptes nominatifs et rôles (ADR-011) — est livré sur la branche, non fusionné.**
 
 | Étape | Statut |
 |---|---|
@@ -36,6 +36,7 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 | Poids encore vendable d'une unité entamée (RG-05 révisée) | ✅ Le serveur calcule le restant à chaque lecture, sans jamais le stocker ; la ligne d'une unité entamée l'affiche, et les totaux des deux écrans de stock le comptent au lieu du poids d'origine. Détail Stock refondu : la date en titre de section au-dessus de la carte, deux lignes par unité, corbeille par unité (`specs/004-remaining-weight/`) |
 | Correction du prix d'une fournée (RG-10) | ✅ Crayon dans l'en-tête de chaque fournée, Détail Stock. Le `PUT` remplaçant le lot en entier, la DLC, la matière première et les notes repartent telles qu'elles ont été lues ; les ventes passées gardent leur montant (`BatchPriceEditAction.vue`) |
 | Durcissement de la connexion (audit du 2026-09-05) | ✅ Verrouillage 15 min après 5 échecs, 10 essais/min par IP (`CF-Connecting-IP`), réponse `429` en français ; mot de passe de 32 caractères minimum et commande `set-password` ; en-têtes de sécurité et CSP dans le `Caddyfile`. Détail : `docs/etat-des-lieux.md` §4, ADR-009 |
+| Backoffice PC — lot 1 : comptes nominatifs et rôles (ADR-011) | 🚧 **Sur `feat/backoffice`, non fusionné** : rôle admin/user en colonne, droits relus en base à chaque requête (401 compte désactivé, 403 geste réservé), auteur posé par `SaveChanges` et affiché, mot de passe 20/32 caractères selon le rôle, écrans Comptes et Mon compte, gestes produit réservés. Reste : mise en page PC (US3), journal (US4), rapports (US5) — `specs/005-backoffice/tasks.md` |
 | Développement Vague 1 | ✅ **Complet** — RF-08/RF-09 (DLC, matière première) reportées en V2 le 2026-09-11 ; recette manuelle de la correction d'une vente déroulée et validée le 2026-09-11 |
 | Analyse d'écart doc ↔ code | ✅ `docs/etat-des-lieux.md` v2.0 (12/09/2026) |
 
@@ -82,7 +83,7 @@ La documentation de référence vit dans `docs/`. **En cas de doute, ces documen
 | **Contrat** | API **REST**, documentée via OpenAPI/Swagger. |
 | **Accès données** | Entity Framework Core + **Npgsql**. |
 | **Base de données** | **PostgreSQL**. |
-| **Authentification** | ASP.NET Core Identity (allégé, sans rôles) + access token **JWT** en mémoire (15 min) + refresh token rotatif en base, cookie httpOnly/Secure (30 jours). Voir ADR-009 (accepté). |
+| **Authentification** | ASP.NET Core Identity (allégé) + access token **JWT** en mémoire (15 min) + refresh token rotatif en base, cookie httpOnly/Secure (30 jours). Voir ADR-009. **Comptes nominatifs** porteurs d'un rôle `admin` / `user`, droits relus en base à chaque requête (politiques par défaut et `AdminOnly`). Voir ADR-011. |
 | **Déploiement** | Docker Compose sur VPS, reverse proxy Caddy/Nginx, HTTPS Let's Encrypt. **Auto-hébergé** (pas de BaaS). |
 
 **Contraintes d'architecture structurantes** :
@@ -155,7 +156,7 @@ Monorepo, deux applications indépendantes avec chacune son cycle de vie et son 
 - **Clés** : `integer` auto-incrémenté pour les entités métier ; `uuid` pour `app_user` (Identity).
 
 ### Audit
-- Champ `created_by` (→ `app_user`) sur `production_batch` et `stock_movement` (RF-27), pour préparer une future journalisation « qui a fait quoi ».
+- Champ `created_by` (→ `app_user`) sur `production_batch`, `sale` et `stock_movement` (RF-27). **Renseigné automatiquement** par `AppDbContext.SaveChanges` à partir du compte de la requête (`ICurrentAccount`), et exposé en `createdByName`.
 - `created_at` / `updated_at` sur les entités qui évoluent.
 
 ---
@@ -221,10 +222,14 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 - ❌ Supprimer un client qui a des ventes → refusé (`409`), ça effacerait la traçabilité lot ↔ client (RF-24).
 - ❌ Coupler frontend et backend autrement que par le contrat d'API REST.
 - ❌ Traiter l'authentification à la légère (service exposé) → suivre le spike auth avant tout.
+- ❌ Décider d'un droit à partir du jeton (claim de rôle, `[Authorize(Roles = …)]`) → les droits se relisent en base, par la politique par défaut (compte actif) ou `AuthorizationPolicies.AdminOnly` (ADR-011). Un jeton vit 15 minutes : un compte rétrogradé ou désactivé garderait ses droits d'ici là.
+- ❌ Poser `CreatedById` dans un service → `AppDbContext.SaveChanges` le fait pour toute entité qui porte la colonne. Le poser à la main masquerait un oubli de compte courant.
+- ❌ Supprimer un compte, ou laisser l'outil sans administrateur actif → un compte se désactive seulement (il reste l'auteur de ses saisies), et `AccountService` refuse de retirer le dernier administrateur actif, sous transaction sérialisable.
+- ❌ Poser `[AllowAnonymous]` sur un contrôleur entier → il l'emporte sur toute exigence des actions. Dans `AuthController`, il est posé action par action (login, refresh, logout).
 - ❌ Vérifier un mot de passe par `CheckPasswordAsync` seul → passer par `AuthService.LoginAsync`, qui consulte le verrouillage **avant** le mot de passe et compte les échecs. Un appel direct contourne le verrou.
-- ❌ Régler Identity ailleurs que dans `IdentityPolicy` → l'application et les tests partagent cette classe ; un réglage posé dans `Program.cs` ne serait pas éprouvé par les tests.
+- ❌ Régler Identity ailleurs que dans `IdentityPolicy` → l'application et les tests partagent `IdentityPolicy.Configure` et `AddSaloirPasswordRules` (règle administrateur, messages en français) ; un réglage posé dans `Program.cs` ne serait pas éprouvé par les tests.
 - ❌ Modifier le `Caddyfile` en croyant qu'un tag le déploie → les workflows `release-*` ne copient que `docker-compose.prod.yml`. Le `Caddyfile` du VPS (`/opt/butcher-app`) se met à jour à la main, puis Caddy se redémarre.
-- ❌ Renseigner un `SEED_ADMIN_PASSWORD` court → sur une base vierge, le seed échoue et le backend ne démarre pas. 32 caractères minimum, avec majuscule, minuscule, chiffre et caractère spécial.
+- ❌ Renseigner un `SEED_ADMIN_PASSWORD` court → le compte seedé est administrateur : sur une base vierge, le seed échoue et le backend ne démarre pas. 32 caractères minimum pour un administrateur, 20 pour un utilisateur, avec majuscule, minuscule, chiffre et caractère spécial.
 - ❌ Dériver un numéro d'étiquette d'un comptage des unités existantes → passer par `unit_number_sequence`, sous verrou de ligne. Depuis qu'une unité et une fournée peuvent être supprimées, un comptage réémettrait un numéro déjà écrit sur une seconde série d'étiquettes manuscrites, indiscernable de la première (`data-model.md` §3.9, C-12).
 - ❌ Recomposer un numéro d'unité côté client, en suffixant un numéro de lot par un rang → le numéro vient du serveur. C'est ce double numéro, `SC-260910-2-1`, qui a été lu comme un sous-lot et supprimé le 2026-09-10.
 - ❌ Calculer côté client le poids d'une sortie perso ou perte, ou le poids restant d'une unité entamée → le serveur est le seul auteur de cette soustraction, sous le nom `ComputeRemainingWeight` (`data-model.md` §3.5 et §3.8). Le dernier calcul client a été retiré le 2026-09-12 : le frontend lit `remaining_weight` et se contente d'en faire la somme pour ses totaux.
@@ -247,7 +252,7 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 | Réf. | Question | Statut |
 |---|---|---|
 | ADR-009 | `SameSite` du cookie de refresh token | ✅ **Close (2026-09-04)** : Caddy sert le frontend et `/api/*` sur la même origine (ADR-010), les requêtes sont same-origin — `Lax` est le bon réglage et reste la valeur par défaut. |
-| RF-27 | `created_by` existe sur `production_batch`, `sale` et `stock_movement` mais **n'est jamais renseigné** : le champ prépare la journalisation V2, il ne la fait pas | Ouvert, non bloquant (compte partagé en V1) |
+| RF-27 | `created_by` existe sur `production_batch`, `sale` et `stock_movement` mais n'était jamais renseigné | ✅ **Close (2026-09-13, `feat/backoffice`)** : posé par `SaveChanges`, affiché sur les détails. Les enregistrements antérieurs restent sans auteur, présentés « Compte partagé (avant comptes nominatifs) ». |
 | — | Politique de mot de passe Identity | ✅ **Close (2026-09-12)** : 32 caractères minimum, phrase de passe visée ; `set-password` pour mettre un compte existant en conformité (`IdentityPolicy`, ADR-009). Reste à lancer `set-password` sur le compte de prod. |
 | — | Stratégie de sauvegarde PostgreSQL (le VPS et le déploiement sont en place) | Ouvert — **priorité n°1 avant l'usage réel** ; piste en cours hors dépôt (workflow n8n) |
 | — | Déploiement du `Caddyfile` : aucun workflow ne le copie sur le VPS | Ouvert, non bloquant — la version du 2026-09-12 a été copiée à la main ; à ajouter au job `deploy` pour ne plus en dépendre |

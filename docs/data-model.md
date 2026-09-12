@@ -4,10 +4,10 @@
 |---|---|
 | **Projet** | Mini-ERP Charcuterie (repo : `butcher-app`) |
 | **Document** | Modèle de données détaillé (V1) |
-| **Version** | 0.11 |
-| **Date** | 12 septembre 2026 |
-| **Statut** | Implémenté (backend, cœur métier V1 complet) |
-| **Documents liés** | PRD v0.8, Journal ADR (10 décisions, ADR-010 accepté), `docs/etat-des-lieux.md` |
+| **Version** | 0.12 |
+| **Date** | 13 septembre 2026 |
+| **Statut** | Implémenté (backend, cœur métier V1 complet ; comptes nominatifs sur `feat/backoffice`) |
+| **Documents liés** | PRD v0.10, Journal ADR (11 décisions, ADR-011 accepté), `docs/etat-des-lieux.md`, `specs/005-backoffice/data-model.md` |
 
 ### Historique des révisions
 
@@ -23,6 +23,7 @@
 | 0.9 | 2026-09-10 | **Le numéro d'étiquette descend du lot vers l'unité** : nouvelle colonne `stock_unit.unit_number` (unique, non nulle, §3.5), suppression de `production_batch.batch_number` (§3.4), registre requalifié en `unit_number_sequence` et comptant des unités (§3.9). Motif : le double numéro affiché, `SC-260910-2-1`, était lu comme un sous-lot. Une fournée n'a plus de numéro et s'annonce par sa date, son prix et son rang dans la journée. Rupture de contrat sur trois DTO. |
 | 0.11 | 2026-09-12 | **Poids encore vendable exposé sur le contrat d'une unité** (§3.5), calculé à chaque lecture et **jamais stocké** — aucune migration. RG-05 révisée en conséquence (PRD v0.8) : l'interdiction porte sur la persistance, pas sur le calcul ni sur l'affichage. La règle est partagée avec le poids d'une sortie perso ou perte (§3.8) sous le nom `ComputeRemainingWeight`. |
 | 0.10 | 2026-09-11 | Aucune modification de schéma. `raw_material_ref` et `expiry_date` (§3.4) documentés comme **non exposés en V1** : RF-08/RF-09 reportées en V2 (PRD v0.7) au nom de la prise en main par des utilisateurs non techniques. Colonnes et API conservées, réouverture sans coût. |
+| 0.12 | 2026-09-13 | **Comptes nominatifs avec rôle** (ADR-011, RF-26 révisée) : `app_user` gagne `display_name`, `role` (`admin` / `user`), `is_active`, `last_login_at` et `updated_at` (§3.1). La migration `AddAccountRoles` reprend les comptes existants en administrateurs actifs. **`created_by` est désormais renseigné** (RF-27) par `AppDbContext.SaveChanges`, sans changement de schéma. Libellés des rôles ajoutés à la correspondance (§4.2). |
 | 0.7 | 2026-09-04 | RG-05 précisée (pas remplacée) : garde-fou serveur empêchant la somme des `sold_weight` d'une unité entamée de dépasser son `weight` pesé, à la création comme à la modification d'un mouvement de vente. Calcul à la volée, aucune colonne « poids restant » ajoutée — conforme à l'intention initiale de RG-05. |
 
 ### Objet du document
@@ -64,13 +65,25 @@ Un référentiel complète l'ensemble : `app_user` (authentification).
 
 ### 3.1 `app_user`
 
-Compte d'accès. V1 : compte simple partagé (RF-26). Colonnes d'authentification gérées par **ASP.NET Core Identity** ; cette table en est la vue logique référencée par `created_by`.
+Compte **nominatif** d'une personne (RF-26 révisée, ADR-011). Colonnes d'authentification gérées par **ASP.NET Core Identity** ; cette table en est la vue logique référencée par `created_by`.
 
 | Attribut | Type | Contraintes | Rôle |
 |---|---|---|---|
 | `id` | uuid | PK | Identifiant (fourni par Identity) |
-| `email` | varchar | unique, non nul | Identifiant de connexion |
-| `created_at` | timestamptz | défaut `now()` | Date de création |
+| `email` | varchar | unique, non nul | Identifiant de connexion ; aucun message n'y est envoyé |
+| `display_name` | varchar(100) | non nul | Nom affiché (« Mireille ») |
+| `role` | varchar(20) | non nul, `admin` \| `user` | Rôle du compte, stocké en `snake_case` |
+| `is_active` | boolean | non nul | Faux : connexion, rafraîchissement et requêtes refusés |
+| `last_login_at` | timestamptz | nullable | Dernière connexion réussie |
+| `created_at` | timestamptz | non nul | Date de création |
+| `updated_at` | timestamptz | nullable | Dernière modification |
+
+**Règles** (appliquées par le serveur) :
+- Un compte n'est **jamais supprimé**, seulement désactivé : il reste l'auteur de ce qu'il a saisi. Désactiver un compte ferme ses sessions.
+- L'outil garde **toujours au moins un administrateur actif** : une désactivation ou une rétrogradation qui le retirerait est refusée (`409`), sous transaction sérialisable. Personne ne désactive son propre compte.
+- **Mot de passe** : 20 caractères au minimum pour un utilisateur, 32 pour un administrateur, avec majuscule, minuscule, chiffre et caractère spécial. Promouvoir un utilisateur exige un nouveau mot de passe conforme au rôle cible.
+- **Aucune valeur par défaut en base** pour `role`, `is_active` et `display_name` : l'application les écrit toujours explicitement. Le compte seedé sur une base vierge est administrateur ; `create-user` crée un utilisateur.
+- **Droits relus en base** à chaque requête, jamais déduits du seul jeton : une rétrogradation ou une désactivation prend effet immédiatement.
 
 ### 3.2 ~~`unit_of_measure`~~ — supprimée (2026-09-04)
 
@@ -300,6 +313,10 @@ Les valeurs techniques sont en anglais ; l'interface les affiche en français. C
 | Mouvement — vente | `sale` | Vente |
 | Mouvement — usage perso | `personal` | Perso |
 | Mouvement — perte/casse | `loss` | Perte |
+| Rôle d'un compte — administrateur | `admin` | Administrateur |
+| Rôle d'un compte — utilisateur | `user` | Utilisateur |
+| Auteur d'un enregistrement — connu | `created_by` renseigné | Saisie par *nom affiché* |
+| Auteur d'un enregistrement — inconnu | `created_by` = `null` | Compte partagé (avant comptes nominatifs) |
 
 ---
 
