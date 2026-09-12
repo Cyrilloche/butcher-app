@@ -44,4 +44,10 @@ public class StockMovementDto
     public string? CustomerName { get; set; }
 
     public string? Notes { get; set; }
+
+    /// <summary>
+    /// Nom affiché du compte qui a enregistré la sortie, ou <c>null</c> pour une sortie antérieure aux
+    /// comptes nominatifs (RF-27, FR-020a).
+    /// </summary>
+    public string? CreatedByName { get; set; }
 }

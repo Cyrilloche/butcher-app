@@ -149,6 +149,7 @@ internal static class StockMovementRules
             CustomerId = movement.Sale?.CustomerId,
             CustomerName = FormatCustomerName(movement.Sale?.Customer),
             Notes = movement.Notes,
+            CreatedByName = movement.CreatedBy?.DisplayName,
         };
 
     public static string? FormatCustomerName(Customer? customer) =>

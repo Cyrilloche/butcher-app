@@ -21,5 +21,11 @@ public class SaleDto
 
     public int ItemCount { get; set; }
 
+    /// <summary>
+    /// Nom affiché du compte qui a enregistré la vente, ou <c>null</c> pour une vente antérieure aux
+    /// comptes nominatifs (RF-27, FR-020a).
+    /// </summary>
+    public string? CreatedByName { get; set; }
+
     public List<StockMovementDto> Lines { get; set; } = [];
 }

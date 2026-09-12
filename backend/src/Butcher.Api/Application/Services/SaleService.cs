@@ -128,6 +128,7 @@ public class SaleService(AppDbContext dbContext) : ISaleService
             try
             {
                 await dbContext.SaveChangesAsync();
+                await LoadAuthorsAsync(sale);
                 return ToDto(sale);
             }
             catch (DbUpdateException exception) when (IsSaleNumberConflict(exception) && attempt < MaxSaleNumberAttempts)
@@ -202,7 +203,22 @@ public class SaleService(AppDbContext dbContext) : ISaleService
     private IQueryable<Sale> BaseQuery() =>
         dbContext.Sales
             .Include(s => s.Customer)
+            .Include(s => s.CreatedBy)
+            .Include(s => s.StockMovements).ThenInclude(m => m.CreatedBy)
             .Include(s => s.StockMovements).ThenInclude(m => m.StockUnit!).ThenInclude(u => u.Batch!).ThenInclude(b => b.Product);
+
+    /// <summary>
+    /// À la création, seul l'identifiant de l'auteur est posé par <c>SaveChanges</c> : le compte est
+    /// chargé ensuite pour que la réponse porte son nom.
+    /// </summary>
+    private async Task LoadAuthorsAsync(Sale sale)
+    {
+        await dbContext.Entry(sale).Reference(s => s.CreatedBy).LoadAsync();
+        foreach (var movement in sale.StockMovements)
+        {
+            await dbContext.Entry(movement).Reference(m => m.CreatedBy).LoadAsync();
+        }
+    }
 
     private async Task<Sale> FindOrThrowAsync(int id) =>
         await BaseQuery().FirstOrDefaultAsync(s => s.Id == id)
@@ -238,6 +254,7 @@ public class SaleService(AppDbContext dbContext) : ISaleService
             Notes = sale.Notes,
             Total = sale.StockMovements.Sum(m => m.Amount ?? 0m),
             ItemCount = sale.StockMovements.Count,
+            CreatedByName = sale.CreatedBy?.DisplayName,
             Lines = sale.StockMovements
                 .OrderBy(m => m.Id)
                 .Select(m => new StockMovementDto
@@ -255,6 +272,7 @@ public class SaleService(AppDbContext dbContext) : ISaleService
                     CustomerId = sale.CustomerId,
                     CustomerName = StockMovementRules.FormatCustomerName(sale.Customer),
                     Notes = m.Notes,
+                    CreatedByName = m.CreatedBy?.DisplayName,
                 })
                 .ToList(),
         };

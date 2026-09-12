@@ -88,6 +88,9 @@ public class StockMovementService(AppDbContext dbContext) : IStockMovementServic
         dbContext.StockMovements.Add(movement);
         await dbContext.SaveChangesAsync();
 
+        // SaveChanges n'a posé que l'identifiant de l'auteur : on charge le compte pour exposer son nom.
+        await dbContext.Entry(movement).Reference(m => m.CreatedBy).LoadAsync();
+
         return StockMovementRules.ToDto(movement);
     }
 
@@ -205,6 +208,7 @@ public class StockMovementService(AppDbContext dbContext) : IStockMovementServic
 
     private IQueryable<StockMovement> BaseQuery() =>
         dbContext.StockMovements
+            .Include(m => m.CreatedBy)
             .Include(m => m.Sale!).ThenInclude(s => s.Customer)
             .Include(m => m.StockUnit!).ThenInclude(u => u.Batch!).ThenInclude(b => b.Product);
 

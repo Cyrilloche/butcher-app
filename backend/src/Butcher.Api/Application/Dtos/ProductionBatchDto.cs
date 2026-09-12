@@ -17,4 +17,10 @@ public class ProductionBatchDto
     public DateOnly? ExpiryDate { get; set; }
 
     public string? Notes { get; set; }
+
+    /// <summary>
+    /// Nom affiché du compte qui a enregistré la fabrication, ou <c>null</c> pour une fabrication
+    /// antérieure aux comptes nominatifs (RF-27, FR-020a).
+    /// </summary>
+    public string? CreatedByName { get; set; }
 }

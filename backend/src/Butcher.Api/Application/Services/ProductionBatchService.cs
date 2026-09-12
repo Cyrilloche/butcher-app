@@ -10,7 +10,7 @@ public class ProductionBatchService(AppDbContext dbContext) : IProductionBatchSe
 {
     public async Task<List<ProductionBatchDto>> GetAllAsync(int? productId)
     {
-        var query = dbContext.ProductionBatches.Include(b => b.Product).AsQueryable();
+        var query = dbContext.ProductionBatches.Include(b => b.Product).Include(b => b.CreatedBy).AsQueryable();
 
         if (productId is not null)
         {
@@ -50,6 +50,9 @@ public class ProductionBatchService(AppDbContext dbContext) : IProductionBatchSe
 
         dbContext.ProductionBatches.Add(batch);
         await dbContext.SaveChangesAsync();
+
+        // SaveChanges n'a posé que l'identifiant de l'auteur : on charge le compte pour exposer son nom.
+        await dbContext.Entry(batch).Reference(b => b.CreatedBy).LoadAsync();
 
         return ToDto(batch);
     }
@@ -111,7 +114,7 @@ public class ProductionBatchService(AppDbContext dbContext) : IProductionBatchSe
     }
 
     private async Task<ProductionBatch> FindOrThrowAsync(int id) =>
-        await dbContext.ProductionBatches.Include(b => b.Product).FirstOrDefaultAsync(b => b.Id == id)
+        await dbContext.ProductionBatches.Include(b => b.Product).Include(b => b.CreatedBy).FirstOrDefaultAsync(b => b.Id == id)
             ?? throw new NotFoundException($"Lot de production {id} introuvable.");
 
     private async Task<Product> FindActiveProductOrThrowAsync(int productId)
@@ -138,5 +141,6 @@ public class ProductionBatchService(AppDbContext dbContext) : IProductionBatchSe
             RawMaterialRef = batch.RawMaterialRef,
             ExpiryDate = batch.ExpiryDate,
             Notes = batch.Notes,
+            CreatedByName = batch.CreatedBy?.DisplayName,
         };
 }
