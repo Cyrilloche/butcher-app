@@ -141,7 +141,7 @@ vérifié**, poussé sur `feat/backoffice`, sans merge ni tag.
 ## Phase 8: Polish & Cross-Cutting Concerns
 
 - [X] T036 Clore la documentation du lot 1 : RF-26 révisée dans `docs/PRD.md` (nouvelle version d'historique), `docs/data-model.md` §3.1 (`app_user` enrichie) et §4.2 (correspondances des rôles), `CLAUDE.md` (pile d'authentification, avancement, pièges : droits relus en base, auteur posé par `SaveChanges`, politique par rôle) — **à faire avant de considérer le lot 1 livrable**
-- [ ] T037 Dérouler `specs/005-backoffice/quickstart.md` (lot 1) sur l'API et le frontend locaux, consigner le résultat dans le rapport de fin de session
+- [X] T037 Dérouler `specs/005-backoffice/quickstart.md` (lot 1) sur l'API et le frontend locaux, consigner le résultat dans le rapport de fin de session
 
 ---
 
