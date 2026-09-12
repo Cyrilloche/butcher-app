@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css" rel="stylesheet">
+<link href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #ECE2D0; }
+  a { color: #C4623C; } a:hover { color: #A54E2E; }
+  select { appearance: none; -webkit-appearance: none; }
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; background: #ECE2D0; color: #2B241E; font-family: 'Work Sans', system-ui, sans-serif;">
+
+  <aside style="width: 248px; flex-shrink: 0; background: #FBF7EE; border-right: 1px solid #DACFBB; display: flex; flex-direction: column; padding: 28px 18px 24px 18px; gap: 28px; position: sticky; top: 0; height: 100vh; box-sizing: border-box;">
+    <div style="display: flex; align-items: center; gap: 12px; padding: 0 6px;">
+      <div style="width: 42px; height: 42px; border-radius: 50%; background: #C4623C; color: #FBF7EE; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <i class="ph-fill ph-storefront" style="font-size: 24px;"></i>
+      </div>
+      <div style="display: flex; flex-direction: column; min-width: 0;">
+        <div style="font-family: 'Zilla Slab', serif; font-weight: 700; font-size: 19px; line-height: 1.15;">Maison Duroc</div>
+        <div style="font-size: 11px; color: #6E5A45; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase;">Charcuterie artisanale</div>
+      </div>
+    </div>
+
+    <div style="padding: 12px 14px; background: #ECE2D0; border-radius: 12px; display: flex; flex-direction: column; gap: 2px;">
+      <div style="font-size: 13px; color: #6E5A45; font-weight: 600; text-transform: capitalize;">{{ todayWeekday }}</div>
+      <div style="font-family: 'Zilla Slab', serif; font-size: 18px; font-weight: 700;">{{ todayDate }}</div>
+    </div>
+
+    <nav style="display: flex; flex-direction: column; gap: 4px;">
+      <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="5">
+        <a href="{{ n.href }}" style="display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px; text-decoration: none; color: {{ n.color }}; background: {{ n.bg }}; font-size: 15px; font-weight: {{ n.weight }};" style-hover="background: #F3EBDC;">
+          <i class="{{ n.icon }}" style="font-size: 22px;"></i>
+          <span>{{ n.label }}</span>
+        </a>
+      </sc-for>
+    </nav>
+
+    <div style="flex: 1;"></div>
+
+    <div style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-top: 1px solid #EDE6DA;">
+      <div style="width: 36px; height: 36px; border-radius: 50%; background: #4E7A4E; color: #FBF7EE; display: flex; align-items: center; justify-content: center; font-family: 'Zilla Slab', serif; font-weight: 700; font-size: 15px; flex-shrink: 0;">JD</div>
+      <div style="display: flex; flex-direction: column; min-width: 0;">
+        <div style="font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Jean Duroc</div>
+        <div style="font-size: 12px; color: #6E5A45;">Artisan</div>
+      </div>
+    </div>
+  </aside>
+
+  <main style="flex: 1; min-width: 0; padding: 36px 40px 48px 40px; display: flex; flex-direction: column; gap: 28px; max-width: 1240px;">
+    <header style="display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <h1 style="font-family: 'Zilla Slab', serif; font-weight: 700; font-size: 36px; margin: 0; line-height: 1.1;">Overview</h1>
+        <div style="font-size: 15px; color: #6E5A45;">{{ greeting }}</div>
+      </div>
+      <a href="Ajout Vente.dc.html" style="display: inline-flex; align-items: center; gap: 8px; background: #C4623C; color: #FBF7EE; text-decoration: none; padding: 12px 20px; border-radius: 999px; font-size: 15px; font-weight: 600;" style-hover="background: #A54E2E; color: #FBF7EE;">
+        <i class="ph ph-plus" style="font-size: 18px;"></i><span>Nouvelle vente</span>
+      </a>
+    </header>
+
+    <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px;">
+      <div style="background: #FBF7EE; border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 1px 2px rgba(43,36,30,0.06);">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+          <div style="font-size: 13px; color: #6E5A45; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Chiffre d'affaires</div>
+          <div style="position: relative; display: flex; align-items: center;">
+            <select value="{{ year }}" onChange="{{ setYear }}" style="border: 1px solid #DACFBB; background: #ECE2D0; color: #2B241E; font-family: 'Work Sans', sans-serif; font-size: 13px; font-weight: 600; padding: 4px 26px 4px 10px; border-radius: 999px; cursor: pointer; outline: none;">
+              <sc-for list="{{ years }}" as="y" hint-placeholder-count="2"><option value="{{ y }}">{{ y }}</option></sc-for>
+            </select>
+            <i class="ph ph-caret-down" style="position: absolute; right: 9px; font-size: 12px; color: #6E5A45; pointer-events: none;"></i>
+          </div>
+        </div>
+        <div style="font-family: 'Zilla Slab', serif; font-weight: 700; font-size: 38px; line-height: 1; color: #4E7A4E;">{{ yearRevenue }}</div>
+        <div style="font-size: 13px; color: #6E5A45;">{{ yearCount }} ventes · panier moyen {{ avgBasket }}</div>
+      </div>
+      <div style="background: #FBF7EE; border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 1px 2px rgba(43,36,30,0.06);">
+        <div style="font-size: 13px; color: #6E5A45; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Ce mois</div>
+        <div style="font-family: 'Zilla Slab', serif; font-weight: 700; font-size: 38px; line-height: 1;">{{ monthRevenue }}</div>
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: {{ trendColor }}; font-weight: 600;">
+          <i class="{{ trendIcon }}" style="font-size: 15px;"></i><span>{{ trendLabel }} vs {{ prevMonthLabel }}</span>
+        </div>
+      </div>
+      <div style="background: #FBF7EE; border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 1px 2px rgba(43,36,30,0.06);">
+        <div style="font-size: 13px; color: #6E5A45; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">À encaisser</div>
+        <div style="font-family: 'Zilla Slab', serif; font-weight: 700; font-size: 38px; line-height: 1; color: #8A6A16;">{{ pendingTotal }}</div>
+        <div style="font-size: 13px; color: #6E5A45;">{{ pendingCount }} ventes en attente de paiement</div>
+      </div>
+      <div style="background: #FBF7EE; border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 1px 2px rgba(43,36,30,0.06);">
+        <div style="font-size: 13px; color: #6E5A45; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Stock bas</div>
+        <div style="font-family: 'Zilla Slab', serif; font-weight: 700; font-size: 38px; line-height: 1; color: #C4623C;">{{ lowCount }}</div>
+        <div style="font-size: 13px; color: #6E5A45;">produits sous le seuil de {{ threshold }} unités</div>
+      </div>
+    </section>
+
+    <section style="display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 20px;">
+      <div style="background: #FBF7EE; border-radius: 16px; padding: 22px 24px; display: flex; flex-direction: column; gap: 18px; box-shadow: 0 1px 2px rgba(43,36,30,0.06);">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+          <h2 style="font-family: 'Zilla Slab', serif; font-weight: 700; font-size: 22px; margin: 0;">CA mensuel {{ year }}</h2>
+          <div style="font-size: 13px; color: #6E5A45;">meilleur mois : {{ bestMonth }}</div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 8px; align-items: end; height: 180px;">
+          <sc-for list="{{ bars }}" as="b" hint-placeholder-count="12">
+            <div title="{{ b.title }}" style="display: flex; flex-direction: column; justify-content: flex-end; height: 100%; gap: 6px;">
+              <div style="font-size: 11px; color: #6E5A45; text-align: center; font-weight: 600; min-height: 14px;">{{ b.value }}</div>
+              <div style="height: {{ b.height }}; background: {{ b.color }}; border-radius: 6px 6px 3px 3px; min-height: 3px;"></div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 8px;">
+          <sc-for list="{{ bars }}" as="b" hint-placeholder-count="12">
+            <div style="font-size: 12px; color: {{ b.labelColor }}; text-align: center; font-weight: 500; text-transform: capitalize;">{{ b.label }}</div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="background: #FBF7EE; border-radius: 16px; padding: 22px 24px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 1px 2px rgba(43,36,30,0.06);">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+          <h2 style="font-family: 'Zilla Slab', serif; font-weight: 700; font-size: 22px; margin: 0;">Dernière vente</h2>
+          <a href="{{ last.href }}" style="font-size: 13px; font-weight: 600; text-decoration: none;">Voir</a>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="font-family: 'Zilla Slab', serif; font-weight: 600; font-size: 24px; line-height: 1.2;">{{ last.client }}</div>
+          <div style="font-size: 14px; color: #6E5A45;">{{ last.num }} · {{ last.day }}</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px; border-top: 1px solid #EDE6DA; padding-top: 14px;">
+          <sc-for list="{{ last.lines }}" as="l" hint-placeholder-count="2">
+            <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 14px;">
+              <span style="color: #2B241E;">{{ l.name }}</span>
+              <span style="color: #6E5A45; flex-shrink: 0;">{{ l.qty }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid #EDE6DA; padding-top: 14px;">
+          <span style="background: {{ last.badgeBg }}; color: {{ last.badgeColor }}; font-size: 13px; font-weight: 600; padding: 4px 12px; border-radius: 999px;">{{ last.status }}</span>
+          <div style="font-family: 'Zilla Slab', serif; font-weight: 700; font-size: 28px; color: #4E7A4E;">{{ last.total }}</div>
+        </div>
+      </div>
+    </section>
+
+    <section style="display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 20px;">
+      <div style="background: #FBF7EE; border-radius: 16px; padding: 22px 24px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 1px 2px rgba(43,36,30,0.06);">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+          <h2 style="font-family: 'Zilla Slab', serif; font-weight: 700; font-size: 22px; margin: 0;">Stock bas</h2>
+          <a href="Stock Dashboard.dc.html" style="font-size: 13px; font-weight: 600; text-decoration: none;">Tout le stock</a>
+        </div>
+        <sc-if value="{{ noLow }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size: 14px; color: #6E5A45; padding: 12px 0;">Aucun produit sous le seuil.</div>
+        </sc-if>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <sc-for list="{{ lowStock }}" as="p" hint-placeholder-count="3">
+            <a href="{{ p.href }}" style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; background: #ECE2D0; text-decoration: none; color: #2B241E;" style-hover="background: #F3EBDC;">
+              <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-family: 'Zilla Slab', serif; font-weight: 600; font-size: 17px;">{{ p.name }}</div>
+                <div style="font-size: 13px; color: #6E5A45;">{{ p.meta }}</div>
+              </div>
+              <div style="text-align: right; display: flex; flex-direction: column; gap: 1px; flex-shrink: 0;">
+                <div style="font-family: 'Zilla Slab', serif; font-weight: 700; font-size: 24px; line-height: 1; color: {{ p.color }};">{{ p.qty }}</div>
+                <div style="font-size: 12px; color: #6E5A45;">{{ p.unit }}</div>
+              </div>
+            </a>
+          </sc-for>
+        </div>
+        <a href="Ajout Stock.dc.html" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid #DACFBB; color: #C4623C; text-decoration: none; padding: 10px 16px; border-radius: 999px; font-size: 14px; font-weight: 600; margin-top: 4px;" style-hover="background: #F3EBDC;">
+          <i class="ph ph-plus" style="font-size: 16px;"></i><span>Réapprovisionner</span>
+        </a>
+      </div>
+
+      <div style="background: #FBF7EE; border-radius: 16px; padding: 22px 24px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 1px 2px rgba(43,36,30,0.06);">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+          <h2 style="font-family: 'Zilla Slab', serif; font-weight: 700; font-size: 22px; margin: 0;">Ventes récentes</h2>
+          <a href="Ventes Dashboard.dc.html" style="font-size: 13px; font-weight: 600; text-decoration: none;">Toutes les ventes</a>
+        </div>
+        <div style="display: flex; flex-direction: column;">
+          <sc-for list="{{ recent }}" as="v" hint-placeholder-count="5">
+            <a href="{{ v.href }}" style="display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 16px; padding: 12px 8px; border-bottom: 1px solid #EDE6DA; text-decoration: none; color: #2B241E; border-radius: 8px;" style-hover="background: #F3EBDC;">
+              <div style="min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-weight: 600; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ v.client }}</div>
+                <div style="font-size: 13px; color: #6E5A45;">{{ v.num }} · {{ v.day }}</div>
+              </div>
+              <span style="background: {{ v.badgeBg }}; color: {{ v.badgeColor }}; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px;">{{ v.status }}</span>
+              <div style="font-weight: 600; font-size: 16px; color: #4E7A4E; min-width: 80px; text-align: right;">{{ v.total }}</div>
+            </a>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;lowStockThreshold&quot;: {&quot;editor&quot;: &quot;int&quot;, &quot;default&quot;: 3, &quot;min&quot;: 1, &quot;max&quot;: 10, &quot;tsType&quot;: &quot;number&quot;, &quot;section&quot;: &quot;Stock&quot;}}">
+class Component extends DCLogic {
+  sales = [
+    { num: 'V-260904-1', client: 'Marie Perrin', date: '2026-09-04', total: 18.6, paid: true, lines: [{ name: 'Saucisse curry', qty: '2 sachets' }, { name: 'Terrine de campagne', qty: '1 pièce' }] },
+    { num: 'V-260903-2', client: 'Restaurant Chez Paulette', date: '2026-09-03', total: 134.5, paid: false, lines: [] },
+    { num: 'V-260903-1', client: 'Bernard Aubry', date: '2026-09-03', total: 21.4, paid: true, lines: [] },
+    { num: 'V-260901-1', client: 'Hélène Girard', date: '2026-09-01', total: 12.0, paid: true, lines: [] },
+    { num: 'V-260828-2', client: 'Paul Lambert', date: '2026-08-28', total: 33.7, paid: true, lines: [] },
+    { num: 'V-260828-1', client: 'Épicerie Ferme du Val', date: '2026-08-28', total: 76.2, paid: false, lines: [] },
+    { num: 'V-260822-1', client: 'Marie Perrin', date: '2026-08-22', total: 12.0, paid: true, lines: [] },
+    { num: 'V-260814-1', client: 'Bernard Aubry', date: '2026-08-14', total: 9.8, paid: true, lines: [] },
+    { num: 'V-260731-1', client: 'Camille Roussel', date: '2026-07-31', total: 19.9, paid: true, lines: [] },
+    { num: 'V-260718-1', client: 'Restaurant Chez Paulette', date: '2026-07-18', total: 98.0, paid: true, lines: [] },
+    { num: 'V-260712-1', client: 'Nadine Leclerc', date: '2026-07-12', total: 27.5, paid: true, lines: [] },
+    { num: 'V-260625-1', client: 'Éric Tissot', date: '2026-06-25', total: 15.3, paid: true, lines: [] },
+    { num: 'V-260610-1', client: 'Sophie Carlier', date: '2026-06-10', total: 22.8, paid: true, lines: [] },
+    { num: 'V-260522-1', client: 'Thomas Marchal', date: '2026-05-22', total: 31.0, paid: true, lines: [] },
+    { num: 'V-260418-1', client: 'Épicerie Ferme du Val', date: '2026-04-18', total: 64.0, paid: true, lines: [] },
+    { num: 'V-260306-1', client: 'Marie Perrin', date: '2026-03-06', total: 14.2, paid: true, lines: [] },
+    { num: 'V-251212-1', client: 'Restaurant Chez Paulette', date: '2025-12-12', total: 210.0, paid: true, lines: [] },
+    { num: 'V-251120-1', client: 'Paul Lambert', date: '2025-11-20', total: 41.5, paid: true, lines: [] },
+    { num: 'V-251003-1', client: 'Nadine Leclerc', date: '2025-10-03', total: 25.0, paid: true, lines: [] },
+    { num: 'V-250715-1', client: 'Bernard Aubry', date: '2025-07-15', total: 18.0, paid: true, lines: [] },
+  ];
+  stock = [
+    { code: 'SC', name: 'Saucisse curry', mode: 'Au poids', available: 14, unit: 'sachets' },
+    { code: 'SA', name: 'Saucisse andalouse', mode: 'Au poids', available: 9, unit: 'sachets' },
+    { code: 'JS', name: 'Jambon sec', mode: 'Au poids', available: 2, unit: 'entiers' },
+    { code: 'TC', name: 'Terrine de campagne', mode: 'À la pièce', available: 7, unit: 'pièces' },
+    { code: 'PT', name: 'Pâté de tête', mode: 'À la pièce', available: 0, unit: 'pièces' },
+  ];
+  state = { year: '2026' };
+  renderVals() {
+    const threshold = this.props.lowStockThreshold ?? 3;
+    const year = this.state.year;
+    const eur = (n) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+    const eurR = (n) => Math.round(n).toLocaleString('fr-FR') + ' €';
+    const now = new Date();
+    const sorted = [...this.sales].sort((a, b) => b.date.localeCompare(a.date));
+    const ySales = sorted.filter((v) => v.date.startsWith(year));
+    const yRev = ySales.reduce((a, v) => a + v.total, 0);
+    const monthly = Array.from({ length: 12 }, () => 0);
+    ySales.forEach((v) => { monthly[+v.date.slice(5, 7) - 1] += v.total; });
+    const max = Math.max(...monthly, 1);
+    const curM = now.getMonth(), curY = String(now.getFullYear());
+    const bestIdx = monthly.indexOf(Math.max(...monthly));
+    const bars = monthly.map((m, i) => {
+      const isCur = year === curY && i === curM;
+      return {
+        label: new Date(2000, i, 1).toLocaleDateString('fr-FR', { month: 'short' }).replace('.', ''),
+        title: eur(m), value: m > 0 ? eurR(m) : '',
+        height: (m / max * 100).toFixed(1) + '%',
+        color: isCur ? '#C4623C' : (m > 0 ? '#4E7A4E' : '#EDE6DA'),
+        labelColor: isCur ? '#C4623C' : '#6E5A45',
+      };
+    });
+    const monthRev = (y, m) => this.sales.filter((v) => +v.date.slice(0, 4) === y && +v.date.slice(5, 7) - 1 === m).reduce((a, v) => a + v.total, 0);
+    const cur = monthRev(now.getFullYear(), curM);
+    const prevD = new Date(now.getFullYear(), curM - 1, 1);
+    const prev = monthRev(prevD.getFullYear(), prevD.getMonth());
+    const delta = prev > 0 ? (cur - prev) / prev * 100 : 0;
+    const pending = this.sales.filter((v) => !v.paid);
+    const badge = (v) => ({ status: v.paid ? 'Payée' : 'À payer', badgeBg: v.paid ? '#E3EBDD' : '#F1E4C4', badgeColor: v.paid ? '#4E7A4E' : '#8A6A16' });
+    const fmtV = (v) => ({ ...badge(v), href: 'Détail Vente.dc.html?vente=' + v.num, num: v.num, client: v.client, total: eur(v.total), day: new Date(v.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) });
+    const l = sorted[0];
+    const low = this.stock.filter((p) => p.available <= threshold).sort((a, b) => a.available - b.available);
+    const h = now.getHours();
+    return {
+      todayWeekday: now.toLocaleDateString('fr-FR', { weekday: 'long' }),
+      todayDate: now.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }),
+      greeting: (h < 18 ? 'Bonjour' : 'Bonsoir') + ' Jean, voici l\'activité de la maison.',
+      navItems: [
+        { label: 'Overview', icon: 'ph-fill ph-squares-four', href: '#', active: true },
+        { label: 'Ventes', icon: 'ph ph-cash-register', href: 'Ventes Dashboard.dc.html' },
+        { label: 'Stock', icon: 'ph ph-package', href: 'Stock Dashboard.dc.html' },
+        { label: 'Produits', icon: 'ph ph-cooking-pot', href: 'Produits Dashboard.dc.html' },
+        { label: 'Clients', icon: 'ph ph-users', href: 'Clients Dashboard.dc.html' },
+      ].map((n) => ({ ...n, color: n.active ? '#C4623C' : '#6E5A45', bg: n.active ? '#F3EBDC' : 'transparent', weight: n.active ? 600 : 500 })),
+      year, years: [...new Set(this.sales.map((v) => v.date.slice(0, 4)))].sort().reverse(),
+      setYear: (e) => this.setState({ year: e.target.value }),
+      yearRevenue: eurR(yRev), yearCount: String(ySales.length),
+      avgBasket: ySales.length ? eur(yRev / ySales.length) : '—',
+      monthRevenue: eurR(cur),
+      trendLabel: (delta >= 0 ? '+' : '') + delta.toFixed(0) + ' %',
+      trendColor: delta >= 0 ? '#4E7A4E' : '#C4623C',
+      trendIcon: delta >= 0 ? 'ph-fill ph-trend-up' : 'ph-fill ph-trend-down',
+      prevMonthLabel: prevD.toLocaleDateString('fr-FR', { month: 'long' }),
+      pendingTotal: eur(pending.reduce((a, v) => a + v.total, 0)), pendingCount: String(pending.length),
+      lowCount: String(low.length), threshold: String(threshold), noLow: low.length === 0,
+      bars, bestMonth: monthly[bestIdx] > 0 ? new Date(2000, bestIdx, 1).toLocaleDateString('fr-FR', { month: 'long' }) : '—',
+      last: { ...fmtV(l), lines: l.lines },
+      lowStock: low.map((p) => ({ href: 'Détail Stock.dc.html?produit=' + p.code, name: p.name, meta: p.mode, qty: String(p.available), unit: p.unit, color: p.available === 0 ? '#C4623C' : '#8A6A16' })),
+      recent: sorted.slice(0, 6).map(fmtV),
+    };
+  }
+}
+</script>
+</body>
+</html>

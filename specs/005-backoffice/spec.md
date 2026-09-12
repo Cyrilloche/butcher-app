@@ -385,9 +385,13 @@ par période, par client et le reste à encaisser sont exacts au centime.
 - **La séparation frontend / backend est préservée** : les rôles et restrictions sont portés par
   le contrat d'API, et le serveur reste le seul garant des droits (principe II de la
   constitution).
-- **Dépendance — maquette PC.** La maquette PC réalisée avec Claude Design (FR-015) n'est pas
-  encore versionnée : `design/` ne contient que le guide de style. Elle DOIT être exportée dans
-  `design/` avant la planification du récit 3, pour que le plan s'appuie sur elle et non sur une
-  interprétation.
+- **Maquette PC.** La maquette PC réalisée avec Claude Design (FR-015) est versionnée dans
+  `design/backoffice/Backoffice Overview.dc.html` (projet `5d1f2fde-8c50-45fc-8970-925e8c9df3b2`).
+  C'est la **seule** maquette PC du projet : les écrans « Ventes », « Stock », « Produits » et
+  « Clients » qu'il contient sont les maquettes **mobiles**, déjà implémentées. Les tableaux PC de
+  ces écrans reprennent donc le style de la vue d'ensemble (cartes, typographie, badges), sans
+  maquette dédiée. Ses textes d'exemple (« Maison Duroc », « Overview ») sont remplacés par
+  « Saloir » et du français, et sa carte « Stock bas », qui relève des alertes V2, affiche
+  « Arrivera en V2 ».
 - **Découpage de livraison** : US1 et US2 forment le premier lot livrable ; US3 peut être livrée
   indépendamment ; US4 et US5 suivent. Chaque récit reste testable et livrable seul.
