@@ -11,9 +11,14 @@ import { useAsyncData } from '@/composables/useAsyncData'
 import { ApiError } from '@/api/http'
 import SaleModeToggle from '@/components/domain/SaleModeToggle.vue'
 import ProductWriteOffDialog from '@/components/domain/ProductWriteOffDialog.vue'
+import { useAuthStore } from '@/stores/auth'
 import type { ProductDto, SaleMode } from '@/api/types'
 
 const props = defineProps<{ code: string }>()
+
+// Désactiver, réactiver et solder un produit engagent tout le catalogue : gestes réservés à
+// l'administrateur (FR-011). L'interface les masque ; le serveur les refuse de toute façon (403).
+const auth = useAuthStore()
 
 async function loadProduct(): Promise<ProductDto | null> {
   const all = await listProducts(true)
@@ -182,6 +187,7 @@ async function onWriteOffDone() {
       </AppCard>
 
       <AppButton
+        v-if="auth.isAdmin"
         block
         height="56"
         :color="product.isActive ? 'error' : 'success'"
@@ -193,7 +199,7 @@ async function onWriteOffDone() {
         {{ product.isActive ? 'Désactiver ce produit' : 'Réactiver ce produit' }}
       </AppButton>
 
-      <template v-if="statusError">
+      <template v-if="statusError && auth.isAdmin">
         <p class="product-detail-view__status-error text-error">{{ statusError }}</p>
         <AppButton
           v-if="hasRemainingStock"
@@ -207,8 +213,11 @@ async function onWriteOffDone() {
         </AppButton>
       </template>
 
-      <p class="product-detail-view__hint text-secondary">
+      <p v-if="auth.isAdmin" class="product-detail-view__hint text-secondary">
         Un produit désactivé n'apparaît plus dans l'ajout au stock ni dans les ventes. Son historique est conservé.
+      </p>
+      <p v-else class="product-detail-view__hint text-secondary">
+        Retirer un produit du catalogue est réservé à l'administrateur.
       </p>
 
       <v-dialog v-model="confirmingStatus" max-width="380">

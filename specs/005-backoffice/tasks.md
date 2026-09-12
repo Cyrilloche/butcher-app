@@ -91,7 +91,7 @@ vérifié**, poussé sur `feat/backoffice`, sans merge ni tag.
 **Independent Test**: quickstart lot 1, étapes 5 et 6.
 
 - [X] T018 [US2] Poser `[Authorize(Policy = AuthorizationPolicies.AdminOnly)]` sur `Deactivate`, `Reactivate` et `WriteOffStock` dans `backend/src/Butcher.Api/Controllers/ProductsController.cs` ; test dans `backend/tests/Butcher.Api.Tests/Controllers/ReservedActionsTests.cs` vérifiant que ces trois actions, et elles seules parmi les contrôleurs métier, portent la politique (FR-011, FR-012) — commit `feat(backend)!:` (rupture : `403`)
-- [ ] T019 [US2] Masquer la désactivation, la réactivation et le solde en perte pour un utilisateur dans `frontend/src/views/ProductDetailView.vue` (et `frontend/src/components/domain/ProductWriteOffDialog.vue` si déclenché ailleurs), à partir de `auth.isAdmin` ; afficher le message du serveur si un `403` survient malgré tout (FR-013)
+- [X] T019 [US2] Masquer la désactivation, la réactivation et le solde en perte pour un utilisateur dans `frontend/src/views/ProductDetailView.vue` (et `frontend/src/components/domain/ProductWriteOffDialog.vue` si déclenché ailleurs), à partir de `auth.isAdmin` ; afficher le message du serveur si un `403` survient malgré tout (FR-013)
 
 **Checkpoint**: lot 1 (US1 + US2) complet.
 
