@@ -57,9 +57,9 @@ Le **périmètre fonctionnel de la Vague 1 est livré**, backend comme frontend 
 | # | Constat | Analyse |
 |---|---|---|
 | X-01 | **Aucune sauvegarde PostgreSQL** | Le point le plus urgent : les vraies données arrivent avec la recette utilisateur. Les migrations s'appliquent au démarrage du backend, sans filet. Traitement en cours hors dépôt (workflow n8n). |
-| X-02 | **Le `Caddyfile` n'est pas déployé par la CI** | Les workflows `release-*` copient `docker-compose.prod.yml` sur le VPS, jamais le `Caddyfile`, monté depuis `/opt/butcher-app`. Les en-têtes de sécurité (§4) n'y seront qu'après une copie manuelle suivie d'un redémarrage de Caddy. |
+| X-02 | **Le `Caddyfile` n'est pas déployé par la CI** | Les workflows `release-*` copient `docker-compose.prod.yml` sur le VPS, jamais le `Caddyfile`, monté depuis `/opt/butcher-app`. ✅ **Copié à la main le 2026-09-12** : la CSP est constatée sur la prod. Le défaut de fond demeure — une prochaine modification du `Caddyfile` devra elle aussi être copiée à la main. |
 | X-03 | **Mot de passe du compte de prod** | La nouvelle politique ne s'applique qu'à l'écriture d'un mot de passe : le compte existant garde l'ancien tant que `set-password` n'est pas lancé sur le VPS. |
-| X-04 | **HTTP ne redirige pas vers HTTPS** (audit du 05/09) | Réglage Cloudflare « Always Use HTTPS », hors dépôt. HSTS (§4) couvre les visites suivantes une fois le `Caddyfile` déployé. |
+| X-04 | **HTTP ne redirige pas vers HTTPS** (audit du 05/09) | ✅ **Clos le 2026-09-12** : « Always Use HTTPS » activé côté Cloudflare, `http://` répond `301` vers `https://`. HSTS est posé par Caddy. |
 
 ### 3.3 Dette connue
 
@@ -84,7 +84,7 @@ Réponse aux deux points « code » de l'audit du 5 septembre, et à la politiqu
 | Réponse | `429` avec un message en français, affiché tel quel par l'écran de connexion | `ExceptionHandlingMiddleware`, `LoginView.vue` |
 | Politique de mot de passe | 32 caractères minimum, majuscule, minuscule, chiffre, caractère spécial, 12 caractères distincts — une phrase de passe du type `Finlike-Scorer4-Wildfire-Grazing-Unbiased-Sessions` | `IdentityPolicy` |
 | Rotation d'un mot de passe | `set-password <email> <mot-de-passe>`, hors ligne dans le conteneur ; révoque les sessions ouvertes et lève un verrouillage | `Program.cs` |
-| En-têtes HTTP | HSTS, `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, CSP stricte (aucun script inline, polices Google seules origines externes), `Server` retiré | `Caddyfile` — **non déployé**, voir X-02 |
+| En-têtes HTTP | HSTS, `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, CSP stricte (aucun script inline, polices Google seules origines externes), `Server` retiré | `Caddyfile` — en prod depuis le 2026-09-12 (copie manuelle, voir X-02) |
 
 **Vérification.** Verrouillage et politique couverts par des tests. Limitation de débit éprouvée sur une API locale : dix `401`, puis `429` à la onzième tentative depuis la même IP, une autre IP non freinée. En-têtes constatés sur un Caddy local, côté frontend comme côté API. `set-password` joué sur la base de dev : mot de passe court refusé, nouveau mot de passe accepté à la connexion, ancien refusé.
 
@@ -97,9 +97,9 @@ Réponse aux deux points « code » de l'audit du 5 septembre, et à la politiqu
 Dans l'ordre de valeur décroissante :
 
 1. **X-01 — sauvegarde PostgreSQL**, avant que les vraies données n'arrivent.
-2. **X-02 — déposer le `Caddyfile` sur le VPS**, puis redémarrer Caddy ; idéalement, le faire copier par la CI comme `docker-compose.prod.yml`.
+2. ~~**X-02 — déposer le `Caddyfile` sur le VPS**~~ ✅ fait le 2026-09-12 ; reste à le faire copier par la CI comme `docker-compose.prod.yml`.
 3. **X-03 — `set-password` sur le compte de prod** avec une phrase de passe, une fois le backend publié.
-4. **X-04 — « Always Use HTTPS »** côté Cloudflare.
+4. ~~**X-04 — « Always Use HTTPS »**~~ ✅ fait le 2026-09-12.
 
 Ensuite, hors usage réel : E-08 (premiers tests frontend), puis le backoffice PC, qui absorbera E-06 et E-07.
 

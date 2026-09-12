@@ -14,7 +14,7 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 
 ## 2. État d'avancement & feuille de route
 
-**Phase actuelle : Vague 1 complète côté périmètre fonctionnel. Backend complet, socle de déploiement livré (ADR-010), frontend au niveau de l'API. La saisie DLC/matière première d'un lot (RF-08/RF-09) est reportée en V2 le 2026-09-11 : deux champs facultatifs de plus sur le parcours le plus fragile, alors que la prise en main de l'outil est déjà le vrai défi. La recette manuelle de la correction d'une vente est déroulée et validée (2026-09-11). Depuis, le poids encore vendable d'un jambon entamé est visible et les totaux de stock disent enfin ce qui reste à vendre (2026-09-12). Le prix d'une fournée se corrige depuis Détail Stock, et la connexion est durcie (verrouillage, limitation de débit, phrase de passe de 32 caractères, en-têtes de sécurité) — 2026-09-12. Avant l'usage réel restent des gestes d'exploitation : sauvegarde, dépôt du `Caddyfile` sur le VPS, rotation du mot de passe de prod (`docs/etat-des-lieux.md` §5).**
+**Phase actuelle : Vague 1 complète côté périmètre fonctionnel. Backend complet, socle de déploiement livré (ADR-010), frontend au niveau de l'API. La saisie DLC/matière première d'un lot (RF-08/RF-09) est reportée en V2 le 2026-09-11 : deux champs facultatifs de plus sur le parcours le plus fragile, alors que la prise en main de l'outil est déjà le vrai défi. La recette manuelle de la correction d'une vente est déroulée et validée (2026-09-11). Depuis, le poids encore vendable d'un jambon entamé est visible et les totaux de stock disent enfin ce qui reste à vendre (2026-09-12). Le prix d'une fournée se corrige depuis Détail Stock, et la connexion est durcie (verrouillage, limitation de débit, phrase de passe de 32 caractères, en-têtes de sécurité) — 2026-09-12. En-têtes et redirection HTTPS sont en prod. Avant l'usage réel restent la sauvegarde et la rotation du mot de passe de prod (`docs/etat-des-lieux.md` §5).**
 
 | Étape | Statut |
 |---|---|
@@ -250,7 +250,7 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 | RF-27 | `created_by` existe sur `production_batch`, `sale` et `stock_movement` mais **n'est jamais renseigné** : le champ prépare la journalisation V2, il ne la fait pas | Ouvert, non bloquant (compte partagé en V1) |
 | — | Politique de mot de passe Identity | ✅ **Close (2026-09-12)** : 32 caractères minimum, phrase de passe visée ; `set-password` pour mettre un compte existant en conformité (`IdentityPolicy`, ADR-009). Reste à lancer `set-password` sur le compte de prod. |
 | — | Stratégie de sauvegarde PostgreSQL (le VPS et le déploiement sont en place) | Ouvert — **priorité n°1 avant l'usage réel** ; piste en cours hors dépôt (workflow n8n) |
-| — | Déploiement du `Caddyfile` : aucun workflow ne le copie sur le VPS, les en-têtes de sécurité n'y sont donc pas | Ouvert — copie manuelle en attendant, ou ajout au job `deploy` des workflows |
+| — | Déploiement du `Caddyfile` : aucun workflow ne le copie sur le VPS | Ouvert, non bloquant — la version du 2026-09-12 a été copiée à la main ; à ajouter au job `deploy` pour ne plus en dépendre |
 | RF-21 | Sorties `perso` / `perte` | ✅ **Close (2026-09-04)** : exposées dans Détail Stock (`StockUnitOutcomeMenu.vue`) |
 | RG-14 | Correction et suppression d'une vente depuis l'interface | ✅ **Close (2026-09-11)** : écran de détail d'une vente (`SaleDetailView.vue`, `SaleLineEditDialog.vue`, `SaleDeleteAction.vue`) |
 
