@@ -57,7 +57,7 @@ public class AuthController(IAuthService authService, ICurrentAccount currentAcc
     [HttpGet("me")]
     public async Task<ActionResult<MeDto>> Me()
     {
-        return Ok(await authService.GetAccountAsync(RequireAccountId()));
+        return Ok(await authService.GetAccountAsync(currentAccount.RequireAccountId()));
     }
 
     [HttpPost("change-password")]
@@ -65,12 +65,9 @@ public class AuthController(IAuthService authService, ICurrentAccount currentAcc
     {
         Request.Cookies.TryGetValue(RefreshCookieName, out var refreshToken);
         await authService.ChangePasswordAsync(
-            RequireAccountId(), request.CurrentPassword, request.NewPassword, refreshToken);
+            currentAccount.RequireAccountId(), request.CurrentPassword, request.NewPassword, refreshToken);
         return NoContent();
     }
-
-    private Guid RequireAccountId() =>
-        currentAccount.AccountId ?? throw new UnauthorizedException("Session invalide.");
 
     private void SetRefreshCookie(string value, DateTimeOffset expiresAt)
     {

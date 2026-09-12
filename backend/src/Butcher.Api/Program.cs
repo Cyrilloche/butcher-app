@@ -106,6 +106,7 @@ builder.Services.AddScoped<ICurrentAccount, HttpCurrentAccount>();
 
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IProductionBatchService, ProductionBatchService>();
 builder.Services.AddScoped<IStockUnitService, StockUnitService>();
