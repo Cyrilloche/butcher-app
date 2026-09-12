@@ -1,4 +1,6 @@
+using Butcher.Api.Common;
 using Butcher.Api.Domain.Entities;
+using Butcher.Api.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -11,6 +13,19 @@ public class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
         builder.ToTable("app_user");
 
         builder.Property(u => u.CreatedAt).IsRequired();
+
+        builder.Property(u => u.DisplayName).HasMaxLength(100).IsRequired();
+
+        // Pas de valeur par défaut côté modèle : EF prendrait la valeur CLR par défaut de l'enum pour
+        // « non renseignée » et laisserait la base décider. Le rôle est toujours écrit explicitement.
+        builder.Property(u => u.Role)
+            .HasConversion(
+                v => EnumSnakeCaseConverter.ToSnakeCase(v),
+                v => EnumSnakeCaseConverter.FromSnakeCase<AccountRole>(v))
+            .HasMaxLength(20)
+            .IsRequired();
+
+        builder.Property(u => u.IsActive).IsRequired();
 
         // Identity utilise NormalizedEmail (pas Email) pour ses recherches/comparaisons ;
         // c'est donc lui, pas Email, qui porte la contrainte d'unicité en base.

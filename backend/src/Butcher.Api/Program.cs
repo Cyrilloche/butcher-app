@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using Butcher.Api.Application.Services;
 using Butcher.Api.Common;
 using Butcher.Api.Domain.Entities;
+using Butcher.Api.Domain.Enums;
 using Butcher.Api.Infrastructure.Data;
 using Butcher.Api.Infrastructure.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -170,7 +171,15 @@ static async Task SeedAdminUserAsync(WebApplication app)
         return;
     }
 
-    var user = new AppUser { UserName = email, Email = email, CreatedAt = DateTimeOffset.UtcNow };
+    // Le premier compte d'une base vierge est forcément administrateur : sans lui, personne ne
+    // pourrait créer les autres comptes (ADR-011).
+    var user = new AppUser
+    {
+        UserName = email,
+        Email = email,
+        DisplayName = DisplayNameFromEmail(email),
+        Role = AccountRole.Admin,
+    };
     var result = await userManager.CreateAsync(user, password);
 
     if (!result.Succeeded)
@@ -202,7 +211,15 @@ static async Task<int> CreateUserAsync(WebApplication app, string[] args)
         return 1;
     }
 
-    var user = new AppUser { UserName = email, Email = email, CreatedAt = DateTimeOffset.UtcNow };
+    // Compte utilisateur par défaut : les administrateurs se créent ou se promeuvent depuis
+    // l'interface, par un administrateur existant (ADR-011).
+    var user = new AppUser
+    {
+        UserName = email,
+        Email = email,
+        DisplayName = DisplayNameFromEmail(email),
+        Role = AccountRole.User,
+    };
     var result = await userManager.CreateAsync(user, password);
 
     if (!result.Succeeded)
@@ -212,9 +229,13 @@ static async Task<int> CreateUserAsync(WebApplication app, string[] args)
         return 1;
     }
 
-    Console.WriteLine($"Compte créé pour {email}.");
+    Console.WriteLine($"Compte utilisateur créé pour {email}.");
     return 0;
 }
+
+// Nom affiché provisoire, corrigeable ensuite depuis l'écran des comptes. Même règle que la reprise
+// des comptes existants dans la migration AddAccountRoles.
+static string DisplayNameFromEmail(string email) => email.Split('@')[0];
 
 // Remplace le mot de passe d'un compte existant. La politique de mot de passe ne s'applique qu'à
 // l'écriture : sans cette commande, un compte créé avant son durcissement garderait son ancien mot
