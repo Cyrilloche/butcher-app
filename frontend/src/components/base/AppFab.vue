@@ -25,8 +25,10 @@ defineEmits<{ click: [] }>()
 <style scoped>
 .app-fab {
   position: fixed;
-  right: 20px;
-  bottom: 88px;
+  /* Au-dessus de la barre du bas sur mobile, dans le coin sur écran large : Vuetify publie la place
+     prise par la mise en page dans ces variables, sur v-main. */
+  right: calc(var(--v-layout-right, 0px) + 20px);
+  bottom: calc(var(--v-layout-bottom, 0px) + 32px);
   width: 64px;
   height: 64px;
   border: none;

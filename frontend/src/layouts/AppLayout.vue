@@ -8,7 +8,7 @@ import { useAuthStore } from '@/stores/auth'
 
 /**
  * Gabarit de l'application : une seule application, deux présentations (FR-015, FR-016).
- * - Écran large (à partir de `md`, 960 px) : barre latérale permanente, d'après la maquette
+ * - Écran large (à partir de `md`, 840 px avec Vuetify 4) : barre latérale permanente, d'après la maquette
  *   `design/backoffice/Backoffice Overview.dc.html`.
  * - Téléphone et tablette portrait : barre de navigation en bas d'écran, inchangée.
  */

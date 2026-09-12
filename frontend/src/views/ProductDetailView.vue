@@ -354,10 +354,11 @@ async function onWriteOffDone() {
 
 .product-detail-view__footer {
   position: fixed;
-  left: 0;
-  right: 0;
+  /* Commence au bord de la barre latérale sur écran large, contenu centré comme le formulaire. */
+  left: var(--v-layout-left, 0px);
+  right: var(--v-layout-right, 0px);
   bottom: 0;
-  padding: 14px 16px 34px;
+  padding: 14px max(16px, calc((100% - 720px) / 2)) 34px;
   background: linear-gradient(to top, rgb(var(--v-theme-background)) 70%, transparent);
 }
 </style>

@@ -24,7 +24,7 @@ L'approche reste au plus près de l'existant :
   administrateur, par un validateur Identity qui lit le rôle du compte (R-05).
 - **L'interface connaît le compte** par `GET /api/auth/me` (R-06), et masque ce qu'un utilisateur ne
   peut pas faire. Le serveur, lui, refuse.
-- **La mise en page PC** bascule à 960 px entre barre en bas d'écran et barre latérale, d'après la
+- **La mise en page PC** bascule à 840 px (point de rupture `md` de Vuetify 4) entre barre en bas d'écran et barre latérale, d'après la
   maquette Claude Design (R-08).
 
 Les suppressions de correction restent ouvertes à tous (clarification Q1) : les seuls gestes métier
@@ -46,7 +46,7 @@ Tests de service pour les comptes, la politique de mot de passe, l'invariant du 
 administrateur, l'auteur posé par `SaveChanges`, et le handler d'autorisation. Pas de test frontend
 (existant) : validation par [quickstart.md](./quickstart.md), typage et build.
 
-**Target Platform**: PWA mobile d'abord, et écran de travail à partir de 960 px, servie par Caddy
+**Target Platform**: PWA mobile d'abord, et écran de travail à partir de 840 px, servie par Caddy
 sur la même origine que l'API (ADR-010)
 
 **Project Type**: application web, deux applications séparées par un contrat REST (ADR-003)

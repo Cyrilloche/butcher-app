@@ -57,10 +57,10 @@ puis supprimés pour l'occasion. L'écran lui-même n'a pas été éprouvé dans
 
 ## Lot 2 — Mise en page PC (US3)
 
-1. Ouvrir l'application dans une fenêtre de plus de 960 px : barre latérale, « Vue d'ensemble »
+1. Ouvrir l'application dans une fenêtre de plus de 840 px : barre latérale, « Vue d'ensemble »
    conforme à la maquette `Backoffice Overview.dc.html`, carte « Stock bas » marquée
    « Arrivera en V2 ».
-2. Réduire la fenêtre sous 960 px : barre en bas d'écran, écrans mobiles identiques à aujourd'hui.
+2. Réduire la fenêtre sous 840 px : barre en bas d'écran, écrans mobiles identiques à aujourd'hui.
 3. Ouvrir « Nouvelle vente » sur PC : formulaire actuel, centré et borné en largeur.
 
 ## Lots suivants

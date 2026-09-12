@@ -112,7 +112,7 @@ partie locale de l'email sur tous les comptes existants. Les nouveaux comptes so
 ## R-08 — Mise en page PC : un seul gabarit, deux présentations
 
 **Décision** : `AppLayout.vue` choisit la présentation avec `useDisplay()` de Vuetify : barre
-latérale permanente (`v-navigation-drawer`) à partir du point de rupture `md` (960 px), barre en bas
+latérale permanente (`v-navigation-drawer`) à partir du point de rupture `md` (840 px dans Vuetify 4), barre en bas
 d'écran en dessous. Les vues gardent leurs routes ; les formulaires sont bornés en largeur par un
 conteneur commun. La maquette `Backoffice Overview.dc.html` (projet Claude Design
 `5d1f2fde-8c50-45fc-8970-925e8c9df3b2`) fait référence : barre latérale de 248 px, cartes chiffrées,
