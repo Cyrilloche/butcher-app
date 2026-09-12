@@ -84,10 +84,16 @@ builder.Services
         };
     });
 
+// Fail-closed (ADR-009) et compte relu en base à chaque requête (ADR-011) : toute route exige un compte
+// authentifié et actif, sauf [AllowAnonymous] ; les gestes réservés exigent en plus l'administrateur.
 builder.Services.AddAuthorization(options =>
-    options.FallbackPolicy = new AuthorizationPolicyBuilder()
-        .RequireAuthenticatedUser()
-        .Build());
+{
+    options.DefaultPolicy = AuthorizationPolicies.ActiveAccount;
+    options.FallbackPolicy = AuthorizationPolicies.ActiveAccount;
+    options.AddPolicy(AuthorizationPolicies.AdminOnly, AuthorizationPolicies.Admin);
+});
+builder.Services.AddScoped<IAuthorizationHandler, AccountAuthorizationHandler>();
+builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, AccountAuthorizationResultHandler>();
 
 var allowedOrigin = builder.Configuration["Cors:AllowedOrigin"];
 builder.Services.AddCors(options =>
