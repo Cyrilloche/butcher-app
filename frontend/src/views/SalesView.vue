@@ -1,12 +1,65 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useDisplay } from 'vuetify'
 import AppFab from '@/components/base/AppFab.vue'
 import AppBrandHeader from '@/components/base/AppBrandHeader.vue'
+import CustomerPicker from '@/components/domain/CustomerPicker.vue'
 import { listSales } from '@/api/sales'
 import { useAsyncData } from '@/composables/useAsyncData'
+import {
+  emptySalesFilters,
+  filterSales,
+  hasActiveFilters,
+  salesTotal,
+  sortSales,
+  type SalesSort,
+  type SalesSortKey,
+} from '@/composables/useSalesFilters'
 import type { SaleDto } from '@/api/types'
 
 const { data: allSales, loading, error } = useAsyncData(listSales, [] as SaleDto[])
+
+// Sur écran large, la liste devient un tableau filtrable et triable ; sur téléphone, rien ne change.
+const { mdAndUp } = useDisplay()
+const router = useRouter()
+
+const filters = reactive(emptySalesFilters())
+const sort = ref<SalesSort>({ key: 'date', direction: 'desc' })
+
+const tableSales = computed(() => sortSales(filterSales(allSales.value, filters), sort.value))
+const tableTotal = computed(() => salesTotal(tableSales.value))
+const filtering = computed(() => hasActiveFilters(filters))
+
+const columns: { key: SalesSortKey | null; label: string; numeric?: boolean }[] = [
+  { key: null, label: 'Numéro' },
+  { key: 'date', label: 'Date' },
+  { key: 'customer', label: 'Client' },
+  { key: 'status', label: 'Paiement' },
+  { key: 'total', label: 'Montant', numeric: true },
+]
+
+function toggleSort(key: SalesSortKey) {
+  sort.value =
+    sort.value.key === key
+      ? { key, direction: sort.value.direction === 'asc' ? 'desc' : 'asc' }
+      : // Date et montant se lisent d'abord du plus grand ; client et statut, dans l'ordre naturel.
+        { key, direction: key === 'date' || key === 'total' ? 'desc' : 'asc' }
+}
+
+function ariaSort(key: SalesSortKey | null): 'ascending' | 'descending' | 'none' | undefined {
+  if (key === null) return undefined
+  if (sort.value.key !== key) return 'none'
+  return sort.value.direction === 'asc' ? 'ascending' : 'descending'
+}
+
+function resetFilters() {
+  Object.assign(filters, emptySalesFilters())
+}
+
+function formatEuros(value: number): string {
+  return `${value.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
+}
 
 const query = ref('')
 const filtered = computed(() => {
@@ -66,7 +119,7 @@ const groups = computed<MonthGroup[]>(() => {
         </div>
       </div>
 
-      <div class="sales-view__search">
+      <div v-if="!mdAndUp" class="sales-view__search">
         <v-icon size="20">phosphor:magnifying-glass</v-icon>
         <input v-model="query" type="text" placeholder="Client ou n° de vente" class="sales-view__search-input" />
       </div>
@@ -74,6 +127,95 @@ const groups = computed<MonthGroup[]>(() => {
 
     <p v-if="loading" class="text-secondary">Chargement...</p>
     <p v-else-if="error" class="text-error">{{ error }}</p>
+
+    <!-- Écran large : filtres et tableau (FR-017, FR-018) -->
+    <section v-else-if="mdAndUp" class="sales-view__desk">
+      <div class="sales-view__filters">
+        <div class="sales-view__filter sales-view__filter--customer">
+          <span class="sales-view__filter-label">Client</span>
+          <CustomerPicker v-model="filters.customerId" />
+        </div>
+        <label class="sales-view__filter">
+          <span class="sales-view__filter-label">Paiement</span>
+          <select v-model="filters.payment" class="sales-view__field">
+            <option value="all">Toutes les ventes</option>
+            <option value="pending">À payer</option>
+            <option value="paid">Payées</option>
+          </select>
+        </label>
+        <label class="sales-view__filter">
+          <span class="sales-view__filter-label">Du</span>
+          <input v-model="filters.from" type="date" class="sales-view__field" :max="filters.to || undefined" />
+        </label>
+        <label class="sales-view__filter">
+          <span class="sales-view__filter-label">Au</span>
+          <input v-model="filters.to" type="date" class="sales-view__field" :min="filters.from || undefined" />
+        </label>
+        <v-btn v-if="filtering" variant="text" color="secondary" class="sales-view__reset" @click="resetFilters">
+          Effacer les filtres
+        </v-btn>
+      </div>
+
+      <div class="sales-view__summary">
+        <span>{{ tableSales.length }} vente{{ tableSales.length > 1 ? 's' : '' }}</span>
+        <span class="sales-view__summary-total">{{ formatEuros(tableTotal) }}</span>
+      </div>
+
+      <p v-if="tableSales.length === 0" class="text-secondary sales-view__empty">
+        {{ filtering ? 'Aucune vente ne correspond à ces filtres.' : 'Aucune vente enregistrée.' }}
+      </p>
+
+      <div v-else class="sales-view__table-wrap">
+        <table class="sales-view__table">
+          <thead>
+            <tr>
+              <th
+                v-for="column in columns"
+                :key="column.label"
+                scope="col"
+                :aria-sort="ariaSort(column.key)"
+                :class="{ 'sales-view__cell--numeric': column.numeric }"
+              >
+                <button
+                  v-if="column.key"
+                  type="button"
+                  class="sales-view__sort"
+                  :class="{ 'sales-view__sort--active': sort.key === column.key }"
+                  @click="toggleSort(column.key)"
+                >
+                  {{ column.label }}
+                  <v-icon v-if="sort.key === column.key" size="14">
+                    phosphor:{{ sort.direction === 'asc' ? 'caret-up' : 'caret-down' }}
+                  </v-icon>
+                </button>
+                <template v-else>{{ column.label }}</template>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="s in tableSales"
+              :key="s.id"
+              class="sales-view__table-row"
+              tabindex="0"
+              @click="router.push(`/sales/${s.id}`)"
+              @keydown.enter="router.push(`/sales/${s.id}`)"
+            >
+              <td class="sales-view__cell--number">{{ s.saleNumber }}</td>
+              <td>{{ new Date(s.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) }}</td>
+              <td class="sales-view__cell--customer">{{ s.customerName }}</td>
+              <td>
+                <span :class="s.paid ? 'sales-view__paid' : 'sales-view__pending'">
+                  {{ s.paid ? 'Payée' : 'À payer' }}
+                </span>
+              </td>
+              <td class="sales-view__cell--numeric sales-view__cell--amount">{{ formatEuros(s.total) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
     <p v-else-if="groups.length === 0" class="text-secondary sales-view__empty">Aucune vente trouvée.</p>
 
     <div v-else class="sales-view__groups">
@@ -262,5 +404,163 @@ const groups = computed<MonthGroup[]>(() => {
   font-weight: 600;
   color: rgb(var(--v-theme-success));
   flex-shrink: 0;
+}
+
+/* --- Écran large : filtres et tableau ------------------------------------------------------- */
+
+.sales-view__desk {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sales-view__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  background: rgb(var(--v-theme-surface));
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.sales-view__filter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sales-view__filter--customer {
+  flex: 1;
+  min-width: 260px;
+}
+
+/* Le sélecteur de client réserve une marge basse pour sa liste de résultats ; inutile dans ce bandeau. */
+.sales-view__filter--customer :deep(.customer-picker__search) {
+  margin-bottom: 0;
+}
+
+.sales-view__filter-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgb(var(--v-theme-secondary));
+}
+
+.sales-view__field {
+  height: 52px;
+  border: 1.5px solid rgb(var(--v-theme-field-border));
+  border-radius: 10px;
+  background: rgb(var(--v-theme-field-surface));
+  padding: 0 12px;
+  font-family: var(--font-body);
+  font-size: 16px;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.sales-view__reset {
+  align-self: center;
+}
+
+.sales-view__summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+  color: rgb(var(--v-theme-secondary));
+}
+
+.sales-view__summary-total {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 700;
+  color: rgb(var(--v-theme-success));
+}
+
+.sales-view__table-wrap {
+  background: rgb(var(--v-theme-surface));
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(43, 36, 30, 0.06);
+  overflow-x: auto;
+}
+
+.sales-view__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.sales-view__table th {
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgb(var(--v-theme-secondary));
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgb(var(--v-theme-status-neutral-container));
+  white-space: nowrap;
+}
+
+.sales-view__table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgb(var(--v-theme-status-neutral-container));
+}
+
+.sales-view__sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+
+.sales-view__sort--active {
+  color: rgb(var(--v-theme-primary));
+}
+
+.sales-view__table-row {
+  cursor: pointer;
+}
+
+.sales-view__table-row:hover,
+.sales-view__table-row:focus-visible {
+  background: rgb(var(--v-theme-status-neutral-container));
+  outline: none;
+}
+
+.sales-view__cell--number {
+  color: rgb(var(--v-theme-secondary));
+  white-space: nowrap;
+}
+
+.sales-view__cell--customer {
+  font-weight: 600;
+}
+
+.sales-view__cell--numeric {
+  text-align: right !important;
+}
+
+.sales-view__cell--amount {
+  font-weight: 600;
+  color: rgb(var(--v-theme-success));
+  white-space: nowrap;
+}
+
+.sales-view__paid {
+  background: rgb(var(--v-theme-success-container));
+  color: rgb(var(--v-theme-success));
+  font-size: 13px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
 }
 </style>

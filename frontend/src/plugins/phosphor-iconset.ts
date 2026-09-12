@@ -28,6 +28,8 @@ import {
   PhSquaresFour,
   PhTrendUp,
   PhTrendDown,
+  PhCaretUp,
+  PhCaretDown,
 } from '@phosphor-icons/vue'
 
 /**
@@ -63,6 +65,8 @@ const phosphorIcons: Record<string, unknown> = {
   'squares-four': PhSquaresFour,
   'trend-up': PhTrendUp,
   'trend-down': PhTrendDown,
+  'caret-up': PhCaretUp,
+  'caret-down': PhCaretDown,
 }
 
 export const phosphor: IconSet = {
