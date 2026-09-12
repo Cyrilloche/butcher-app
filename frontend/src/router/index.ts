@@ -2,6 +2,16 @@ import { createRouter, createWebHistory } from 'vue-router'
 import StockView from '@/views/StockView.vue'
 import { useAuthStore } from '@/stores/auth'
 
+declare module 'vue-router' {
+  interface RouteMeta {
+    /**
+     * Écran réservé à l'administrateur (ADR-011). La garde évite d'afficher un écran vide ; le
+     * serveur, lui, refuse les appels (403) quoi qu'il arrive.
+     */
+    requiresAdmin?: boolean
+  }
+}
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -37,6 +47,13 @@ const router = createRouter({
       component: () => import('@/views/ProductDetailView.vue'),
       props: true,
     },
+    { path: '/my-account', name: 'my-account', component: () => import('@/views/MyAccountView.vue') },
+    {
+      path: '/accounts',
+      name: 'accounts',
+      component: () => import('@/views/AccountsView.vue'),
+      meta: { requiresAdmin: true },
+    },
     { path: '/login', name: 'login', component: () => import('@/views/LoginView.vue') },
   ],
 })
@@ -49,6 +66,9 @@ router.beforeEach(async (to) => {
     return { name: 'login', query: { redirect: to.fullPath } }
   }
   if (to.name === 'login' && auth.isAuthenticated) {
+    return { name: 'stock' }
+  }
+  if (to.meta.requiresAdmin && !auth.isAdmin) {
     return { name: 'stock' }
   }
 })

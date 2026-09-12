@@ -7,6 +7,10 @@
   Le bandeau est en "surface" (clair) sur le fond kraft de la page : ce
   contraste sépare visuellement l'identité de l'app du contenu métier, et le
   rend lisible même quand la liste défile dessous (position sticky).
+
+  Le bouton de droite ouvre le menu du compte : « Mon compte », « Comptes » pour
+  l'administrateur (ADR-011), « Se déconnecter ». La barre du bas reste celle
+  des écrans métier.
 -->
 <script setup lang="ts">
 import { computed, ref } from 'vue'
@@ -21,6 +25,8 @@ const todayWeekday = computed(() => now.toLocaleDateString('fr-FR', { weekday: '
 const todayDate = computed(() =>
   now.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }),
 )
+
+const initials = computed(() => (auth.account?.displayName.trim().charAt(0) ?? '?').toUpperCase())
 
 // Confirmation explicite : la déconnexion est irréversible côté session (le
 // refresh token est révoqué) et les utilisateurs visés sont peu à l'aise avec
@@ -57,15 +63,37 @@ async function confirmLogout() {
         <div class="app-brand-header__weekday">{{ todayWeekday }}</div>
         <div class="app-brand-header__date">{{ todayDate }}</div>
       </div>
-      <button
-        type="button"
-        class="app-brand-header__logout"
-        aria-label="Se déconnecter"
-        title="Se déconnecter"
-        @click="confirmOpen = true"
-      >
-        <v-icon size="22">phosphor:sign-out</v-icon>
-      </button>
+
+      <v-menu location="bottom end">
+        <template #activator="{ props: menuProps }">
+          <button
+            type="button"
+            class="app-brand-header__account"
+            :aria-label="`Menu du compte ${auth.account?.displayName ?? ''}`"
+            :title="auth.account?.displayName"
+            v-bind="menuProps"
+          >
+            {{ initials }}
+          </button>
+        </template>
+        <v-list density="comfortable" class="app-brand-header__menu">
+          <v-list-item
+            v-if="auth.account"
+            :title="auth.account.displayName"
+            :subtitle="auth.account.email"
+            class="app-brand-header__menu-identity"
+          />
+          <v-divider />
+          <v-list-item title="Mon compte" prepend-icon="phosphor:user" :to="{ name: 'my-account' }" />
+          <v-list-item
+            v-if="auth.isAdmin"
+            title="Comptes"
+            prepend-icon="phosphor:users"
+            :to="{ name: 'accounts' }"
+          />
+          <v-list-item title="Se déconnecter" prepend-icon="phosphor:sign-out" @click="confirmOpen = true" />
+        </v-list>
+      </v-menu>
     </div>
   </div>
 
@@ -170,25 +198,30 @@ async function confirmLogout() {
   font-weight: 600;
 }
 
-/* Bouton de sortie : pastille kraft + icône terracotta, assez contrastée
-   pour être repérable sans concurrencer le logo de gauche. */
-.app-brand-header__logout {
+/* Pastille du compte : initiale sur fond succès, comme dans la maquette PC. */
+.app-brand-header__account {
   width: 42px;
   height: 42px;
   flex-shrink: 0;
   border-radius: 50%;
-  border: 1px solid rgb(var(--v-theme-field-border));
-  background: rgb(var(--v-theme-background));
-  color: rgb(var(--v-theme-primary));
+  border: none;
+  background: rgb(var(--v-theme-success));
+  color: rgb(var(--v-theme-surface));
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
 }
 
-.app-brand-header__logout:hover {
-  background: rgb(var(--v-theme-status-neutral-container));
-  color: rgb(var(--v-theme-primary-darken-1));
+.app-brand-header__account:hover {
+  filter: brightness(0.92);
+}
+
+.app-brand-header__menu-identity {
+  pointer-events: none;
 }
 
 .app-brand-header__dialog {
