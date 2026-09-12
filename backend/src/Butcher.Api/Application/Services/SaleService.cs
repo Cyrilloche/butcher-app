@@ -157,7 +157,6 @@ public class SaleService(AppDbContext dbContext) : ISaleService
         sale.Date = request.Date;
         sale.Paid = request.Paid;
         sale.Notes = request.Notes;
-        sale.UpdatedAt = DateTimeOffset.UtcNow;
         await dbContext.SaveChangesAsync();
 
         return ToDto(sale);
@@ -168,7 +167,6 @@ public class SaleService(AppDbContext dbContext) : ISaleService
         var sale = await FindOrThrowAsync(id);
 
         sale.Paid = request.Paid;
-        sale.UpdatedAt = DateTimeOffset.UtcNow;
         await dbContext.SaveChangesAsync();
 
         return ToDto(sale);
