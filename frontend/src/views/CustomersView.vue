@@ -1,17 +1,47 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, ref } from 'vue'
+import { computed, defineAsyncComponent, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import AppFab from '@/components/base/AppFab.vue'
+import AppBadge from '@/components/base/AppBadge.vue'
 import AppBrandHeader from '@/components/base/AppBrandHeader.vue'
+import AppSortableTable from '@/components/base/AppSortableTable.vue'
 import CustomerRow from '@/components/domain/CustomerRow.vue'
 import { listCustomers } from '@/api/customers'
+import { listSales } from '@/api/sales'
 import { useAsyncData } from '@/composables/useAsyncData'
-import { customerFullName, groupCustomersByLetter } from '@/composables/useCustomers'
+import {
+  customerFullName,
+  customerPurchaseStats,
+  customerSortKey,
+  groupCustomersByLetter,
+  NO_PURCHASES,
+  type CustomerPurchaseStats,
+} from '@/composables/useCustomers'
 import { useAddDialog } from '@/composables/useAddDialog'
+import { compareText, sortRows, type TableColumn, type TableSort } from '@/composables/useTableSort'
+import type { CustomerDto, SaleDto } from '@/api/types'
 
 const CustomerAddView = defineAsyncComponent(() => import('@/views/CustomerAddView.vue'))
 
-const { data: customers, loading, error, reload } = useAsyncData(listCustomers, [])
 const { mdAndUp, open: addOpen } = useAddDialog()
+const router = useRouter()
+
+const { data: customers, loading, error, reload } = useAsyncData(listCustomers, [])
+
+// Les achats ne servent qu'au tableau de l'écran large : sur téléphone, on n'appelle pas les ventes.
+const {
+  data: sales,
+  loading: salesLoading,
+  reload: reloadSales,
+} = useAsyncData(() => (mdAndUp.value ? listSales() : Promise.resolve([] as SaleDto[])), [] as SaleDto[])
+watch(mdAndUp, (wide) => {
+  if (wide) reloadSales()
+})
+
+function onCustomerSaved() {
+  addOpen.value = false
+  reload()
+}
 
 const query = ref('')
 const filtered = computed(() => {
@@ -44,6 +74,66 @@ function jumpToLetter(letter: string) {
   if (!presentLetters.value.has(letter)) return
   document.getElementById(letterAnchor(letter))?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
+
+// --- Écran large : tableau trié (FR-018) ---------------------------------------------------------
+
+interface CustomerTableRow {
+  customer: CustomerDto
+  stats: CustomerPurchaseStats
+}
+
+type CustomerSortKey = 'name' | 'saleCount' | 'total' | 'pending' | 'lastSale'
+
+const columns: TableColumn<CustomerSortKey>[] = [
+  { id: 'name', label: 'Client', sortKey: 'name' },
+  { id: 'phone', label: 'Téléphone' },
+  { id: 'saleCount', label: 'Ventes', sortKey: 'saleCount', firstDirection: 'desc', numeric: true },
+  { id: 'total', label: 'Total acheté', sortKey: 'total', firstDirection: 'desc', numeric: true },
+  { id: 'pending', label: 'À encaisser', sortKey: 'pending', firstDirection: 'desc', numeric: true },
+  { id: 'lastSale', label: 'Dernier achat', sortKey: 'lastSale', firstDirection: 'desc' },
+]
+
+const sort = ref<TableSort<CustomerSortKey>>({ key: 'name', direction: 'asc' })
+
+function byName(a: CustomerTableRow, b: CustomerTableRow): number {
+  return (
+    compareText(customerSortKey(a.customer), customerSortKey(b.customer)) ||
+    compareText(a.customer.firstName ?? '', b.customer.firstName ?? '')
+  )
+}
+
+function compareCustomers(key: CustomerSortKey, a: CustomerTableRow, b: CustomerTableRow): number {
+  switch (key) {
+    case 'name':
+      return byName(a, b)
+    case 'saleCount':
+      return a.stats.saleCount - b.stats.saleCount
+    case 'total':
+      return a.stats.total - b.stats.total
+    case 'pending':
+      return a.stats.pendingTotal - b.stats.pendingTotal
+    case 'lastSale':
+      // Un client sans achat se range après le plus ancien.
+      return (
+        (a.stats.lastSaleDate ? new Date(a.stats.lastSaleDate).getTime() : 0) -
+        (b.stats.lastSaleDate ? new Date(b.stats.lastSaleDate).getTime() : 0)
+      )
+  }
+}
+
+const stats = computed(() => customerPurchaseStats(sales.value))
+const tableRows = computed(() =>
+  sortRows(
+    filtered.value.map((customer) => ({ customer, stats: stats.value.get(customer.id) ?? NO_PURCHASES })),
+    sort.value,
+    compareCustomers,
+    byName,
+  ),
+)
+
+function euros(value: number): string {
+  return `${value.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
+}
 </script>
 
 <template>
@@ -68,6 +158,40 @@ function jumpToLetter(letter: string) {
     <p v-else-if="error" class="text-error">{{ error }}</p>
     <p v-else-if="groups.length === 0" class="text-secondary customers-view__empty">Aucun client trouvé.</p>
 
+    <AppSortableTable
+      v-else-if="mdAndUp"
+      v-model:sort="sort"
+      :columns="columns"
+      :rows="tableRows"
+      :row-key="(r) => r.customer.id"
+      @row-click="(r) => router.push(`/customers/${r.customer.id}`)"
+    >
+      <template #row="{ row: r }">
+        <td class="app-table__cell--strong">{{ customerFullName(r.customer) }}</td>
+        <td class="app-table__cell--muted">{{ r.customer.phone || '—' }}</td>
+        <template v-if="salesLoading">
+          <td v-for="n in 4" :key="n" class="app-table__cell--numeric text-secondary">…</td>
+        </template>
+        <template v-else>
+          <td class="app-table__cell--numeric">{{ r.stats.saleCount || '—' }}</td>
+          <td class="app-table__cell--numeric app-table__cell--amount">
+            {{ r.stats.saleCount ? euros(r.stats.total) : '—' }}
+          </td>
+          <td class="app-table__cell--numeric">
+            <AppBadge v-if="r.stats.pendingTotal > 0" tone="warning">{{ euros(r.stats.pendingTotal) }}</AppBadge>
+            <span v-else class="text-secondary">—</span>
+          </td>
+          <td class="app-table__cell--muted">
+            {{
+              r.stats.lastSaleDate
+                ? new Date(r.stats.lastSaleDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+                : '—'
+            }}
+          </td>
+        </template>
+      </template>
+    </AppSortableTable>
+
     <div v-else class="customers-view__groups">
       <section
         v-for="group in groups"
@@ -82,7 +206,7 @@ function jumpToLetter(letter: string) {
       </section>
     </div>
 
-    <nav v-if="groups.length > 0" class="customers-view__index" aria-label="Index alphabétique">
+    <nav v-if="groups.length > 0 && !mdAndUp" class="customers-view__index" aria-label="Index alphabétique">
       <button
         v-for="letter in ALPHABET"
         :key="letter"
@@ -100,7 +224,7 @@ function jumpToLetter(letter: string) {
     <AppFab icon="plus" ariaLabel="Créer un client" :to="mdAndUp ? undefined : '/customers/add'" @click="addOpen = true" />
 
     <v-dialog v-model="addOpen">
-      <CustomerAddView v-if="addOpen" dialog @saved="addOpen = false; reload()" @cancel="addOpen = false" />
+      <CustomerAddView v-if="addOpen" dialog @saved="onCustomerSaved" @cancel="addOpen = false" />
     </v-dialog>
   </v-container>
 </template>
