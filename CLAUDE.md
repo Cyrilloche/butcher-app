@@ -14,7 +14,7 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 
 ## 2. État d'avancement & feuille de route
 
-**Phase actuelle : Vague 1 complète côté périmètre fonctionnel. Backend complet, socle de déploiement livré (ADR-010), frontend au niveau de l'API. La saisie DLC/matière première d'un lot (RF-08/RF-09) est reportée en V2 le 2026-09-11 : deux champs facultatifs de plus sur le parcours le plus fragile, alors que la prise en main de l'outil est déjà le vrai défi. La recette manuelle de la correction d'une vente est déroulée et validée (2026-09-11). Depuis, le poids encore vendable d'un jambon entamé est visible et les totaux de stock disent enfin ce qui reste à vendre (2026-09-12). Le prix d'une fournée se corrige depuis Détail Stock, et la connexion est durcie (verrouillage, limitation de débit, phrase de passe de 32 caractères, en-têtes de sécurité) — 2026-09-12. En-têtes et redirection HTTPS sont en prod. Avant l'usage réel restent la sauvegarde et la rotation du mot de passe de prod (`docs/etat-des-lieux.md` §5). Le backoffice PC est lancé sur la branche `feat/backoffice` (`specs/005-backoffice`) : son lot 1 — comptes nominatifs et rôles (ADR-011) — est livré sur la branche, non fusionné.**
+**Phase actuelle : Vague 1 complète côté périmètre fonctionnel. Backend complet, socle de déploiement livré (ADR-010), frontend au niveau de l'API. La saisie DLC/matière première d'un lot (RF-08/RF-09) est reportée en V2 le 2026-09-11 : deux champs facultatifs de plus sur le parcours le plus fragile, alors que la prise en main de l'outil est déjà le vrai défi. La recette manuelle de la correction d'une vente est déroulée et validée (2026-09-11). Depuis, le poids encore vendable d'un jambon entamé est visible et les totaux de stock disent enfin ce qui reste à vendre (2026-09-12). Le prix d'une fournée se corrige depuis Détail Stock, et la connexion est durcie (verrouillage, limitation de débit, phrase de passe de 32 caractères, en-têtes de sécurité) — 2026-09-12. En-têtes et redirection HTTPS sont en prod. Avant l'usage réel restent la sauvegarde et la rotation du mot de passe de prod (`docs/etat-des-lieux.md` §5). Le backoffice PC est développé sur la branche `feat/backoffice` (`specs/005-backoffice`), non fusionnée : comptes nominatifs et rôles (ADR-011), mise en page PC, journal des gestes et rapports de ventes y sont livrés (2026-09-14).**
 
 | Étape | Statut |
 |---|---|
@@ -36,7 +36,9 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 | Poids encore vendable d'une unité entamée (RG-05 révisée) | ✅ Le serveur calcule le restant à chaque lecture, sans jamais le stocker ; la ligne d'une unité entamée l'affiche, et les totaux des deux écrans de stock le comptent au lieu du poids d'origine. Détail Stock refondu : la date en titre de section au-dessus de la carte, deux lignes par unité, corbeille par unité (`specs/004-remaining-weight/`) |
 | Correction du prix d'une fournée (RG-10) | ✅ Crayon dans l'en-tête de chaque fournée, Détail Stock. Le `PUT` remplaçant le lot en entier, la DLC, la matière première et les notes repartent telles qu'elles ont été lues ; les ventes passées gardent leur montant (`BatchPriceEditAction.vue`) |
 | Durcissement de la connexion (audit du 2026-09-05) | ✅ Verrouillage 15 min après 5 échecs, 10 essais/min par IP (`CF-Connecting-IP`), réponse `429` en français ; mot de passe de 32 caractères minimum et commande `set-password` ; en-têtes de sécurité et CSP dans le `Caddyfile`. Détail : `docs/etat-des-lieux.md` §4, ADR-009 |
-| Backoffice PC — lot 1 : comptes nominatifs et rôles (ADR-011) | 🚧 **Sur `feat/backoffice`, non fusionné** : rôle admin/user en colonne, droits relus en base à chaque requête (401 compte désactivé, 403 geste réservé), auteur posé par `SaveChanges` et affiché, mot de passe 20/32 caractères selon le rôle, écrans Comptes et Mon compte, gestes produit réservés. Reste : mise en page PC (US3), journal (US4), rapports (US5) — `specs/005-backoffice/tasks.md` |
+| Backoffice PC — lot 1 : comptes nominatifs et rôles (ADR-011) | 🚧 **Sur `feat/backoffice`, non fusionné** : rôle admin/user en colonne, droits relus en base à chaque requête (401 compte désactivé, 403 geste réservé), auteur posé par `SaveChanges` et affiché, mot de passe 20/32 caractères selon le rôle, écrans Comptes et Mon compte, gestes produit réservés |
+| Backoffice PC — lot 2 : mise en page PC | 🚧 **Sur `feat/backoffice`** : barre latérale, vue d'ensemble, Ventes/Stock/Clients/Produits en tableaux triables (`AppSortableTable`), formulaires d'ajout en fenêtre sur écran large (`AppFormShell`), largeur unique des fenêtres (440 px, défaut Vuetify) ; mobile inchangé |
+| Backoffice PC — lots 3 et 4 : journal et rapports (RF-32, RF-33) | 🚧 **Sur `feat/backoffice`** : table `audit_entry` écrite par `SaveChanges`, une entrée par geste, contenu des suppressions, connexions tracées ; écran Journal. Rapports par période, mois, client, produit et à encaisser, calculés par le serveur en jours de Paris ; écran Rapports, vue d'ensemble lue sur les rapports. Reste : quickstart des lots 3 et 4 dans un navigateur, fusion — `specs/005-backoffice/tasks.md` |
 | Développement Vague 1 | ✅ **Complet** — RF-08/RF-09 (DLC, matière première) reportées en V2 le 2026-09-11 ; recette manuelle de la correction d'une vente déroulée et validée le 2026-09-11 |
 | Analyse d'écart doc ↔ code | ✅ `docs/etat-des-lieux.md` v2.0 (12/09/2026) |
 
@@ -158,6 +160,7 @@ Monorepo, deux applications indépendantes avec chacune son cycle de vie et son 
 ### Audit
 - Champ `created_by` (→ `app_user`) sur `production_batch`, `sale` et `stock_movement` (RF-27). **Renseigné automatiquement** par `AppDbContext.SaveChanges` à partir du compte de la requête (`ICurrentAccount`), et exposé en `createdByName`.
 - `created_at` / `updated_at` sur les entités qui évoluent.
+- **Journal** `audit_entry` (RF-32) : une entrée par **geste**, écrite par `AppDbContext.SaveChanges` (`Infrastructure/Data/Audit/AuditTrail.cs`) dans la transaction de l'opération, contenu JSON pour les suppressions seulement. Les connexions sont écrites par `AuthService`. Règles de regroupement : `specs/005-backoffice/data-model.md` §3.1.
 
 ---
 
@@ -178,6 +181,7 @@ product → production_batch → stock_unit → stock_movement → sale → cust
 | `sale` | Une **vente** : numéro `V-YYMMDD-N`, date, client (obligatoire), statut de paiement, regroupant ses lignes (`stock_movement`). Pendant de `production_batch` côté vente. |
 | `customer` | Client (vente informelle, traçabilité). Non supprimable dès qu'il a une vente. |
 | `app_user` | Compte d'accès (Identity). |
+| `audit_entry` | Journal des gestes (RF-32), append-only, hors chaîne métier : sans clé vers les objets qu'il raconte. |
 
 > Détail complet, contraintes et DBML : `docs/data-model.md` (qui fait foi).
 
@@ -235,6 +239,10 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 - ❌ Calculer côté client le poids d'une sortie perso ou perte, ou le poids restant d'une unité entamée → le serveur est le seul auteur de cette soustraction, sous le nom `ComputeRemainingWeight` (`data-model.md` §3.5 et §3.8). Le dernier calcul client a été retiré le 2026-09-12 : le frontend lit `remaining_weight` et se contente d'en faire la somme pour ses totaux.
 - ❌ Stocker le poids restant d'une unité, en colonne ou en cache → c'est le seul interdit que porte RG-05. Le calcul et l'affichage, eux, sont autorisés depuis le 2026-09-12.
 - ❌ Sérialiser/stocker les enums en `PascalCase` (`ByWeight`) → toujours `snake_case` (`by_weight`), cohérent avec la table de correspondance FR et le reste du schéma (bug réel rencontré et corrigé, cf. `data-model.md` C-11).
+- ❌ Écrire une `AuditEntry` depuis un service métier → `SaveChanges` déduit le geste du `ChangeTracker`. Un service qui en écrirait une doublerait l'entrée ; seul `AuthService` en écrit, pour les connexions, qui ne changent aucune ligne visible. Une nouvelle entité à journaliser se déclare dans `AuditTrail`.
+- ❌ Journaliser une conséquence comme un geste → le statut d'une unité changé par un mouvement du même enregistrement n'a pas d'entrée, les lignes d'une vente suivent leur vente. Une entrée par geste (clarification du 2026-09-13).
+- ❌ Calculer un rapport côté client, ou depuis un poids et un prix → `ReportService` additionne les `amount` enregistrés ; la vue d'ensemble et l'écran Rapports lisent les mêmes routes pour annoncer les mêmes chiffres.
+- ❌ Borner une période ou regrouper par mois en UTC → `BusinessTime` (jours de `Europe/Paris`). Une vente saisie le 1er à 0 h 30 appartient au 1er, pas au dernier jour du mois précédent.
 
 ---
 
@@ -252,7 +260,7 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 | Réf. | Question | Statut |
 |---|---|---|
 | ADR-009 | `SameSite` du cookie de refresh token | ✅ **Close (2026-09-04)** : Caddy sert le frontend et `/api/*` sur la même origine (ADR-010), les requêtes sont same-origin — `Lax` est le bon réglage et reste la valeur par défaut. |
-| RF-27 | `created_by` existe sur `production_batch`, `sale` et `stock_movement` mais n'était jamais renseigné | ✅ **Close (2026-09-13, `feat/backoffice`)** : posé par `SaveChanges`, affiché sur les détails. Les enregistrements antérieurs restent sans auteur, présentés « Compte partagé (avant comptes nominatifs) ». |
+| RF-27 | `created_by` existe sur `production_batch`, `sale` et `stock_movement` mais n'était jamais renseigné | ✅ **Close (2026-09-13, `feat/backoffice`)** : posé par `SaveChanges`, affiché sur les détails. Les enregistrements antérieurs restent sans auteur, présentés « Compte partagé (avant comptes nominatifs) ». Le journal consultable (RF-32) suit le 2026-09-14. |
 | — | Politique de mot de passe Identity | ✅ **Close (2026-09-12)** : 32 caractères minimum, phrase de passe visée ; `set-password` pour mettre un compte existant en conformité (`IdentityPolicy`, ADR-009). Reste à lancer `set-password` sur le compte de prod. |
 | — | Stratégie de sauvegarde PostgreSQL (le VPS et le déploiement sont en place) | Ouvert — **priorité n°1 avant l'usage réel** ; piste en cours hors dépôt (workflow n8n) |
 | — | Déploiement du `Caddyfile` : aucun workflow ne le copie sur le VPS | Ouvert, non bloquant — la version du 2026-09-12 a été copiée à la main ; à ajouter au job `deploy` pour ne plus en dépendre |

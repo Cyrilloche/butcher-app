@@ -150,7 +150,7 @@ vérifié**, poussé sur `feat/backoffice`, sans merge ni tag.
 
 - [X] T036 Clore la documentation du lot 1 : RF-26 révisée dans `docs/PRD.md` (nouvelle version d'historique), `docs/data-model.md` §3.1 (`app_user` enrichie) et §4.2 (correspondances des rôles), `CLAUDE.md` (pile d'authentification, avancement, pièges : droits relus en base, auteur posé par `SaveChanges`, politique par rôle) — **à faire avant de considérer le lot 1 livrable**
 - [X] T037 Dérouler `specs/005-backoffice/quickstart.md` (lot 1) sur l'API et le frontend locaux, consigner le résultat dans le rapport de fin de session
-- [ ] T038 Clore la documentation des lots 3 et 4 : `docs/data-model.md` (table `audit_entry`, correspondances des actions et types d'objet §4.2, DBML, nouvelle version d'historique), `docs/PRD.md` (RF-27 : journal livré ; rapports), `CLAUDE.md` (avancement, pile, pièges : journal écrit par `SaveChanges`, rapports sur les montants enregistrés)
+- [X] T038 Clore la documentation des lots 3 et 4 : `docs/data-model.md` (table `audit_entry`, correspondances des actions et types d'objet §4.2, DBML, nouvelle version d'historique), `docs/PRD.md` (RF-27 : journal livré ; rapports), `CLAUDE.md` (avancement, pile, pièges : journal écrit par `SaveChanges`, rapports sur les montants enregistrés)
 - [ ] T039 Dérouler `quickstart.md` (lots 3 et 4) sur l'API locale et consigner le résultat
 
 ---

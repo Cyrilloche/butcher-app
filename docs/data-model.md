@@ -4,10 +4,10 @@
 |---|---|
 | **Projet** | Mini-ERP Charcuterie (repo : `butcher-app`) |
 | **Document** | Modèle de données détaillé (V1) |
-| **Version** | 0.12 |
-| **Date** | 13 septembre 2026 |
-| **Statut** | Implémenté (backend, cœur métier V1 complet ; comptes nominatifs sur `feat/backoffice`) |
-| **Documents liés** | PRD v0.10, Journal ADR (11 décisions, ADR-011 accepté), `docs/etat-des-lieux.md`, `specs/005-backoffice/data-model.md` |
+| **Version** | 0.13 |
+| **Date** | 14 septembre 2026 |
+| **Statut** | Implémenté (backend, cœur métier V1 complet ; comptes nominatifs, journal et rapports sur `feat/backoffice`) |
+| **Documents liés** | PRD v0.11, Journal ADR (11 décisions, ADR-011 accepté), `docs/etat-des-lieux.md`, `specs/005-backoffice/data-model.md` |
 
 ### Historique des révisions
 
@@ -24,6 +24,7 @@
 | 0.11 | 2026-09-12 | **Poids encore vendable exposé sur le contrat d'une unité** (§3.5), calculé à chaque lecture et **jamais stocké** — aucune migration. RG-05 révisée en conséquence (PRD v0.8) : l'interdiction porte sur la persistance, pas sur le calcul ni sur l'affichage. La règle est partagée avec le poids d'une sortie perso ou perte (§3.8) sous le nom `ComputeRemainingWeight`. |
 | 0.10 | 2026-09-11 | Aucune modification de schéma. `raw_material_ref` et `expiry_date` (§3.4) documentés comme **non exposés en V1** : RF-08/RF-09 reportées en V2 (PRD v0.7) au nom de la prise en main par des utilisateurs non techniques. Colonnes et API conservées, réouverture sans coût. |
 | 0.12 | 2026-09-13 | **Comptes nominatifs avec rôle** (ADR-011, RF-26 révisée) : `app_user` gagne `display_name`, `role` (`admin` / `user`), `is_active`, `last_login_at` et `updated_at` (§3.1). La migration `AddAccountRoles` reprend les comptes existants en administrateurs actifs. **`created_by` est désormais renseigné** (RF-27) par `AppDbContext.SaveChanges`, sans changement de schéma. Libellés des rôles ajoutés à la correspondance (§4.2). |
+| 0.13 | 2026-09-14 | **Journal des gestes** (RF-32, `specs/005-backoffice` US4) : nouvelle table `audit_entry` (§3.10), append-only, écrite par `AppDbContext.SaveChanges` dans la transaction de l'opération, une entrée par geste et non par ligne modifiée. Migration `AddAuditEntries`. **Rapports de ventes** (RF-33, US5) : aucune table, lectures agrégées des montants enregistrés, jours et mois de Paris (§3.10, note finale). Natures d'opération et types d'objet ajoutés à la correspondance (§4.2). |
 | 0.7 | 2026-09-04 | RG-05 précisée (pas remplacée) : garde-fou serveur empêchant la somme des `sold_weight` d'une unité entamée de dépasser son `weight` pesé, à la création comme à la modification d'un mouvement de vente. Calcul à la volée, aucune colonne « poids restant » ajoutée — conforme à l'intention initiale de RG-05. |
 
 ### Objet du document
@@ -57,7 +58,7 @@ Un **product** est décliné en **production_batch** (fabrication datée, à un 
 
 Le schéma comporte donc **deux couples parent/enfant symétriques** : `production_batch → stock_unit` côté production, `sale → stock_movement` côté vente.
 
-Un référentiel complète l'ensemble : `app_user` (authentification).
+Un référentiel complète l'ensemble : `app_user` (authentification). Le journal `audit_entry` (§3.10) se tient à côté de la chaîne, sans clé vers les objets qu'il raconte : il doit survivre à leur suppression.
 
 ---
 
@@ -260,6 +261,43 @@ suppression de l'unité qui le portait ou de la fournée dont elle provenait (§
   du même jour, aura des numéros **non contigus**. L'unicité et la non-réémission sont les propriétés
   qui comptent, pas la contiguïté.
 
+### 3.10 `audit_entry` *(nouveau en v0.13)*
+
+Journal « qui a fait quoi » (RF-32). **Append-only** : aucune route ne le modifie ni ne le supprime, et
+il se consulte par l'administrateur seul (`GET /api/audit-entries`, écran Journal).
+
+| Attribut | Type | Contraintes | Rôle |
+|---|---|---|---|
+| `id` | bigint | PK, identité | |
+| `occurred_at` | timestamptz | non nul | Date et heure du geste |
+| `account_id` | uuid | FK → `app_user`, `RESTRICT`, nullable | Auteur ; `null` sur une connexion refusée à une adresse inconnue, ou hors requête (commande hors ligne) |
+| `action` | varchar(30) | non nul, `snake_case` | `created`, `updated`, `deleted`, `login_succeeded`, `login_failed`, `locked_out`, `password_changed` |
+| `entity_type` | varchar(30) | nullable, `snake_case` | `product`, `production_batch`, `stock_unit`, `sale`, `stock_movement`, `customer`, `account` |
+| `entity_id` | varchar(64) | nullable | Identifiant de l'objet, en texte ; `null` pour un geste groupé |
+| `entity_label` | varchar(200) | nullable | Libellé en français, figé au moment du geste (« V-260913-2 (3 lignes) ») |
+| `deleted_content` | jsonb | nullable | Contenu complet de l'objet, **uniquement** pour une suppression |
+
+**Règles** :
+- **Une entrée par geste, pas par ligne modifiée.** Les lignes d'une vente suivent la vente, les unités
+  d'une fournée supprimée suivent la fournée, des unités pesées ensemble ou un solde de stock donnent
+  une seule entrée. Une unité dont le statut change sous l'effet d'un mouvement du même enregistrement
+  n'a pas d'entrée : ce n'est pas un geste, c'est sa conséquence. Table complète des regroupements :
+  `specs/005-backoffice/data-model.md` §3.1.
+- **Écrite dans la transaction de l'opération**, par `AppDbContext.SaveChanges` à partir du
+  `ChangeTracker` : une opération qui échoue ne laisse aucune entrée, aucune n'échappe au journal.
+  Seules les connexions sont écrites explicitement, par `AuthService` : un échec sur une adresse
+  inconnue ne change aucune ligne.
+- **Contenu gardé pour les suppressions seulement**, suffisant pour ressaisir l'objet. Une
+  modification n'enregistre ni l'avant ni l'après : l'objet se consulte dans son état actuel.
+- **Comptes** : création, nom, rôle et état donnent une « Modification » ; un mot de passe changé et un
+  verrouillage ont leur propre nature ; la dernière connexion et les jetons d'Identity n'en ont aucune.
+- Pas de durée de conservation : le volume d'une activité artisanale le permet.
+
+> **Rapports de ventes (RF-33) — aucune table.** Lectures agrégées de `sale` et des `stock_movement`
+> de type `sale`, calculées à la demande sur les `amount` enregistrés, jamais depuis un poids et un
+> prix. Jours et mois sont ceux de Paris, pas de l'UTC du serveur. Par produit, une unité vendue en
+> plusieurs tranches compte **une** unité et autant de lignes que de tranches.
+
 ---
 
 ## 4. Numéro de lot & correspondance des libellés
@@ -317,6 +355,22 @@ Les valeurs techniques sont en anglais ; l'interface les affiche en français. C
 | Rôle d'un compte — utilisateur | `user` | Utilisateur |
 | Auteur d'un enregistrement — connu | `created_by` renseigné | Saisie par *nom affiché* |
 | Auteur d'un enregistrement — inconnu | `created_by` = `null` | Compte partagé (avant comptes nominatifs) |
+| Journal — création | `created` | Création |
+| Journal — modification | `updated` | Modification |
+| Journal — suppression | `deleted` | Suppression |
+| Journal — connexion réussie | `login_succeeded` | Connexion |
+| Journal — connexion refusée | `login_failed` | Connexion refusée |
+| Journal — verrouillage | `locked_out` | Compte verrouillé |
+| Journal — mot de passe | `password_changed` | Mot de passe changé |
+| Journal — objet produit | `product` | Produit |
+| Journal — objet fournée | `production_batch` | Fournée |
+| Journal — objet unité | `stock_unit` | Unité |
+| Journal — objet vente | `sale` | Vente |
+| Journal — objet sortie | `stock_movement` | Sortie de stock |
+| Journal — objet client | `customer` | Client |
+| Journal — objet compte | `account` | Compte |
+| Journal — sans auteur, connexion | `account_id` = `null`, `login_failed` | Personne (adresse inconnue) |
+| Journal — sans auteur, autre geste | `account_id` = `null` | Hors application |
 
 ---
 
@@ -364,7 +418,9 @@ Le champ `status` est une **dénormalisation assumée** : l'état pourrait, pour
 | `sale` | `sale_number` | Recherche par numéro (unique) |
 | `sale` | `customer_id` | Historique d'un client (RF-23) |
 | `sale` | `date` | Liste chronologique des ventes |
-| `stock_movement` | `date` | Vues chronologiques, futurs rapports |
+| `stock_movement` | `date` | Vues chronologiques, rapports |
+| `audit_entry` | `occurred_at` (décroissant) | Journal du plus récent au plus ancien |
+| `audit_entry` | `(account_id, occurred_at)` | Journal filtré par auteur |
 
 ---
 
@@ -397,8 +453,31 @@ Enum movement_type {
 Table app_user {
   id uuid [pk]
   email varchar [unique, not null]
+  display_name varchar(100) [not null]
+  role varchar(20) [not null, note: 'admin | user']
+  is_active boolean [not null]
+  last_login_at timestamptz
   created_at timestamptz [default: `now()`]
+  updated_at timestamptz
   Note: 'Authentication handled by ASP.NET Core Identity'
+}
+
+Table audit_entry {
+  id bigint [pk, increment]
+  occurred_at timestamptz [not null]
+  account_id uuid [ref: > app_user.id, note: 'null: unknown address on login, or outside a request']
+  action varchar(30) [not null, note: 'created | updated | deleted | login_succeeded | login_failed | locked_out | password_changed']
+  entity_type varchar(30) [note: 'product | production_batch | stock_unit | sale | stock_movement | customer | account']
+  entity_id varchar(64) [note: 'null for a grouped gesture']
+  entity_label varchar(200) [note: 'French label frozen at the time of the gesture']
+  deleted_content jsonb [note: 'only for deleted']
+
+  Indexes {
+    occurred_at
+    (account_id, occurred_at)
+  }
+
+  Note: 'Append-only; one entry per gesture, written by SaveChanges in the same transaction (v0.13)'
 }
 
 Table product {
@@ -512,7 +591,7 @@ Table stock_movement {
 - FK `recipe_version_id` sur `production_batch`, matérialisant `batch → recipe_version → product`.
 
 **Gestion fine des utilisateurs**
-- Enrichissement de `app_user` (rôles/permissions) et exploitation de `created_by` pour une journalisation « qui a fait quoi ».
+- ~~Enrichissement de `app_user` (rôles) et journalisation « qui a fait quoi »~~ — livrés en v0.12 et v0.13 (§3.1, §3.10). Restent possibles : des droits plus fins que deux rôles, et l'export du journal.
 
 **Alertes**
 - Seuils de stock bas et exploitation de `expiry_date` pour des alertes DLC.

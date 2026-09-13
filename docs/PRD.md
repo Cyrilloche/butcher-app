@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | **Nom de projet** | Mini-ERP Charcuterie (application : **Saloir**) |
-| **Version du document** | 0.10 |
-| **Date** | 12 septembre 2026 |
+| **Version du document** | 0.11 |
+| **Date** | 14 septembre 2026 |
 | **Statut** | Vague 1 complète côté périmètre, backend comme frontend ; connexion durcie. Restent, avant l'usage réel, des gestes d'exploitation : sauvegarde, dépôt du `Caddyfile`, rotation du mot de passe de prod (voir `docs/etat-des-lieux.md` §5) |
 | **Auteur** | Cyril, avec assistance à l'architecture |
 | **Destinataires** | Utilisateurs finaux (exploitants), équipe de développement |
@@ -22,6 +22,7 @@
 | 0.8 | 2026-09-12 | Cyril, avec assistance à l'implémentation | **RG-05 révisée** : le poids restant d'une unité entamée reste interdit au stockage, mais il est désormais calculé à la demande par le serveur et affiché comme poids encore vendable — sur la ligne de l'unité et dans les totaux des deux écrans de stock. Le garde-fou d'écriture est inchangé. Aucune exigence nouvelle : l'affichage servait déjà la question métier « puis-je encore vendre une tranche » (`specs/004-remaining-weight/`). |
 | 0.9 | 2026-09-12 | Cyril, avec assistance à l'implémentation | **Statut réaligné** : RG-10 est désormais atteignable depuis l'interface (correction du prix d'une fournée), et RNF-04 est renforcée dans le code — verrouillage du compte, limitation de débit sur la connexion, politique de mot de passe de 32 caractères, en-têtes de sécurité (ADR-009, complément du 2026-09-12). Aucune exigence modifiée. |
 | 0.10 | 2026-09-13 | Cyril, avec assistance à l'implémentation | **RF-26 révisée, Q-02 tranchée** (ADR-011, `specs/005-backoffice`) : le compte partagé cède la place à des comptes nominatifs, avec deux rôles — Administrateur et Utilisateur. **RF-27 devient effective** : l'auteur des fabrications, ventes et sorties est enregistré et affiché. Les exploitants gardent toutes les corrections de saisie ; désactiver ou solder un produit, gérer les comptes, le journal et les rapports sont réservés à l'administrateur. §5 et §4.2 réalignés. |
+| 0.11 | 2026-09-14 | Cyril, avec assistance à l'implémentation | **Journal et rapports** (`specs/005-backoffice`, US4 et US5, sur `feat/backoffice`) : ajout de RF-32 — journal des gestes, une entrée par geste, contenu gardé pour les suppressions, connexions tracées — et de RF-33 — rapports de ventes par période, par mois, par client, par produit, et montants à encaisser, calculés sur les montants saisis. Tous deux réservés à l'administrateur. Le point « multi-comptes avec journalisation » de §4.2 est livré. |
 | 0.3 | 2026-09-04 | Cyril, avec assistance à l'implémentation | **Q-04 et Q-05 résolus et implémentés** : ajout de l'entité *vente* (numéro unique, statut de paiement, regroupement de plusieurs unités) — nouvelles exigences RF-28 à RF-31 et règles RG-13 à RG-15 ; RF-17/RG-07 (client obligatoire) désormais garantis par le modèle ; §9 mis en cohérence (le client n'est plus optionnel) |
 
 ---
@@ -98,7 +99,7 @@ Le projet suit une approche **agile par vagues**. Le périmètre ci-dessous dist
 - **Gestion des achats de matière première** (viande et autres intrants) comme entité à part entière, reliée aux lots.
 - **Saisie de la référence de matière première et de la DLC d'un lot** *(RF-08/RF-09, reportées le 2026-09-11)* : déjà portées par le modèle et par l'API, à exposer dans l'interface une fois l'outil pris en main.
 - **Recettes** : capitalisation des recettes, puis versionnement des recettes rattaché aux lots (lien `lot → version de recette → produit`) pour ajuster les productions futures selon les retours.
-- **Gestion multi-comptes avec journalisation** (« qui a fait quoi ») — *avancée le 2026-09-13 : comptes nominatifs, rôles et auteur des saisies livrés (RF-26, RF-27) ; le journal consultable reste à venir (`specs/005-backoffice`, US4).*
+- **Gestion multi-comptes avec journalisation** (« qui a fait quoi ») — *livrée sur `feat/backoffice` : comptes nominatifs, rôles et auteur des saisies le 2026-09-13 (RF-26, RF-27), journal consultable et rapports de ventes le 2026-09-14 (RF-32, RF-33).*
 - **Alertes** (seuil de stock bas, DLC approchante).
 
 ### 4.3 Hors périmètre (à ce stade)
@@ -213,6 +214,13 @@ Le stock n'est pas un compteur abstrait : il représente des **objets physiques 
 | RF-26 | **(révisée le 2026-09-13, ADR-011)** Chaque personne dispose d'un **compte nominatif** (adresse email, nom affiché), porteur d'un **rôle** : « Administrateur » ou « Utilisateur ». Seul un administrateur crée, modifie, désactive ou réactive un compte et en réinitialise le mot de passe ; un compte n'est jamais supprimé, et l'outil garde toujours au moins un administrateur actif. Sont réservés à l'administrateur la désactivation, la réactivation et le solde en perte d'un produit ; toutes les corrections de saisie restent ouvertes aux utilisateurs. *Formulation initiale : « La V1 fonctionne avec un compte simple (partagé), sans gestion de rôles différenciés ».* |
 | RF-27 | Les tables métier clés (lot, mouvement/vente) portent un champ **auteur de création** (`cree_par`). **Effective depuis le 2026-09-13** : l'auteur est enregistré automatiquement et affiché sur le détail d'une vente et d'une fournée, pour tous les comptes. |
 
+### 6.8 Pilotage — réservé à l'administrateur
+
+| Réf. | Exigence |
+|---|---|
+| RF-32 | **(2026-09-14)** L'administrateur consulte un **journal** des opérations : pour chacune, la date et l'heure, l'auteur, la nature (création, modification, suppression, connexion réussie ou refusée, verrouillage, mot de passe changé) et l'objet concerné, du plus récent au plus ancien, filtrable par auteur, type d'objet et période. **Une entrée par geste** : une vente et ses lignes, une fournée et ses unités, un solde de stock ne font chacun qu'une entrée, et les conséquences automatiques d'un geste n'en font aucune. Une **suppression garde le contenu** de l'objet, suffisant pour le ressaisir ; une modification n'enregistre pas l'avant ni l'après. Le journal n'est ni modifiable ni supprimable. |
+| RF-33 | **(2026-09-14)** L'administrateur dispose de **rapports de ventes** sur une période qu'il choisit (l'année en cours par défaut) : nombre de ventes, montant total, encaissé et à encaisser, répartition par mois, par client et par produit — une unité vendue en tranches compte une unité et autant de lignes que de tranches. Il dispose aussi des **montants à encaisser** toutes périodes confondues, par client, avec l'ancienneté de la plus vieille vente impayée. Les montants sont ceux **saisis** sur les lignes (RG-15), jamais recalculés ; aucune notion de coût ni de marge, réservées à la V2. |
+
 ---
 
 ## 7. Règles de gestion
@@ -268,7 +276,8 @@ Le stock n'est pas un compteur abstrait : il représente des **objets physiques 
 - **Vente** — numéro unique, date, client (obligatoire), statut de paiement, notes, auteur de création ; regroupe une ou plusieurs lignes.
 - **Mouvement** (ligne) — rattaché à une unité physique ; type (vente/perso/casse), montant, poids vendu, date, auteur de création ; rattaché à une `Vente` si et seulement si son type est « vente ».
 - **Client** — nom, prénom, téléphone.
-- **Utilisateur** — compte d'authentification.
+- **Utilisateur** — compte nominatif : nom affiché, rôle (Administrateur ou Utilisateur), actif ou désactivé.
+- **Journal** — trace d'un geste : date, auteur, nature, objet, et contenu de l'objet pour une suppression (RF-32). Hors de la chaîne métier : il survit à la suppression de ce qu'il raconte.
 
 **Relations clés**
 
@@ -282,7 +291,7 @@ Le stock n'est pas un compteur abstrait : il représente des **objets physiques 
 
 - Table `Achat de matière première` reliée aux `Lots` (coût de revient).
 - Tables `Recette` et `Version de recette`, avec relation `Lot → Version de recette → Produit`.
-- Enrichissement de `Utilisateur` (rôles) et journalisation exploitant le champ `cree_par` déjà présent.
+- ~~Enrichissement de `Utilisateur` (rôles) et journalisation exploitant le champ `cree_par` déjà présent~~ — *livrés le 2026-09-13 et le 2026-09-14 (RF-26, RF-27, RF-32).*
 
 ---
 
@@ -315,7 +324,7 @@ Le stock n'est pas un compteur abstrait : il représente des **objets physiques 
 | Réf. | Question |
 |---|---|
 | ~~Q-01~~ | ~~Choix de la plateforme d'hébergement et de la stratégie d'authentification~~ — ✅ **Résolu** : authentification tranchée par ADR-009 (jeton d'accès court en mémoire, jeton de rafraîchissement rotatif en base, cookie `httpOnly`), hébergement tranché et livré par ADR-010 (Docker Compose sur VPS, reverse proxy Caddy, tunnel Cloudflare). |
-| ~~Q-02~~ | ~~Faut-il, à l'usage, passer à deux comptes distincts avec journalisation dès la V1 ou attendre une vague ultérieure ?~~ — ✅ **Tranchée le 2026-09-12** : comptes nominatifs avec rôles (ADR-011), livrés avec le backoffice PC ; le journal consultable suit. |
+| ~~Q-02~~ | ~~Faut-il, à l'usage, passer à deux comptes distincts avec journalisation dès la V1 ou attendre une vague ultérieure ?~~ — ✅ **Tranchée le 2026-09-12** : comptes nominatifs avec rôles (ADR-011), livrés avec le backoffice PC ; le journal consultable et les rapports suivent le 2026-09-14 (RF-32, RF-33). |
 | Q-03 | Existe-t-il des produits futurs (terrines, etc.) dont le mode de vente n'entre pas dans `poids_variable` / `piece_simple` ? (à valider avec les exploitants). |
 | ~~Q-04~~ | ~~Statut de paiement de la vente (`payée` / `à payer`)~~ — ✅ **Résolu et implémenté le 2026-09-04** : voir RF-30 et `data-model.md` §3.7. |
 | ~~Q-05~~ | ~~Entité de regroupement des ventes (numéro, plusieurs unités par vente)~~ — ✅ **Résolu et implémenté le 2026-09-04** : entité `sale`, `stock_movement.sale_id`, numéro `V-YYMMDD-N`. Voir RF-28/RF-29 et `data-model.md` §3.7. RF-17/RG-07 (client obligatoire) sont désormais garantis par le schéma. |
