@@ -86,3 +86,28 @@ puis supprimés pour l'occasion. L'écran lui-même n'a pas été éprouvé dans
    vente s'ouvre.
 4. **Période vide.** Totaux à zéro, sans erreur.
 5. **Réservé.** Avec le jeton de l'utilisateur : `403`.
+
+### Résultat des lots 3 et 4 — nuit du 2026-09-13 au 14 (API locale, base jetable)
+
+Déroulé au niveau de l'API, par un script, sur `feat/backoffice` : API lancée contre une base
+PostgreSQL vierge créée pour l'occasion puis supprimée, administrateur seedé, utilisatrice
+« Mireille » créée par l'API. La base de dev n'a pas été touchée. Les écrans Journal et Rapports
+n'ont pas été éprouvés dans un navigateur (types, lint, build et Vitest verts).
+
+| Lot | Étape | Attendu | Constaté |
+|---|---|---|---|
+| 3 | 1 | Une ligne par geste | ✅ « Jambon sec — 14/09/2026 », « Jambon sec — 14/09/2026 (3 : JB-260914-1 à JB-260914-3) », « V-260913-1 (2 lignes) » ; une seule entrée pour la vente, aucune modification d'unité |
+| 3 | 2 | Modification datée et signée | ✅ `updated` · vente, par Mireille |
+| 3 | 3 | Contenu de la suppression | ✅ client Jean Dupont, 2 lignes, total 30, date |
+| 3 | 4 | Connexions refusées | ✅ « Mireille — mot de passe erroné » ; « adresse inconnue : inconnu@saloir.local », sans auteur |
+| 3 | 5 | Filtres | ✅ auteur (9, toutes de Mireille), type vente (3), aujourd'hui (13), 2020 (0) |
+| 3 | 6 | Réservé | ✅ `403` |
+| 4 | 1 | Synthèse = somme des ventes | ✅ 5 ventes, 30,29 € dont 20,30 € encaissés et 9,99 € à encaisser, identiques à la liste des ventes |
+| 4 | 2 | Par client et par produit | ✅ classés du plus gros total ; trois tranches et deux ventes entières sur trois unités donnent 3 unités et 5 lignes. Le cas « un jambon, n tranches = 1 unité » est couvert par `ReportServiceTests` |
+| 4 | 3 | À encaisser | ✅ Marie Perrin doit 9,99 €, plus ancienne impayée datée, la vente s'ouvre (`200`) |
+| 4 | 4 | Période vide | ✅ totaux à zéro, `200` |
+| 4 | 5 | Réservé | ✅ `403` ; `400` sans période |
+
+**Constat hors périmètre** : le numéro d'une vente est calculé sur le jour **UTC** (`SaleService`),
+alors que le numéro d'une unité suit la date de production saisie. Une vente enregistrée à 0 h 27 le
+14 septembre à Paris a reçu `V-260913-1`. Écart préexistant, non corrigé ici.
