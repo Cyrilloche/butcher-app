@@ -32,6 +32,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentAccoun
 
     public DbSet<UnitNumberSequence> UnitNumberSequences => Set<UnitNumberSequence>();
 
+    public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

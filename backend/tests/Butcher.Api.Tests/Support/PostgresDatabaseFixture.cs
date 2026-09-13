@@ -49,6 +49,7 @@ public class PostgresDatabaseFixture : IAsyncLifetime
         await dbContext.Database.ExecuteSqlRawAsync(
             """
             TRUNCATE TABLE
+                audit_entry,
                 stock_movement,
                 sale,
                 stock_unit,
