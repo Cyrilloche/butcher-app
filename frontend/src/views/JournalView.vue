@@ -14,7 +14,7 @@ import {
   entryLink,
   formatOccurredAt,
 } from '@/composables/useJournal'
-import type { TableColumn, TableSort } from '@/composables/useTableSort'
+import type { TableColumn } from '@/composables/useTableSort'
 import type { AccountDto, AuditEntityType, AuditEntryDto, AuditEntryPageDto } from '@/api/types'
 
 /**
@@ -68,7 +68,6 @@ const columns: TableColumn<never>[] = [
   { id: 'action', label: 'Opération' },
   { id: 'object', label: 'Objet' },
 ]
-const sort = ref({ key: 'occurredAt', direction: 'desc' } as unknown as TableSort<never>)
 
 const opened = ref<AuditEntryDto | null>(null)
 const detailOpen = computed({
@@ -133,7 +132,6 @@ function objectLabel(entry: AuditEntryDto): string {
 
     <template v-else>
       <AppSortableTable
-        v-model:sort="sort"
         :columns="columns"
         :rows="result.items"
         :row-key="(e) => e.id"

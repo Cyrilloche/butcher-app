@@ -13,11 +13,12 @@ defineProps<{
   /** Ligne atténuée (produit désactivé, par exemple). */
   rowMuted?: (row: T) => boolean
 }>()
-const sort = defineModel<TableSort<K>>('sort', { required: true })
+/** Tri en cours ; sans lui (ordre imposé par le serveur), aucun en-tête n'est cliquable. */
+const sort = defineModel<TableSort<K>>('sort')
 const emit = defineEmits<{ rowClick: [row: T] }>()
 
 function ariaSort(column: TableColumn<K>): 'ascending' | 'descending' | 'none' | undefined {
-  if (!column.sortKey) return undefined
+  if (!column.sortKey || !sort.value) return undefined
   if (sort.value.key !== column.sortKey) return 'none'
   return sort.value.direction === 'asc' ? 'ascending' : 'descending'
 }
@@ -36,7 +37,7 @@ function ariaSort(column: TableColumn<K>): 'ascending' | 'descending' | 'none' |
             :class="{ 'app-table__head--numeric': column.numeric }"
           >
             <button
-              v-if="column.sortKey"
+              v-if="column.sortKey && sort"
               type="button"
               class="app-table__sort"
               :class="{ 'app-table__sort--active': sort.key === column.sortKey }"

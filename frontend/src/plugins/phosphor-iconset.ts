@@ -31,6 +31,7 @@ import {
   PhCaretUp,
   PhCaretDown,
   PhClockCounterClockwise,
+  PhChartBar,
 } from '@phosphor-icons/vue'
 
 /**
@@ -69,6 +70,7 @@ const phosphorIcons: Record<string, unknown> = {
   'caret-up': PhCaretUp,
   'caret-down': PhCaretDown,
   'clock-counter-clockwise': PhClockCounterClockwise,
+  'chart-bar': PhChartBar,
 }
 
 export const phosphor: IconSet = {

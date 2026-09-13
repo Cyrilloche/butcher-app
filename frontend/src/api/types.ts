@@ -335,6 +335,70 @@ export interface AuditEntryQuery {
   pageSize?: number
 }
 
+// --- Rapports (US5) -------------------------------------------------------------
+// Montants : sommes des montants saisis sur les lignes de vente, jamais recalculés (FR-030).
+
+export interface MonthlySalesDto {
+  /** `YYYY-MM`, mois de Paris. */
+  month: string
+  saleCount: number
+  total: number
+  paidTotal: number
+  pendingTotal: number
+}
+
+export interface SalesSummaryDto {
+  saleCount: number
+  total: number
+  paidTotal: number
+  pendingTotal: number
+  /** Mois portant au moins une vente, du plus ancien au plus récent. */
+  months: MonthlySalesDto[]
+}
+
+export interface CustomerSalesDto {
+  customerId: number
+  customerName: string
+  saleCount: number
+  total: number
+  pendingTotal: number
+}
+
+export interface ProductSalesDto {
+  productId: number
+  productCode: string
+  productName: string
+  saleMode: SaleMode
+  /** Unités distinctes vendues ou entamées : un jambon vendu en cinq tranches compte pour une. */
+  unitCount: number
+  /** Lignes de vente : le même jambon compte ici pour cinq. */
+  lineCount: number
+  /** Kilogrammes ; `null` pour un produit à la pièce. */
+  soldWeight: number | null
+  total: number
+}
+
+export interface UnpaidSaleDto {
+  id: number
+  saleNumber: string
+  date: string
+  total: number
+}
+
+export interface CustomerReceivableDto {
+  customerId: number
+  customerName: string
+  pendingTotal: number
+  oldestUnpaidDate: string
+  /** De la plus ancienne à la plus récente. */
+  sales: UnpaidSaleDto[]
+}
+
+export interface ReceivablesDto {
+  total: number
+  customers: CustomerReceivableDto[]
+}
+
 // --- Erreurs -------------------------------------------------------------
 
 /** RFC7807 ProblemDetails renvoyé par ExceptionHandlingMiddleware pour les erreurs métier. */

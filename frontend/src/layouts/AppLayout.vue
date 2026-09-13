@@ -31,8 +31,8 @@ interface NavItem {
 }
 
 /**
- * Entrées de la barre latérale ; l'ordre suit la maquette PC. La vue d'ensemble, le journal et les
- * comptes sont réservés à l'administrateur, comme leurs routes.
+ * Entrées de la barre latérale ; l'ordre suit la maquette PC. La vue d'ensemble, les rapports, le
+ * journal et les comptes sont réservés à l'administrateur, comme leurs routes.
  */
 const sidebarItems = computed<NavItem[]>(() => [
   ...(auth.isAdmin ? [{ to: '/overview', label: "Vue d'ensemble", icon: 'squares-four' }] : []),
@@ -42,6 +42,7 @@ const sidebarItems = computed<NavItem[]>(() => [
   { to: '/customers', label: 'Clients', icon: 'users' },
   ...(auth.isAdmin
     ? [
+        { to: '/reports', label: 'Rapports', icon: 'chart-bar' },
         { to: '/journal', label: 'Journal', icon: 'clock-counter-clockwise' },
         { to: '/accounts', label: 'Comptes', icon: 'user' },
       ]

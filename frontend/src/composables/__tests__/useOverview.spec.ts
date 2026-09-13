@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import type { SaleDto } from '@/api/types'
+import type { SaleDto, SalesSummaryDto } from '@/api/types'
 import {
   availableYears,
   bestMonthIndex,
+  comparisonPeriod,
   monthComparison,
   monthlyRevenue,
   receivables,
   recentSales,
+  yearPeriod,
   yearSummary,
 } from '../useOverview'
 
@@ -30,21 +32,29 @@ function sale(date: string, total: number, paid = true): SaleDto {
   }
 }
 
+/** Synthèse telle que le serveur la renvoie : mois portant des ventes seulement. */
+function summary(months: [string, number][]): SalesSummaryDto {
+  const total = months.reduce((sum, [, value]) => sum + value, 0)
+  return {
+    saleCount: months.length,
+    total,
+    paidTotal: total,
+    pendingTotal: 0,
+    months: months.map(([month, value]) => ({ month, saleCount: 1, total: value, paidTotal: value, pendingTotal: 0 })),
+  }
+}
+
 describe('yearSummary', () => {
-  it('additionne les ventes de l’année, payées ou non, et en déduit le panier moyen', () => {
-    const sales = [sale('2026-03-01', 10.1), sale('2026-09-04', 20.2, false), sale('2025-12-31', 99)]
-
-    expect(yearSummary(sales, 2026)).toEqual({ revenue: 30.3, count: 2, averageBasket: 15.15 })
-  })
-
-  it('arrondit au centime une somme de flottants', () => {
-    const sales = [sale('2026-01-01', 0.1), sale('2026-01-02', 0.2)]
-
-    expect(yearSummary(sales, 2026).revenue).toBe(0.3)
+  it('reprend le total du serveur et en déduit le panier moyen, au centime', () => {
+    expect(yearSummary({ ...summary([]), saleCount: 3, total: 10 })).toEqual({ revenue: 10, count: 3, averageBasket: 3.33 })
   })
 
   it('ne donne pas de panier moyen pour une année sans vente', () => {
-    expect(yearSummary([sale('2025-06-01', 12)], 2026)).toEqual({ revenue: 0, count: 0, averageBasket: null })
+    expect(yearSummary(summary([]))).toEqual({ revenue: 0, count: 0, averageBasket: null })
+  })
+
+  it('demande l’année entière', () => {
+    expect(yearPeriod(2026)).toEqual({ from: '2026-01-01', to: '2026-12-31' })
   })
 })
 
@@ -57,29 +67,30 @@ describe('availableYears', () => {
 })
 
 describe('monthlyRevenue et bestMonthIndex', () => {
-  it('répartit le chiffre d’affaires sur les douze mois et désigne le meilleur', () => {
-    const sales = [sale('2026-02-10', 5), sale('2026-02-20', 7), sale('2026-09-04', 11), sale('2025-02-01', 100)]
-
-    const monthly = monthlyRevenue(sales, 2026)
+  it('place chaque mois du serveur à sa place parmi les douze et désigne le meilleur', () => {
+    const monthly = monthlyRevenue(summary([['2026-02', 12], ['2026-09', 11]]), 2026)
 
     expect(monthly).toHaveLength(12)
     expect(monthly[1]).toBe(12)
     expect(monthly[8]).toBe(11)
+    expect(monthly[0]).toBe(0)
     expect(bestMonthIndex(monthly)).toBe(1)
   })
 
-  it('ne désigne aucun meilleur mois sur une année vide', () => {
-    expect(bestMonthIndex(monthlyRevenue([], 2026))).toBeNull()
+  it('ignore un mois d’une autre année et ne désigne aucun meilleur mois sur une année vide', () => {
+    expect(bestMonthIndex(monthlyRevenue(summary([['2025-02', 100]]), 2026))).toBeNull()
   })
 })
 
 describe('monthComparison', () => {
   const today = new Date(2026, 8, 13) // 13 septembre 2026
 
-  it('compare le mois en cours au précédent, en pourcentage arrondi', () => {
-    const sales = [sale('2026-08-10', 40), sale('2026-09-02', 30), sale('2026-09-10', 20)]
+  it('demande le mois précédent et le mois en cours', () => {
+    expect(comparisonPeriod(today)).toEqual({ from: '2026-08-01', to: '2026-09-30' })
+  })
 
-    const comparison = monthComparison(sales, today)
+  it('compare le mois en cours au précédent, en pourcentage arrondi', () => {
+    const comparison = monthComparison(summary([['2026-08', 40], ['2026-09', 50]]), today)
 
     expect(comparison.current).toBe(50)
     expect(comparison.previous).toBe(40)
@@ -88,25 +99,32 @@ describe('monthComparison', () => {
   })
 
   it('franchit l’année : en janvier, le mois précédent est décembre', () => {
-    const sales = [sale('2025-12-15', 10), sale('2026-01-05', 5)]
+    const january = new Date(2026, 0, 20)
 
-    const comparison = monthComparison(sales, new Date(2026, 0, 20))
+    const comparison = monthComparison(summary([['2025-12', 10], ['2026-01', 5]]), january)
 
+    expect(comparisonPeriod(january)).toEqual({ from: '2025-12-01', to: '2026-01-31' })
     expect(comparison.previous).toBe(10)
     expect(comparison.changePercent).toBe(-50)
     expect(comparison.previousMonth.getFullYear()).toBe(2025)
   })
 
   it('ne donne pas d’évolution quand le mois précédent est sans vente', () => {
-    expect(monthComparison([sale('2026-09-02', 30)], today).changePercent).toBeNull()
+    expect(monthComparison(summary([['2026-09', 30]]), today).changePercent).toBeNull()
   })
 })
 
 describe('receivables', () => {
-  it('additionne les seules ventes à payer', () => {
-    const sales = [sale('2026-09-01', 12.5, false), sale('2026-09-02', 7, true), sale('2025-01-01', 3.25, false)]
+  it('reprend le montant dû et compte les ventes en attente', () => {
+    const report = {
+      total: 15.75,
+      customers: [
+        { customerId: 1, customerName: 'Jean Dupont', pendingTotal: 12.5, oldestUnpaidDate: '2026-09-01T10:00:00Z', sales: [{ id: 1, saleNumber: 'V-1', date: '2026-09-01T10:00:00Z', total: 12.5 }] },
+        { customerId: 2, customerName: 'Marie Perrin', pendingTotal: 3.25, oldestUnpaidDate: '2025-01-01T10:00:00Z', sales: [{ id: 2, saleNumber: 'V-2', date: '2025-01-01T10:00:00Z', total: 1 }, { id: 3, saleNumber: 'V-3', date: '2025-02-01T10:00:00Z', total: 2.25 }] },
+      ],
+    }
 
-    expect(receivables(sales)).toEqual({ total: 15.75, count: 2 })
+    expect(receivables(report)).toEqual({ total: 15.75, count: 3 })
   })
 })
 

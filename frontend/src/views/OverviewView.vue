@@ -1,48 +1,84 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, ref, watch } from 'vue'
 import { listSales } from '@/api/sales'
+import { getReceivables, getSalesSummary } from '@/api/reports'
 import { useAddDialog } from '@/composables/useAddDialog'
 import { useAsyncData } from '@/composables/useAsyncData'
 import {
   availableYears,
   bestMonthIndex,
+  comparisonPeriod,
   monthComparison,
   monthlyRevenue,
   receivables,
   recentSales,
+  yearPeriod,
   yearSummary,
 } from '@/composables/useOverview'
 import { formatWeight } from '@/composables/useStock'
 import { useAuthStore } from '@/stores/auth'
-import type { SaleDto, StockMovementDto } from '@/api/types'
+import type { ReceivablesDto, SaleDto, SalesSummaryDto, StockMovementDto } from '@/api/types'
 
 /**
  * Vue d'ensemble du backoffice PC, d'après `design/backoffice/Backoffice Overview.dc.html`.
  *
- * Réservée à l'administrateur : ses chiffres relèvent des rapports (FR-027). Ils sont calculés à partir
- * de la liste des ventes par `useOverview`, en attendant les rapports serveur (US5). Le « stock bas »
+ * Réservée à l'administrateur : ses chiffres relèvent des rapports (FR-027), et en viennent — les mêmes
+ * que l'écran Rapports. La liste des ventes ne sert qu'aux années et aux ventes récentes. Le « stock bas »
  * de la maquette relève des alertes, prévues en V2 : ses deux emplacements l'annoncent.
  */
 const auth = useAuthStore()
-const { data: sales, loading, error, reload } = useAsyncData(listSales, [] as SaleDto[])
+const today = new Date()
+const selectedYear = ref(today.getFullYear())
+
+const emptySummary: SalesSummaryDto = { saleCount: 0, total: 0, paidTotal: 0, pendingTotal: 0, months: [] }
+
+const { data: sales, loading: salesLoading, error: salesError, reload: reloadSales } = useAsyncData(listSales, [] as SaleDto[])
+const { data: yearReport, error: yearError, reload: reloadYear } = useAsyncData(
+  () => getSalesSummary(yearPeriod(selectedYear.value).from, yearPeriod(selectedYear.value).to),
+  emptySummary,
+)
+const {
+  data: comparisonReport,
+  loading: comparisonLoading,
+  error: comparisonError,
+  reload: reloadComparison,
+} = useAsyncData(() => getSalesSummary(comparisonPeriod(today).from, comparisonPeriod(today).to), emptySummary)
+const {
+  data: receivablesReport,
+  loading: receivablesLoading,
+  error: receivablesError,
+  reload: reloadReceivables,
+} = useAsyncData(getReceivables, { total: 0, customers: [] } as ReceivablesDto)
+
+// Changer d'année ne recharge que son rapport : la page reste affichée pendant ce temps.
+watch(selectedYear, reloadYear)
+
+const loading = computed(() => salesLoading.value || comparisonLoading.value || receivablesLoading.value)
+const error = computed(() => salesError.value ?? yearError.value ?? comparisonError.value ?? receivablesError.value)
+
+function onSaleSaved() {
+  saleOpen.value = false
+  reloadSales()
+  reloadYear()
+  reloadComparison()
+  reloadReceivables()
+}
 
 const SaleAddView = defineAsyncComponent(() => import('@/views/SaleAddView.vue'))
 const { mdAndUp, open: saleOpen } = useAddDialog()
 
-const today = new Date()
 const years = computed(() => availableYears(sales.value, today))
-const selectedYear = ref(today.getFullYear())
 
 // Si l'année choisie disparaît de la liste (aucune donnée), on revient à la plus récente.
 watch(years, (list) => {
   if (!list.includes(selectedYear.value)) selectedYear.value = list[0] ?? today.getFullYear()
 })
 
-const summary = computed(() => yearSummary(sales.value, selectedYear.value))
-const monthly = computed(() => monthlyRevenue(sales.value, selectedYear.value))
+const summary = computed(() => yearSummary(yearReport.value))
+const monthly = computed(() => monthlyRevenue(yearReport.value, selectedYear.value))
 const bestMonth = computed(() => bestMonthIndex(monthly.value))
-const comparison = computed(() => monthComparison(sales.value, today))
-const pending = computed(() => receivables(sales.value))
+const comparison = computed(() => monthComparison(comparisonReport.value, today))
+const pending = computed(() => receivables(receivablesReport.value))
 const recent = computed(() => recentSales(sales.value, 6))
 const lastSale = computed(() => recent.value[0] ?? null)
 
@@ -114,7 +150,7 @@ const bars = computed(() => {
     </header>
 
     <v-dialog v-model="saleOpen">
-      <SaleAddView v-if="saleOpen" dialog @saved="saleOpen = false; reload()" @cancel="saleOpen = false" />
+      <SaleAddView v-if="saleOpen" dialog @saved="onSaleSaved" @cancel="saleOpen = false" />
     </v-dialog>
 
     <p v-if="loading" class="text-secondary">Chargement...</p>
