@@ -99,7 +99,7 @@ const groups = computed<MonthGroup[]>(() => {
 </script>
 
 <template>
-  <v-container class="sales-view">
+  <v-container class="sales-view app-page-container">
     <AppBrandHeader />
 
     <header class="sales-view__header">

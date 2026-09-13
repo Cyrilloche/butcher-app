@@ -91,7 +91,7 @@ const bars = computed(() => {
 </script>
 
 <template>
-  <v-container class="overview-view" fluid>
+  <v-container class="overview-view app-page-container">
     <header class="overview-view__header">
       <div>
         <h1 class="overview-view__title">Vue d'ensemble</h1>
@@ -256,8 +256,7 @@ const bars = computed(() => {
 
 <style scoped>
 .overview-view {
-  max-width: 1240px;
-  padding: 36px 40px 48px;
+  padding-block: 36px 48px;
   display: flex;
   flex-direction: column;
   gap: 28px;
@@ -399,7 +398,7 @@ const bars = computed(() => {
 /* Sous la largeur de travail de la maquette, les paires de cartes s'empilent. */
 @media (max-width: 1144px) {
   .overview-view {
-    padding: 24px 20px 40px;
+    padding-block: 24px 40px;
   }
 
   .overview-view__row--wide-left,

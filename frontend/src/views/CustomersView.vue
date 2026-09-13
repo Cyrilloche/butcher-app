@@ -43,7 +43,7 @@ function jumpToLetter(letter: string) {
 </script>
 
 <template>
-  <v-container class="customers-view">
+  <v-container class="customers-view app-page-container">
     <AppBrandHeader />
 
     <header class="customers-view__header">

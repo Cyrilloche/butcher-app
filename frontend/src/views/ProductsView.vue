@@ -13,7 +13,7 @@ watch(includeInactive, reload)
 </script>
 
 <template>
-  <v-container class="products-view">
+  <v-container class="products-view app-page-container">
     <AppBrandHeader />
 
     <header class="products-view__header">

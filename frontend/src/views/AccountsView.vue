@@ -95,7 +95,7 @@ function isSelf(account: AccountDto) {
 </script>
 
 <template>
-  <v-container class="accounts-view">
+  <v-container class="accounts-view app-page-container">
     <AppPageHeader to="/" back-label="Stock" title="Comptes" subtitle="Qui peut se connecter à Saloir" />
 
     <AppButton block height="52" color="primary" class="mb-4" @click="openCreate">
@@ -179,7 +179,6 @@ function isSelf(account: AccountDto) {
 <style scoped>
 .accounts-view {
   padding-bottom: 40px;
-  max-width: 720px;
 }
 
 .accounts-view__error {

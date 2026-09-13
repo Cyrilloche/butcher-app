@@ -23,6 +23,27 @@ body,
 }
 
 /*
+ * Page de consultation (vue d'ensemble, listes, comptes) : une seule largeur de travail, celle de la
+ * maquette PC, au lieu des bornes par point de rupture de v-container. Les marges latérales suivent la
+ * vue d'ensemble ; sur un téléphone, v-container garde les siennes.
+ */
+.v-container.app-page-container {
+  max-width: 1240px;
+}
+
+@media (min-width: 840px) {
+  .v-container.app-page-container {
+    padding-inline: 20px;
+  }
+}
+
+@media (min-width: 1145px) {
+  .v-container.app-page-container {
+    padding-inline: 40px;
+  }
+}
+
+/*
  * Barre d'action fixée en bas d'un formulaire. Elle suit la mise en page : Vuetify publie sur v-main la
  * place prise par la barre latérale (écran large) et par la barre du bas (mobile). Son contenu reste
  * aligné sur la largeur du formulaire.

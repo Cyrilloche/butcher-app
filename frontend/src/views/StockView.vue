@@ -14,7 +14,7 @@ const {
 </script>
 
 <template>
-  <v-container class="stock-view">
+  <v-container class="stock-view app-page-container">
     <AppBrandHeader />
 
     <header class="stock-view__header">
