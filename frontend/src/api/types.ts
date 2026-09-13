@@ -277,7 +277,63 @@ export interface UpdateCustomerRequest {
   phone?: string
   notes?: string
 }
+// --- Journal (US4) -------------------------------------------------------------
 
+/** Nature d'une entrée du journal. Affichage : `useJournal.ts` (FR-032). */
+export type AuditAction =
+  | 'created'
+  | 'updated'
+  | 'deleted'
+  | 'login_succeeded'
+  | 'login_failed'
+  | 'locked_out'
+  | 'password_changed'
+
+/** Type de l'objet concerné. Affichage : `useJournal.ts` (FR-032). */
+export type AuditEntityType =
+  | 'product'
+  | 'production_batch'
+  | 'stock_unit'
+  | 'sale'
+  | 'stock_movement'
+  | 'customer'
+  | 'account'
+
+export interface AuditEntryDto {
+  id: number
+  occurredAt: string
+  /** `null` : connexion sur une adresse inconnue, ou geste hors application (commande hors ligne). */
+  accountId: string | null
+  accountName: string | null
+  action: AuditAction
+  /** `null` pour une connexion refusée sur une adresse qui ne correspond à aucun compte. */
+  entityType: AuditEntityType | null
+  /** `null` pour un geste groupé (unités pesées ensemble, solde du stock). */
+  entityId: string | null
+  /** Libellé en français, figé au moment du geste. */
+  entityLabel: string | null
+  /** Contenu de l'objet supprimé ; seulement pour une suppression (FR-022). */
+  deletedContent: Record<string, unknown> | null
+}
+
+export interface AuditEntryPageDto {
+  items: AuditEntryDto[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+export interface AuditEntryQuery {
+  accountId?: string
+  entityType?: AuditEntityType
+  action?: AuditAction
+  /** Jour de début inclus, `YYYY-MM-DD`. */
+  from?: string
+  /** Jour de fin inclus, `YYYY-MM-DD`. */
+  to?: string
+  page?: number
+  pageSize?: number
+}
 
 // --- Erreurs -------------------------------------------------------------
 

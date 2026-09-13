@@ -31,8 +31,8 @@ interface NavItem {
 }
 
 /**
- * Entrées de la barre latérale ; l'ordre suit la maquette PC. La vue d'ensemble et les comptes sont
- * réservés à l'administrateur, comme leurs routes.
+ * Entrées de la barre latérale ; l'ordre suit la maquette PC. La vue d'ensemble, le journal et les
+ * comptes sont réservés à l'administrateur, comme leurs routes.
  */
 const sidebarItems = computed<NavItem[]>(() => [
   ...(auth.isAdmin ? [{ to: '/overview', label: "Vue d'ensemble", icon: 'squares-four' }] : []),
@@ -40,7 +40,12 @@ const sidebarItems = computed<NavItem[]>(() => [
   { to: '/', label: 'Stock', icon: 'package' },
   { to: '/products', label: 'Produits', icon: 'cooking-pot' },
   { to: '/customers', label: 'Clients', icon: 'users' },
-  ...(auth.isAdmin ? [{ to: '/accounts', label: 'Comptes', icon: 'user' }] : []),
+  ...(auth.isAdmin
+    ? [
+        { to: '/journal', label: 'Journal', icon: 'clock-counter-clockwise' },
+        { to: '/accounts', label: 'Comptes', icon: 'user' },
+      ]
+    : []),
 ])
 
 const initial = computed(() => (auth.account?.displayName.trim().charAt(0) ?? '?').toUpperCase())
