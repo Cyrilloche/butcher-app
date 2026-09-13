@@ -1,6 +1,7 @@
 using Butcher.Api.Application.Dtos;
 using Butcher.Api.Common.Exceptions;
 using Butcher.Api.Domain.Entities;
+using Butcher.Api.Domain.Enums;
 using Butcher.Api.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -16,18 +17,29 @@ public class AuthService(AppDbContext dbContext, UserManager<AppUser> userManage
 
     public async Task<AuthResult> LoginAsync(string email, string password)
     {
-        var user = await userManager.FindByEmailAsync(email)
-            ?? throw new UnauthorizedException(InvalidCredentialsMessage);
+        var user = await userManager.FindByEmailAsync(email);
+        if (user is null)
+        {
+            // Aucune ligne ne change : l'entrée est la seule trace de la tentative (FR-025).
+            RecordLogin(AuditAction.LoginFailed, null, $"adresse inconnue : {email}");
+            await dbContext.SaveChangesAsync();
+            throw new UnauthorizedException(InvalidCredentialsMessage);
+        }
 
         // Verrouillage vérifié avant le mot de passe : un compte verrouillé ne dit pas si le mot de
         // passe proposé était le bon, sinon l'essai en rafale continuerait à apprendre quelque chose.
         if (await userManager.IsLockedOutAsync(user))
         {
+            RecordLogin(AuditAction.LoginFailed, user, "compte verrouillé");
+            await dbContext.SaveChangesAsync();
             throw LockedOut(await userManager.GetLockoutEndDateAsync(user));
         }
 
         if (!await userManager.CheckPasswordAsync(user, password))
         {
+            // Enregistrée avec le compteur d'échecs ; le passage en verrouillage, s'il a lieu, est
+            // journalisé par SaveChanges au même moment.
+            RecordLogin(AuditAction.LoginFailed, user, "mot de passe erroné");
             await userManager.AccessFailedAsync(user);
             if (await userManager.IsLockedOutAsync(user))
             {
@@ -40,15 +52,43 @@ public class AuthService(AppDbContext dbContext, UserManager<AppUser> userManage
         // Après le mot de passe, jamais avant : sans lui, l'état d'un compte n'a pas à être révélé.
         if (!user.IsActive)
         {
+            RecordLogin(AuditAction.LoginFailed, user, "compte désactivé");
+            await dbContext.SaveChangesAsync();
             throw new UnauthorizedException(DeactivatedAccountMessage);
         }
 
         await userManager.ResetAccessFailedCountAsync(user);
 
+        RecordLogin(AuditAction.LoginSucceeded, user, null);
         user.LastLoginAt = DateTimeOffset.UtcNow;
         await userManager.UpdateAsync(user);
 
         return await IssueTokensAsync(user);
+    }
+
+    /// <summary>
+    /// Ajoute au journal une tentative de connexion, enregistrée par le prochain <c>SaveChanges</c>
+    /// (FR-025). L'auteur est le compte concerné : personne n'est encore connecté.
+    /// </summary>
+    private void RecordLogin(AuditAction action, AppUser? user, string? detail)
+    {
+        var name = user is null ? null : (string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email : user.DisplayName);
+        var label = (name, detail) switch
+        {
+            (null, _) => detail,
+            (_, null) => name,
+            _ => $"{name} — {detail}",
+        };
+
+        dbContext.AuditEntries.Add(new AuditEntry
+        {
+            OccurredAt = DateTimeOffset.UtcNow,
+            AccountId = user?.Id,
+            Action = action,
+            EntityType = user is null ? null : AuditEntityType.Account,
+            EntityId = user?.Id.ToString(),
+            EntityLabel = label is { Length: > 200 } ? label[..199] + "…" : label,
+        });
     }
 
     private static TooManyRequestsException LockedOut(DateTimeOffset? lockoutEnd)

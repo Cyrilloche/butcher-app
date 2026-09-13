@@ -295,6 +295,91 @@ public class AuthServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifetime
         await Assert.ThrowsAsync<UnauthorizedException>(() => service.RefreshAsync("not-a-real-token"));
     }
 
+    // --- Journal des connexions (FR-025) -------------------------------------------------------------
+
+    private async Task<List<AuditEntry>> LoginEntriesAsync()
+    {
+        await using var reader = fixture.CreateDbContext();
+        return await reader.AuditEntries
+            .Where(e => e.Action == AuditAction.LoginSucceeded || e.Action == AuditAction.LoginFailed || e.Action == AuditAction.LockedOut)
+            .OrderBy(e => e.Id)
+            .ToListAsync();
+    }
+
+    [Fact]
+    public async Task LoginAsync_WithValidCredentials_RecordsTheLoginUnderTheAccount()
+    {
+        var (_, userManager, service) = CreateSut(fixture);
+        var user = await SeedUserAsync(userManager);
+
+        await service.LoginAsync(Email, Password);
+
+        var entry = Assert.Single(await LoginEntriesAsync());
+        Assert.Equal(AuditAction.LoginSucceeded, entry.Action);
+        Assert.Equal(user.Id, entry.AccountId);
+        Assert.Equal(AuditEntityType.Account, entry.EntityType);
+    }
+
+    [Fact]
+    public async Task LoginAsync_WithWrongPassword_RecordsAFailure()
+    {
+        var (_, userManager, service) = CreateSut(fixture);
+        var user = await SeedUserAsync(userManager);
+
+        await Assert.ThrowsAsync<UnauthorizedException>(() => service.LoginAsync(Email, "wrong-password"));
+
+        var entry = Assert.Single(await LoginEntriesAsync());
+        Assert.Equal(AuditAction.LoginFailed, entry.Action);
+        Assert.Equal(user.Id, entry.AccountId);
+        Assert.Equal($"{Email} — mot de passe erroné", entry.EntityLabel);
+    }
+
+    [Fact]
+    public async Task LoginAsync_WithUnknownEmail_RecordsTheTypedAddressWithoutAuthor()
+    {
+        var (_, _, service) = CreateSut(fixture);
+
+        await Assert.ThrowsAsync<UnauthorizedException>(() => service.LoginAsync("inconnu@saloir.local", Password));
+
+        var entry = Assert.Single(await LoginEntriesAsync());
+        Assert.Equal(AuditAction.LoginFailed, entry.Action);
+        Assert.Null(entry.AccountId);
+        Assert.Null(entry.EntityType);
+        Assert.Equal("adresse inconnue : inconnu@saloir.local", entry.EntityLabel);
+    }
+
+    [Fact]
+    public async Task LoginAsync_ReachingTheLockout_RecordsItOnce_ThenRecordsRefusedAttempts()
+    {
+        var (_, userManager, service) = CreateSut(fixture);
+        await SeedUserAsync(userManager);
+
+        for (var attempt = 1; attempt <= IdentityPolicy.MaxFailedAccessAttempts; attempt++)
+        {
+            await Assert.ThrowsAnyAsync<Exception>(() => service.LoginAsync(Email, "wrong-password"));
+        }
+
+        await Assert.ThrowsAsync<TooManyRequestsException>(() => service.LoginAsync(Email, Password));
+
+        var entries = await LoginEntriesAsync();
+        Assert.Single(entries, e => e.Action == AuditAction.LockedOut);
+        Assert.Equal(IdentityPolicy.MaxFailedAccessAttempts + 1, entries.Count(e => e.Action == AuditAction.LoginFailed));
+        Assert.Equal($"{Email} — compte verrouillé", entries[^1].EntityLabel);
+    }
+
+    [Fact]
+    public async Task LoginAsync_DeactivatedAccount_RecordsTheRefusal()
+    {
+        var (_, userManager, service) = CreateSut(fixture);
+        var user = await SeedUserAsync(userManager);
+        await DeactivateAsync(userManager, user);
+
+        await Assert.ThrowsAsync<UnauthorizedException>(() => service.LoginAsync(Email, Password));
+
+        var entry = Assert.Single(await LoginEntriesAsync());
+        Assert.Equal($"{Email} — compte désactivé", entry.EntityLabel);
+    }
+
     [Fact]
     public async Task LogoutAsync_RevokesToken()
     {
