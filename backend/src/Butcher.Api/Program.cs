@@ -113,6 +113,7 @@ builder.Services.AddScoped<IStockUnitService, StockUnitService>();
 builder.Services.AddScoped<IStockMovementService, StockMovementService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<ISaleService, SaleService>();
+builder.Services.AddScoped<IAuditEntryService, AuditEntryService>();
 
 var app = builder.Build();
 

@@ -14,7 +14,11 @@ namespace Butcher.Api.Tests.Controllers;
 public class ReservedActionsTests
 {
     /// <summary>Contrôleurs d'administration, entièrement réservés : hors de l'inventaire métier.</summary>
-    private static readonly HashSet<Type> AdministrationControllers = [typeof(AccountsController)];
+    private static readonly HashSet<Type> AdministrationControllers =
+    [
+        typeof(AccountsController),
+        typeof(AuditEntriesController),
+    ];
 
     private static readonly string[] ExpectedReservedActions =
     [
