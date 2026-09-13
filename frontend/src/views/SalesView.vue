@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import AppFab from '@/components/base/AppFab.vue'
 import AppBrandHeader from '@/components/base/AppBrandHeader.vue'
+import AppSortableTable from '@/components/base/AppSortableTable.vue'
 import CustomerPicker from '@/components/domain/CustomerPicker.vue'
 import { listSales } from '@/api/sales'
 import { useAsyncData } from '@/composables/useAsyncData'
@@ -16,6 +17,7 @@ import {
   type SalesSort,
   type SalesSortKey,
 } from '@/composables/useSalesFilters'
+import type { TableColumn } from '@/composables/useTableSort'
 import type { SaleDto } from '@/api/types'
 import { useAddDialog } from '@/composables/useAddDialog'
 
@@ -35,27 +37,14 @@ const tableSales = computed(() => sortSales(filterSales(allSales.value, filters)
 const tableTotal = computed(() => salesTotal(tableSales.value))
 const filtering = computed(() => hasActiveFilters(filters))
 
-const columns: { key: SalesSortKey | null; label: string; numeric?: boolean }[] = [
-  { key: null, label: 'Numéro' },
-  { key: 'date', label: 'Date' },
-  { key: 'customer', label: 'Client' },
-  { key: 'status', label: 'Paiement' },
-  { key: 'total', label: 'Montant', numeric: true },
+// Date et montant se lisent d'abord du plus grand ; client et statut, dans l'ordre naturel.
+const columns: TableColumn<SalesSortKey>[] = [
+  { id: 'number', label: 'Numéro' },
+  { id: 'date', label: 'Date', sortKey: 'date', firstDirection: 'desc' },
+  { id: 'customer', label: 'Client', sortKey: 'customer' },
+  { id: 'status', label: 'Paiement', sortKey: 'status' },
+  { id: 'total', label: 'Montant', sortKey: 'total', firstDirection: 'desc', numeric: true },
 ]
-
-function toggleSort(key: SalesSortKey) {
-  sort.value =
-    sort.value.key === key
-      ? { key, direction: sort.value.direction === 'asc' ? 'desc' : 'asc' }
-      : // Date et montant se lisent d'abord du plus grand ; client et statut, dans l'ordre naturel.
-        { key, direction: key === 'date' || key === 'total' ? 'desc' : 'asc' }
-}
-
-function ariaSort(key: SalesSortKey | null): 'ascending' | 'descending' | 'none' | undefined {
-  if (key === null) return undefined
-  if (sort.value.key !== key) return 'none'
-  return sort.value.direction === 'asc' ? 'ascending' : 'descending'
-}
 
 function resetFilters() {
   Object.assign(filters, emptySalesFilters())
@@ -169,55 +158,26 @@ const groups = computed<MonthGroup[]>(() => {
         {{ filtering ? 'Aucune vente ne correspond à ces filtres.' : 'Aucune vente enregistrée.' }}
       </p>
 
-      <div v-else class="sales-view__table-wrap">
-        <table class="sales-view__table">
-          <thead>
-            <tr>
-              <th
-                v-for="column in columns"
-                :key="column.label"
-                scope="col"
-                :aria-sort="ariaSort(column.key)"
-                :class="{ 'sales-view__cell--numeric': column.numeric }"
-              >
-                <button
-                  v-if="column.key"
-                  type="button"
-                  class="sales-view__sort"
-                  :class="{ 'sales-view__sort--active': sort.key === column.key }"
-                  @click="toggleSort(column.key)"
-                >
-                  {{ column.label }}
-                  <v-icon v-if="sort.key === column.key" size="14">
-                    phosphor:{{ sort.direction === 'asc' ? 'caret-up' : 'caret-down' }}
-                  </v-icon>
-                </button>
-                <template v-else>{{ column.label }}</template>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="s in tableSales"
-              :key="s.id"
-              class="sales-view__table-row"
-              tabindex="0"
-              @click="router.push(`/sales/${s.id}`)"
-              @keydown.enter="router.push(`/sales/${s.id}`)"
-            >
-              <td class="sales-view__cell--number">{{ s.saleNumber }}</td>
-              <td>{{ new Date(s.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) }}</td>
-              <td class="sales-view__cell--customer">{{ s.customerName }}</td>
-              <td>
-                <span :class="s.paid ? 'sales-view__paid' : 'sales-view__pending'">
-                  {{ s.paid ? 'Payée' : 'À payer' }}
-                </span>
-              </td>
-              <td class="sales-view__cell--numeric sales-view__cell--amount">{{ formatEuros(s.total) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <AppSortableTable
+        v-else
+        v-model:sort="sort"
+        :columns="columns"
+        :rows="tableSales"
+        :row-key="(s) => s.id"
+        @row-click="(s) => router.push(`/sales/${s.id}`)"
+      >
+        <template #row="{ row: s }">
+          <td class="app-table__cell--muted">{{ s.saleNumber }}</td>
+          <td>{{ new Date(s.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) }}</td>
+          <td class="app-table__cell--strong">{{ s.customerName }}</td>
+          <td>
+            <span :class="s.paid ? 'sales-view__paid' : 'sales-view__pending'">
+              {{ s.paid ? 'Payée' : 'À payer' }}
+            </span>
+          </td>
+          <td class="app-table__cell--numeric app-table__cell--amount">{{ formatEuros(s.total) }}</td>
+        </template>
+      </AppSortableTable>
     </section>
 
     <p v-else-if="groups.length === 0" class="text-secondary sales-view__empty">Aucune vente trouvée.</p>
@@ -484,83 +444,6 @@ const groups = computed<MonthGroup[]>(() => {
   font-size: 22px;
   font-weight: 700;
   color: rgb(var(--v-theme-success));
-}
-
-.sales-view__table-wrap {
-  background: rgb(var(--v-theme-surface));
-  border-radius: 14px;
-  box-shadow: 0 1px 2px rgba(43, 36, 30, 0.06);
-  overflow-x: auto;
-}
-
-.sales-view__table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 15px;
-}
-
-.sales-view__table th {
-  text-align: left;
-  font-size: 13px;
-  font-weight: 600;
-  color: rgb(var(--v-theme-secondary));
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 14px 16px;
-  border-bottom: 1px solid rgb(var(--v-theme-status-neutral-container));
-  white-space: nowrap;
-}
-
-.sales-view__table td {
-  padding: 12px 16px;
-  border-bottom: 1px solid rgb(var(--v-theme-status-neutral-container));
-}
-
-.sales-view__sort {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  border: none;
-  background: none;
-  padding: 0;
-  font: inherit;
-  color: inherit;
-  text-transform: inherit;
-  letter-spacing: inherit;
-  cursor: pointer;
-}
-
-.sales-view__sort--active {
-  color: rgb(var(--v-theme-primary));
-}
-
-.sales-view__table-row {
-  cursor: pointer;
-}
-
-.sales-view__table-row:hover,
-.sales-view__table-row:focus-visible {
-  background: rgb(var(--v-theme-status-neutral-container));
-  outline: none;
-}
-
-.sales-view__cell--number {
-  color: rgb(var(--v-theme-secondary));
-  white-space: nowrap;
-}
-
-.sales-view__cell--customer {
-  font-weight: 600;
-}
-
-.sales-view__cell--numeric {
-  text-align: right !important;
-}
-
-.sales-view__cell--amount {
-  font-weight: 600;
-  color: rgb(var(--v-theme-success));
-  white-space: nowrap;
 }
 
 .sales-view__paid {
