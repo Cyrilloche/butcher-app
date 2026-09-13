@@ -63,7 +63,26 @@ puis supprimés pour l'occasion. L'écran lui-même n'a pas été éprouvé dans
 2. Réduire la fenêtre sous 840 px : barre en bas d'écran, écrans mobiles identiques à aujourd'hui.
 3. Ouvrir « Nouvelle vente » sur PC : formulaire actuel, centré et borné en largeur.
 
-## Lots suivants
+## Lot 3 — Journal (US4)
 
-US4 (journal) et US5 (rapports) : scénarios d'acceptation de la spec, à compléter ici au démarrage
-de chaque lot.
+1. **Une ligne par geste.** En utilisateur, créer une fournée de 3 unités, puis une vente de
+   2 lignes. En administrateur, `GET /api/audit-entries` : « Fournée », « Unités ajoutées (3) »,
+   « Vente (2 lignes) », sans « Modification » d'unité.
+2. **Modification.** Corriger le paiement de la vente : une entrée « Modification », auteur et heure.
+3. **Suppression.** Supprimer la vente : l'entrée porte son contenu (client, date, lignes, montants).
+4. **Connexions.** Un mauvais mot de passe, puis une adresse inconnue : deux « Connexion refusée »,
+   la seconde avec l'adresse tapée et sans auteur.
+5. **Filtres.** Filtrer par auteur, par type « Vente », par période : seules les entrées
+   correspondantes restent.
+6. **Réservé.** Avec le jeton de l'utilisateur : `403`.
+
+## Lot 4 — Rapports (US5)
+
+1. **Synthèse.** Sur l'année, nombre de ventes, total, encaissé et à encaisser égaux à la somme des
+   ventes affichées dans Ventes filtrées sur la même période.
+2. **Par client et par produit.** Classés du plus gros total au plus petit ; un jambon vendu en
+   tranches compte 1 unité et autant de lignes que de tranches.
+3. **À encaisser.** Chaque client débiteur, son montant dû, sa plus ancienne vente impayée ; chaque
+   vente s'ouvre.
+4. **Période vide.** Totaux à zéro, sans erreur.
+5. **Réservé.** Avec le jeton de l'utilisateur : `403`.

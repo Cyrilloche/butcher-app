@@ -17,6 +17,15 @@
 - Q: Jusqu'où va le journal ? → A: Qui, quand, quoi pour toutes les opérations ; contenu complet uniquement pour les suppressions ; pas de détail avant/après des modifications.
 - Q: Qui voit l'auteur d'une saisie ? → A: Tous les comptes, sur le détail d'une vente, d'une fournée et d'une sortie ; le journal reste réservé à l'administrateur.
 
+### Session 2026-09-13
+
+- Q: Une fournée de 10 sachets, une vente de 3 lignes : combien de lignes au journal ? → A: **Une ligne par geste**, pas une par objet. « Vente créée — V-260913-2 (3 lignes) », « Unités ajoutées — Saucisson du 13/09/2026 (10) ». Une unité ou une ligne de vente n'a sa propre entrée que lorsqu'elle est touchée seule (suppression d'un sachet, sortie perso ou perte, clôture, correction ou retrait d'une ligne).
+- Q: Les changements automatiques (unités passées en « Vendu » par une vente) sont-ils des modifications au journal ? → A: Non. Le journal trace le geste de la personne ; ses conséquences se lisent sur l'objet.
+- Q: Une connexion refusée sur une adresse qui ne correspond à aucun compte ? → A: Elle figure au journal avec l'adresse tapée, sans auteur.
+- Q: Journal et rapports sur téléphone ? → A: Conçus pour le PC, lisibles sur téléphone sans soin particulier ; entrée de menu dans la barre latérale seulement.
+- Q: Période des rapports à l'ouverture ? → A: L'année en cours, avec les raccourcis Ce mois, Mois dernier, Cette année, Année dernière, et des dates libres Du / Au.
+- Q: Rapport par produit, un jambon vendu en 5 tranches ? → A: 1 unité et 5 lignes de vente : deux colonnes distinctes. Poids et montant additionnent toutes les lignes.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 — Chacun son compte (Priority: P1)

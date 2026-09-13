@@ -117,24 +117,32 @@ vérifié**, poussé sur `feat/backoffice`, sans merge ni tag.
 
 ---
 
-## Phase 6: User Story 4 — Savoir qui a fait quoi (Priority: P4) — esquisse
+## Phase 6: User Story 4 — Savoir qui a fait quoi (Priority: P4)
 
-**Goal**: journal consultable par l'administrateur. À détailler au démarrage du lot.
+**Goal**: journal des gestes consultable par l'administrateur (clarifications du 2026-09-13 : une ligne par geste, pas d'effet induit).
 
-- [ ] T029 [US4] Créer l'entité `AuditEntry`, ses enums et la migration `AddAuditEntries` dans `backend/src/Butcher.Api/` (data-model §3)
-- [ ] T030 [US4] Écrire les entrées de création, modification et suppression dans `AppDbContext.SaveChanges`, contenu JSON pour les suppressions seulement ; tests (FR-021, FR-022)
-- [ ] T031 [US4] Journaliser connexions, refus, verrouillages et changements de mot de passe dans `AuthService.cs` et `AccountService.cs` ; tests (FR-025)
-- [ ] T032 [US4] Exposer `GET /api/audit-entries` filtré et paginé, administrateur, dans `backend/src/Butcher.Api/Controllers/AuditEntriesController.cs` ; tests (FR-023, FR-024)
-- [ ] T033 [US4] Créer `frontend/src/views/JournalView.vue` (filtres auteur, type, période ; contenu d'une suppression) et son entrée de navigation administrateur
+**Independent Test**: quickstart, lot 3.
+
+- [ ] T029 [US4] Créer les enums `AuditAction` et `AuditEntityType` (`backend/src/Butcher.Api/Domain/Enums/`), l'entité `AuditEntry` (`Domain/Entities/AuditEntry.cs`), sa configuration (enums en texte `snake_case`, `deleted_content` en `jsonb`, index `occurred_at` et `(account_id, occurred_at)`, FK `account_id` → `app_user`) et le `DbSet` ; générer la migration `AddAuditEntries` (`make migration name=AddAuditEntries`) et l'appliquer sur la base de dev ; ajouter `audit_entry` au `TRUNCATE` de `PostgresDatabaseFixture.ResetAsync` (data-model §3)
+- [ ] T030 [US4] Journal des gestes dans `AppDbContext.SaveChanges` : `Infrastructure/Data/Audit/AuditTrail.cs` prépare les entrées depuis le `ChangeTracker` selon data-model §3.1 (regroupements, effets induits ignorés, champs techniques du compte ignorés, contenu JSON des suppressions), les complète après l'écriture et les enregistre dans la même transaction ; tests `backend/tests/Butcher.Api.Tests/Infrastructure/Data/AuditTrailTests.cs` : vente créée = 1 entrée « (n lignes) » sans modification d'unité ; vente supprimée avec son contenu ; ligne corrigée et retirée ; fournée créée, unités ajoutées groupées, fournée supprimée avec ses unités ; unité supprimée ; sortie perte seule et solde groupé ; clôture ; produit désactivé ; client supprimé ; compte créé, rôle changé, mot de passe changé ; auteur = compte courant ; aucune entrée si l'écriture échoue (FR-021, FR-022)
+- [ ] T031 [US4] Connexions dans `AuthService.LoginAsync` : `login_succeeded` ; `login_failed` sur mauvais mot de passe, compte désactivé, compte verrouillé et adresse inconnue (adresse tapée, sans auteur) ; `locked_out` au passage en verrouillage ; auteur = compte concerné ; tests dans `AuthServiceTests.cs` (FR-025)
+- [ ] T032 [US4] `GET /api/audit-entries` (contracts §6) : `IAuditEntryService` / `AuditEntryService` (filtres auteur, type, action, période `Europe/Paris`, pagination bornée à 200, du plus récent au plus ancien) et `AuditEntriesController` `[Authorize(Policy = AdminOnly)]`, sans route d'écriture ; `AuditEntriesController` ajouté aux contrôleurs d'administration de `ReservedActionsTests` ; tests `AuditEntryServiceTests.cs` (FR-023, FR-024)
+- [ ] T033 [US4] Frontend : types et `frontend/src/api/auditEntries.ts` ; `frontend/src/composables/useJournal.ts` (libellés français des actions et types, lecture française d'un contenu supprimé, testés en Vitest) ; `frontend/src/views/JournalView.vue` (filtres auteur, type, période ; tableau paginé ; contenu d'une suppression dépliable ; lien vers la vente ou le client quand il existe) ; route `/journal` réservée et entrée « Journal » de la barre latérale (FR-023, FR-032)
+
+**Checkpoint**: lot 3 (journal) complet.
 
 ---
 
-## Phase 7: User Story 5 — Des chiffres pour piloter (Priority: P5) — esquisse
+## Phase 7: User Story 5 — Des chiffres pour piloter (Priority: P5)
 
-**Goal**: rapports de ventes pour l'administrateur. À détailler au démarrage du lot.
+**Goal**: rapports de ventes pour l'administrateur, montants au centime issus des lignes enregistrées.
 
-- [ ] T034 [US5] Créer `ReportService` et `ReportsController` (synthèse par période et par mois, par client, par produit, débiteurs) dans `backend/src/Butcher.Api/`, montants issus des lignes enregistrées ; tests au centime (FR-027 à FR-030, SC-006)
-- [ ] T035 [US5] Créer `frontend/src/views/ReportsView.vue` et faire lire la vue d'ensemble (T024) sur ces rapports plutôt que sur la liste brute des ventes
+**Independent Test**: quickstart, lot 4.
+
+- [ ] T034 [US5] `IReportService` / `ReportService` (`backend/src/Butcher.Api/Application/Services/`) et `ReportsController` `[Authorize(Policy = AdminOnly)]` : synthèse et répartition mensuelle, par client, par produit (unités distinctes et lignes), à encaisser (contracts §7, data-model §4) ; DTO dans `Application/Dtos/Reports/` ; contrôleur ajouté aux contrôleurs d'administration de `ReservedActionsTests` ; tests `ReportServiceTests.cs` au centime, période vide à zéro, bornes de période en `Europe/Paris`, jambon en tranches = 1 unité et n lignes (FR-027 à FR-031, SC-006)
+- [ ] T035 [US5] Frontend : types et `frontend/src/api/reports.ts` ; `frontend/src/composables/useReportPeriod.ts` (raccourcis Ce mois, Mois dernier, Cette année, Année dernière ; testés) ; `frontend/src/views/ReportsView.vue` (période, synthèse et mois, par client, par produit, à encaisser avec accès à chaque vente) ; route `/reports` réservée et entrée « Rapports » de la barre latérale ; la vue d'ensemble lit ses chiffres (année, mois, à encaisser, graphique) sur les rapports, et la liste des ventes seulement pour les ventes récentes (FR-027 à FR-029)
+
+**Checkpoint**: lot 4 (rapports) complet.
 
 ---
 
@@ -142,6 +150,8 @@ vérifié**, poussé sur `feat/backoffice`, sans merge ni tag.
 
 - [X] T036 Clore la documentation du lot 1 : RF-26 révisée dans `docs/PRD.md` (nouvelle version d'historique), `docs/data-model.md` §3.1 (`app_user` enrichie) et §4.2 (correspondances des rôles), `CLAUDE.md` (pile d'authentification, avancement, pièges : droits relus en base, auteur posé par `SaveChanges`, politique par rôle) — **à faire avant de considérer le lot 1 livrable**
 - [X] T037 Dérouler `specs/005-backoffice/quickstart.md` (lot 1) sur l'API et le frontend locaux, consigner le résultat dans le rapport de fin de session
+- [ ] T038 Clore la documentation des lots 3 et 4 : `docs/data-model.md` (table `audit_entry`, correspondances des actions et types d'objet §4.2, DBML, nouvelle version d'historique), `docs/PRD.md` (RF-27 : journal livré ; rapports), `CLAUDE.md` (avancement, pile, pièges : journal écrit par `SaveChanges`, rapports sur les montants enregistrés)
+- [ ] T039 Dérouler `quickstart.md` (lots 3 et 4) sur l'API locale et consigner le résultat
 
 ---
 
