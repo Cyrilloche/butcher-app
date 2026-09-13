@@ -18,6 +18,7 @@ public class ReservedActionsTests
     [
         typeof(AccountsController),
         typeof(AuditEntriesController),
+        typeof(ReportsController),
     ];
 
     private static readonly string[] ExpectedReservedActions =
