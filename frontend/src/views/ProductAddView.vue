@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import AppPageHeader from '@/components/base/AppPageHeader.vue'
+import AppFormShell from '@/components/base/AppFormShell.vue'
 import AppCard from '@/components/base/AppCard.vue'
 import AppTextField from '@/components/base/AppTextField.vue'
-import AppButton from '@/components/base/AppButton.vue'
 import AppHintBox from '@/components/base/AppHintBox.vue'
 import SaleModeToggle from '@/components/domain/SaleModeToggle.vue'
 import { createProduct } from '@/api/products'
 import { ApiError } from '@/api/http'
 import type { SaleMode } from '@/api/types'
+
+/** `dialog` : ouvert en fenêtre depuis la liste (écran large), qui se recharge sur `saved`. */
+const props = defineProps<{ dialog?: boolean }>()
+const emit = defineEmits<{ saved: []; cancel: [] }>()
 
 const router = useRouter()
 
@@ -45,7 +48,8 @@ async function save() {
       saleMode: state.saleMode,
       allowPartialSale: state.saleMode === 'by_weight' && state.allowPartialSale,
     })
-    await router.push('/products')
+    if (props.dialog) emit('saved')
+    else await router.push('/products')
   } catch (err) {
     saveError.value = err instanceof ApiError ? err.message : "Erreur lors de l'enregistrement, réessaie."
   } finally {
@@ -55,19 +59,32 @@ async function save() {
 </script>
 
 <template>
-  <v-container class="product-add-view app-form-container">
-    <AppPageHeader to="/products" back-label="Produits" title="Nouveau produit" />
+  <AppFormShell
+    title="Nouveau produit"
+    back-to="/products"
+    back-label="Produits"
+    :dialog="dialog"
+    :save-label="saving ? 'Création...' : 'Créer le produit'"
+    :can-save="canSave"
+    :saving="saving"
+    :error="saveError"
+    @save="save"
+    @cancel="emit('cancel')"
+  >
 
     <div class="product-add-view__sections">
       <AppCard>
         <div class="product-add-view__section-title text-secondary">1. Le produit</div>
         <AppTextField v-model="state.name" label="Nom du produit" placeholder="Ex. Saucisson à l'ail" class="mb-3" />
 
+        <!-- Libellé hors de la rangée : borné à la largeur du champ, il se coupait mot par mot. -->
+        <label for="product-code" class="product-add-view__code-label">Code (numéros de lot)</label>
         <div class="product-add-view__code-row">
-          <AppTextField v-model="state.code" maxlength="3" label="Code (numéros de lot)" placeholder="SA" style="max-width: 110px; text-transform: uppercase" />
-          <span class="text-secondary product-add-view__code-hint">
-            Ex. de numéro : <strong>{{ batchPreview }}</strong>
-          </span>
+          <AppTextField id="product-code" v-model="state.code" maxlength="3" placeholder="SA" class="product-add-view__code-field" />
+          <div class="text-secondary product-add-view__code-hint">
+            <span class="product-add-view__code-hint-label">Exemple de numéro :</span>
+            <strong class="product-add-view__code-hint-value">{{ batchPreview }}</strong>
+          </div>
         </div>
 
       </AppCard>
@@ -89,20 +106,10 @@ async function save() {
       </AppCard>
     </div>
 
-    <div class="product-add-view__footer app-fixed-footer">
-      <p v-if="saveError" class="product-add-view__save-error text-error">{{ saveError }}</p>
-      <AppButton block height="60" :color="canSave ? 'primary' : undefined" :disabled="!canSave || saving" @click="save">
-        {{ saving ? 'Création...' : 'Créer le produit' }}
-      </AppButton>
-    </div>
-  </v-container>
+  </AppFormShell>
 </template>
 
 <style scoped>
-.product-add-view {
-  padding-bottom: 110px;
-}
-
 .product-add-view__sections {
   display: flex;
   flex-direction: column;
@@ -115,20 +122,42 @@ async function save() {
   margin-bottom: 12px;
 }
 
+.product-add-view__code-label {
+  display: block;
+  font-size: 15px;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
 .product-add-view__code-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
+.product-add-view__code-field {
+  flex: 0 0 110px;
+}
+
+.product-add-view__code-field :deep(input) {
+  text-transform: uppercase;
+}
+
+/* Libellé sur une ligne, numéro recalculé à la frappe juste en dessous ; ni l'un ni l'autre ne se coupe. */
 .product-add-view__code-hint {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
   font-size: 15px;
 }
 
-.product-add-view__save-error {
-  font-size: 14px;
-  font-weight: 500;
-  text-align: center;
-  margin: 0 0 10px;
+.product-add-view__code-hint-label,
+.product-add-view__code-hint-value {
+  white-space: nowrap;
+}
+
+.product-add-view__code-hint-value {
+  font-size: 17px;
 }
 </style>

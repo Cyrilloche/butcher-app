@@ -1,16 +1,22 @@
 <!-- src/views/StockView.vue -->
 <script setup lang="ts">
+import { defineAsyncComponent } from 'vue'
 import AppFab from '@/components/base/AppFab.vue'
 import AppBrandHeader from '@/components/base/AppBrandHeader.vue'
 import StockProductRow from '@/components/domain/StockProductRow.vue'
 import { getStockDashboard } from '@/composables/useStock'
 import { useAsyncData } from '@/composables/useAsyncData'
+import { useAddDialog } from '@/composables/useAddDialog'
+
+const StockAddView = defineAsyncComponent(() => import('@/views/StockAddView.vue'))
 
 const {
   data: dashboard,
   loading,
   error,
+  reload,
 } = useAsyncData(getStockDashboard, { products: [], totalUnitsInStock: 0 })
+const { mdAndUp, open: addOpen } = useAddDialog()
 </script>
 
 <template>
@@ -33,7 +39,11 @@ const {
       <StockProductRow v-for="product in dashboard.products" :key="product.code" :product="product" />
     </div>
 
-    <AppFab icon="plus" ariaLabel="Ajouter des produits au stock" to="/stock/add" />
+    <AppFab icon="plus" ariaLabel="Ajouter des produits au stock" :to="mdAndUp ? undefined : '/stock/add'" @click="addOpen = true" />
+
+    <v-dialog v-model="addOpen">
+      <StockAddView v-if="addOpen" dialog @saved="addOpen = false; reload()" @cancel="addOpen = false" />
+    </v-dialog>
   </v-container>
 </template>
 

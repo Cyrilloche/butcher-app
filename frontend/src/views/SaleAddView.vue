@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import AppPageHeader from '@/components/base/AppPageHeader.vue'
+import AppFormShell from '@/components/base/AppFormShell.vue'
 import AppCard from '@/components/base/AppCard.vue'
 import AppButton from '@/components/base/AppButton.vue'
 import AppTextField from '@/components/base/AppTextField.vue'
@@ -21,6 +21,10 @@ interface CartLine {
   weightKg: number | null
   amount: number
 }
+
+/** `dialog` : ouvert en fenêtre depuis la liste (écran large), qui se recharge sur `saved`. */
+const props = defineProps<{ dialog?: boolean }>()
+const emit = defineEmits<{ saved: []; cancel: [] }>()
 
 const router = useRouter()
 
@@ -147,7 +151,8 @@ async function save() {
         amount: line.amount,
       })),
     })
-    await router.push('/sales')
+    if (props.dialog) emit('saved')
+    else await router.push('/sales')
   } catch (err) {
     saveError.value = err instanceof ApiError ? err.message : "Erreur lors de l'enregistrement, réessaie."
   } finally {
@@ -157,8 +162,18 @@ async function save() {
 </script>
 
 <template>
-  <v-container class="sale-add-view app-form-container">
-    <AppPageHeader to="/sales" back-label="Ventes" title="Nouvelle vente" />
+  <AppFormShell
+    title="Nouvelle vente"
+    back-to="/sales"
+    back-label="Ventes"
+    :dialog="dialog"
+    :save-label="saving ? 'Enregistrement...' : canSave ? `Enregistrer la vente — ${total.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €` : 'Enregistrer la vente'"
+    :can-save="canSave"
+    :saving="saving"
+    :error="saveError"
+    @save="save"
+    @cancel="emit('cancel')"
+  >
 
     <div class="sale-add-view__sections">
       <AppCard>
@@ -304,26 +319,10 @@ async function save() {
       </AppCard>
     </div>
 
-    <div class="sale-add-view__footer app-fixed-footer">
-      <p v-if="saveError" class="sale-add-view__save-error text-error">{{ saveError }}</p>
-      <AppButton
-        block
-        height="60"
-        :color="canSave ? 'primary' : undefined"
-        :disabled="!canSave || saving"
-        @click="save"
-      >
-        {{ saving ? 'Enregistrement...' : canSave ? `Enregistrer la vente — ${total.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €` : 'Enregistrer la vente' }}
-      </AppButton>
-    </div>
-  </v-container>
+  </AppFormShell>
 </template>
 
 <style scoped>
-.sale-add-view {
-  padding-bottom: 110px;
-}
-
 .sale-add-view__sections {
   display: flex;
   flex-direction: column;
@@ -555,12 +554,5 @@ async function save() {
   border-color: rgb(var(--v-theme-warning));
   background: rgb(var(--v-theme-warning-container));
   color: rgb(var(--v-theme-warning));
-}
-
-.sale-add-view__save-error {
-  font-size: 14px;
-  font-weight: 500;
-  text-align: center;
-  margin: 0 0 10px;
 }
 </style>

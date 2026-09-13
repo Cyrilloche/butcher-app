@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, ref, watch } from 'vue'
 import { listSales } from '@/api/sales'
+import { useAddDialog } from '@/composables/useAddDialog'
 import { useAsyncData } from '@/composables/useAsyncData'
 import {
   availableYears,
@@ -23,7 +24,10 @@ import type { SaleDto, StockMovementDto } from '@/api/types'
  * de la maquette relève des alertes, prévues en V2 : ses deux emplacements l'annoncent.
  */
 const auth = useAuthStore()
-const { data: sales, loading, error } = useAsyncData(listSales, [] as SaleDto[])
+const { data: sales, loading, error, reload } = useAsyncData(listSales, [] as SaleDto[])
+
+const SaleAddView = defineAsyncComponent(() => import('@/views/SaleAddView.vue'))
+const { mdAndUp, open: saleOpen } = useAddDialog()
 
 const today = new Date()
 const years = computed(() => availableYears(sales.value, today))
@@ -97,10 +101,21 @@ const bars = computed(() => {
         <h1 class="overview-view__title">Vue d'ensemble</h1>
         <p class="overview-view__greeting text-secondary">{{ greeting }}</p>
       </div>
-      <v-btn color="primary" rounded="pill" size="large" to="/sales/add" prepend-icon="phosphor:plus">
+      <v-btn
+        color="primary"
+        rounded="pill"
+        size="large"
+        :to="mdAndUp ? undefined : '/sales/add'"
+        prepend-icon="phosphor:plus"
+        @click="saleOpen = mdAndUp"
+      >
         Nouvelle vente
       </v-btn>
     </header>
+
+    <v-dialog v-model="saleOpen">
+      <SaleAddView v-if="saleOpen" dialog @saved="saleOpen = false; reload()" @cancel="saleOpen = false" />
+    </v-dialog>
 
     <p v-if="loading" class="text-secondary">Chargement...</p>
     <p v-else-if="error" class="text-error">{{ error }}</p>

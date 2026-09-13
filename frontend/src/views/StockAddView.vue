@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import AppPageHeader from '@/components/base/AppPageHeader.vue'
+import AppFormShell from '@/components/base/AppFormShell.vue'
 import AppCard from '@/components/base/AppCard.vue'
 import AppStepper from '@/components/base/AppStepper.vue'
 import AppTextField from '@/components/base/AppTextField.vue'
@@ -11,6 +11,10 @@ import { useAsyncData } from '@/composables/useAsyncData'
 import { createProductionBatch } from '@/api/productionBatches'
 import { addStockUnits } from '@/api/stockUnits'
 import { ApiError } from '@/api/http'
+
+/** `dialog` : ouvert en fenêtre depuis la liste (écran large), qui se recharge sur `saved`. */
+const props = defineProps<{ dialog?: boolean }>()
+const emit = defineEmits<{ saved: []; cancel: [] }>()
 
 const router = useRouter()
 
@@ -97,7 +101,8 @@ async function save() {
         ? { weights: state.weights.map((grams) => grams / 1000) }
         : { quantity: state.qty },
     )
-    await router.push('/')
+    if (props.dialog) emit('saved')
+    else await router.push('/')
   } catch (err) {
     saveError.value =
       err instanceof ApiError ? err.message : "Erreur lors de l'enregistrement, réessaie."
@@ -108,8 +113,18 @@ async function save() {
 </script>
 
 <template>
-  <v-container class="stock-add-view app-form-container">
-    <AppPageHeader to="/" back-label="Stock" title="Ajouter au stock" />
+  <AppFormShell
+    title="Ajouter au stock"
+    back-to="/"
+    back-label="Stock"
+    :dialog="dialog"
+    :save-label="saveLabel"
+    :can-save="canSave"
+    :saving="saving"
+    :error="saveError"
+    @save="save"
+    @cancel="emit('cancel')"
+  >
 
     <div class="stock-add-view__sections">
       <AppCard>
@@ -198,26 +213,10 @@ async function save() {
       </template>
     </div>
 
-    <div class="stock-add-view__footer app-fixed-footer">
-      <p v-if="saveError" class="stock-add-view__save-error text-error">{{ saveError }}</p>
-      <AppButton
-        block
-        height="60"
-        :color="canSave ? 'primary' : undefined"
-        :disabled="!canSave || saving"
-        @click="save"
-      >
-        {{ saveLabel }}
-      </AppButton>
-    </div>
-  </v-container>
+  </AppFormShell>
 </template>
 
 <style scoped>
-.stock-add-view {
-  padding-bottom: 110px;
-}
-
 .stock-add-view__sections {
   display: flex;
   flex-direction: column;
@@ -302,12 +301,5 @@ async function save() {
   font-size: 16px;
   color: rgb(var(--v-theme-success));
   font-weight: 600;
-}
-
-.stock-add-view__save-error {
-  font-size: 14px;
-  font-weight: 500;
-  text-align: center;
-  margin: 0 0 10px;
 }
 </style>

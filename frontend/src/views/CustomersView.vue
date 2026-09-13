@@ -1,13 +1,17 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, defineAsyncComponent, ref } from 'vue'
 import AppFab from '@/components/base/AppFab.vue'
 import AppBrandHeader from '@/components/base/AppBrandHeader.vue'
 import CustomerRow from '@/components/domain/CustomerRow.vue'
 import { listCustomers } from '@/api/customers'
 import { useAsyncData } from '@/composables/useAsyncData'
 import { customerFullName, groupCustomersByLetter } from '@/composables/useCustomers'
+import { useAddDialog } from '@/composables/useAddDialog'
 
-const { data: customers, loading, error } = useAsyncData(listCustomers, [])
+const CustomerAddView = defineAsyncComponent(() => import('@/views/CustomerAddView.vue'))
+
+const { data: customers, loading, error, reload } = useAsyncData(listCustomers, [])
+const { mdAndUp, open: addOpen } = useAddDialog()
 
 const query = ref('')
 const filtered = computed(() => {
@@ -93,7 +97,11 @@ function jumpToLetter(letter: string) {
       </button>
     </nav>
 
-    <AppFab icon="plus" ariaLabel="Créer un client" to="/customers/add" />
+    <AppFab icon="plus" ariaLabel="Créer un client" :to="mdAndUp ? undefined : '/customers/add'" @click="addOpen = true" />
+
+    <v-dialog v-model="addOpen">
+      <CustomerAddView v-if="addOpen" dialog @saved="addOpen = false; reload()" @cancel="addOpen = false" />
+    </v-dialog>
   </v-container>
 </template>
 

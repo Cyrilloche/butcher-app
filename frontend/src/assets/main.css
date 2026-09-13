@@ -20,6 +20,21 @@ body,
  */
 .v-container.app-form-container {
   max-width: 720px;
+  padding-bottom: 110px;
+}
+
+/*
+ * Formulaire d'ajout ouvert en fenêtre sur écran large (AppFormShell) : ses cartes de section se fondent
+ * dans la fenêtre et se séparent d'un filet, comme la création d'un compte.
+ */
+.app-form-shell--dialog .app-card {
+  padding: 0;
+  border-radius: 0;
+}
+
+.app-form-shell--dialog .app-card:not(:last-child) {
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgb(var(--v-theme-status-neutral-container));
 }
 
 /*

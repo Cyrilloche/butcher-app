@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { defineAsyncComponent, ref, watch } from 'vue'
 import AppFab from '@/components/base/AppFab.vue'
 import AppBrandHeader from '@/components/base/AppBrandHeader.vue'
 import ProductRow from '@/components/domain/ProductRow.vue'
 import { listProducts } from '@/api/products'
 import { useAsyncData } from '@/composables/useAsyncData'
+import { useAddDialog } from '@/composables/useAddDialog'
+
+const ProductAddView = defineAsyncComponent(() => import('@/views/ProductAddView.vue'))
+const { mdAndUp, open: addOpen } = useAddDialog()
 
 const includeInactive = ref(false)
 const { data: products, loading, error, reload } = useAsyncData(() => listProducts(includeInactive.value), [])
@@ -38,7 +42,11 @@ watch(includeInactive, reload)
       <ProductRow v-for="product in products" :key="product.id" :product="product" />
     </div>
 
-    <AppFab icon="plus" ariaLabel="Créer un produit" to="/products/add" />
+    <AppFab icon="plus" ariaLabel="Créer un produit" :to="mdAndUp ? undefined : '/products/add'" @click="addOpen = true" />
+
+    <v-dialog v-model="addOpen">
+      <ProductAddView v-if="addOpen" dialog @saved="addOpen = false; reload()" @cancel="addOpen = false" />
+    </v-dialog>
   </v-container>
 </template>
 

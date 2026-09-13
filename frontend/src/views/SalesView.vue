@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, defineAsyncComponent, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import AppFab from '@/components/base/AppFab.vue'
@@ -17,8 +17,12 @@ import {
   type SalesSortKey,
 } from '@/composables/useSalesFilters'
 import type { SaleDto } from '@/api/types'
+import { useAddDialog } from '@/composables/useAddDialog'
 
-const { data: allSales, loading, error } = useAsyncData(listSales, [] as SaleDto[])
+const SaleAddView = defineAsyncComponent(() => import('@/views/SaleAddView.vue'))
+
+const { data: allSales, loading, error, reload } = useAsyncData(listSales, [] as SaleDto[])
+const { open: addOpen } = useAddDialog()
 
 // Sur écran large, la liste devient un tableau filtrable et triable ; sur téléphone, rien ne change.
 const { mdAndUp } = useDisplay()
@@ -244,7 +248,11 @@ const groups = computed<MonthGroup[]>(() => {
       </section>
     </div>
 
-    <AppFab icon="plus" ariaLabel="Nouvelle vente" to="/sales/add" />
+    <AppFab icon="plus" ariaLabel="Nouvelle vente" :to="mdAndUp ? undefined : '/sales/add'" @click="addOpen = true" />
+
+    <v-dialog v-model="addOpen">
+      <SaleAddView v-if="addOpen" dialog @saved="addOpen = false; reload()" @cancel="addOpen = false" />
+    </v-dialog>
   </v-container>
 </template>
 

@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import AppPageHeader from '@/components/base/AppPageHeader.vue'
+import AppFormShell from '@/components/base/AppFormShell.vue'
 import AppCard from '@/components/base/AppCard.vue'
 import AppTextField from '@/components/base/AppTextField.vue'
-import AppButton from '@/components/base/AppButton.vue'
 import { createCustomer } from '@/api/customers'
 import { ApiError } from '@/api/http'
+
+/** `dialog` : ouvert en fenêtre depuis la liste (écran large), qui se recharge sur `saved`. */
+const props = defineProps<{ dialog?: boolean }>()
+const emit = defineEmits<{ saved: []; cancel: [] }>()
 
 const router = useRouter()
 
@@ -26,7 +29,8 @@ async function save() {
       phone: state.phone.trim() || undefined,
       notes: state.notes.trim() || undefined,
     })
-    await router.push('/customers')
+    if (props.dialog) emit('saved')
+    else await router.push('/customers')
   } catch (err) {
     saveError.value = err instanceof ApiError ? err.message : "Erreur lors de l'enregistrement, réessaie."
   } finally {
@@ -36,8 +40,18 @@ async function save() {
 </script>
 
 <template>
-  <v-container class="customer-add-view app-form-container">
-    <AppPageHeader to="/customers" back-label="Clients" title="Nouveau client" />
+  <AppFormShell
+    title="Nouveau client"
+    back-to="/customers"
+    back-label="Clients"
+    :dialog="dialog"
+    :save-label="saving ? 'Création...' : 'Créer le client'"
+    :can-save="canSave"
+    :saving="saving"
+    :error="saveError"
+    @save="save"
+    @cancel="emit('cancel')"
+  >
 
     <AppCard class="customer-add-view__card">
       <AppTextField v-model="state.firstName" label="Prénom" placeholder="Ex. Marie" />
@@ -54,20 +68,10 @@ async function save() {
       </div>
     </AppCard>
 
-    <div class="customer-add-view__footer app-fixed-footer">
-      <p v-if="saveError" class="customer-add-view__save-error text-error">{{ saveError }}</p>
-      <AppButton block height="60" :color="canSave ? 'primary' : undefined" :disabled="!canSave || saving" @click="save">
-        {{ saving ? 'Création...' : 'Créer le client' }}
-      </AppButton>
-    </div>
-  </v-container>
+  </AppFormShell>
 </template>
 
 <style scoped>
-.customer-add-view {
-  padding-bottom: 110px;
-}
-
 .customer-add-view__card {
   display: flex;
   flex-direction: column;
@@ -95,12 +99,5 @@ async function save() {
   color: rgb(var(--v-theme-on-surface));
   resize: none;
   line-height: 1.4;
-}
-
-.customer-add-view__save-error {
-  font-size: 14px;
-  font-weight: 500;
-  text-align: center;
-  margin: 0 0 10px;
 }
 </style>
