@@ -111,7 +111,7 @@ vérifié**, poussé sur `feat/backoffice`, sans merge ni tag.
 - [X] T025 [US3] Présenter `frontend/src/views/SalesView.vue` en tableau sur écran large (numéro, date, client, statut, montant, tri) avec filtres client, statut de paiement et période, nombre et total des ventes filtrées, dans le style de `Backoffice Overview.dc.html` (le projet n'a pas de maquette PC de cet écran : `Ventes Dashboard.dc.html` est la maquette mobile, déjà en place) ; présentation mobile inchangée (FR-017, FR-018, clôt E-06)
 - [X] T026 [P] [US3] Présenter `frontend/src/views/StockView.vue` en tableau sur écran large dans le style de `Backoffice Overview.dc.html` (le projet n'a pas de maquette PC de cet écran : `Stock Dashboard.dc.html` est la maquette mobile, déjà en place)
 - [X] T027 [P] [US3] Présenter `frontend/src/views/CustomersView.vue` en tableau sur écran large dans le style de `Backoffice Overview.dc.html` (le projet n'a pas de maquette PC de cet écran : `Clients Dashboard.dc.html` est la maquette mobile, déjà en place)
-- [ ] T028 [P] [US3] Présenter `frontend/src/views/ProductsView.vue` en tableau sur écran large dans le style de `Backoffice Overview.dc.html` (le projet n'a pas de maquette PC de cet écran : `Produits Dashboard.dc.html` est la maquette mobile, déjà en place)
+- [X] T028 [P] [US3] Présenter `frontend/src/views/ProductsView.vue` en tableau sur écran large dans le style de `Backoffice Overview.dc.html` (le projet n'a pas de maquette PC de cet écran : `Produits Dashboard.dc.html` est la maquette mobile, déjà en place)
 
 **Checkpoint**: lot 2 complet, mobile sans régression.
 
