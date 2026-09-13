@@ -1,5 +1,6 @@
 using Butcher.Api.Common.Authorization;
 using Butcher.Api.Domain.Entities;
+using Butcher.Api.Infrastructure.Data.Audit;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -50,18 +51,62 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentAccoun
     }
 
     // Les deux autres surcharges de SaveChanges délèguent à celles-ci : tout enregistrement y passe.
-    public override int SaveChanges(bool acceptAllChangesOnSuccess)
-    {
-        StampAuditDates();
-        StampAuthor();
-        return base.SaveChanges(acceptAllChangesOnSuccess);
-    }
+    public override int SaveChanges(bool acceptAllChangesOnSuccess) =>
+        SaveWithAuditTrailAsync(acceptAllChangesOnSuccess, useAsync: false, CancellationToken.None)
+            .GetAwaiter()
+            .GetResult();
 
-    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default) =>
+        SaveWithAuditTrailAsync(acceptAllChangesOnSuccess, useAsync: true, cancellationToken);
+
+    /// <summary>
+    /// Enregistre, et écrit au journal les gestes que cet enregistrement raconte (FR-021, research R-09).
+    /// </summary>
+    /// <remarks>
+    /// Les entrées sont préparées avant l'écriture, tant que l'état d'origine de chaque objet est lisible,
+    /// et écrites juste après, quand les objets créés ont leur identifiant. Les deux écritures partagent
+    /// une transaction — celle de l'appelant s'il en a ouvert une : une opération qui échoue ne laisse
+    /// aucune entrée, et aucune opération n'échappe au journal.
+    /// </remarks>
+    private async Task<int> SaveWithAuditTrailAsync(bool acceptAllChangesOnSuccess, bool useAsync, CancellationToken cancellationToken)
     {
         StampAuditDates();
         StampAuthor();
-        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+
+        var pending = await AuditTrail.CollectAsync(this, currentAccount?.AccountId, cancellationToken);
+        if (pending.Count == 0)
+        {
+            return useAsync
+                ? await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken)
+                : base.SaveChanges(acceptAllChangesOnSuccess);
+        }
+
+        var ownTransaction = Database.CurrentTransaction is null
+            ? await Database.BeginTransactionAsync(cancellationToken)
+            : null;
+
+        try
+        {
+            var written = useAsync
+                ? await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken)
+                : base.SaveChanges(acceptAllChangesOnSuccess);
+
+            await AuditTrail.WriteAsync(this, pending, cancellationToken);
+
+            if (ownTransaction is not null)
+            {
+                await ownTransaction.CommitAsync(cancellationToken);
+            }
+
+            return written;
+        }
+        finally
+        {
+            if (ownTransaction is not null)
+            {
+                await ownTransaction.DisposeAsync();
+            }
+        }
     }
 
     /// <summary>
