@@ -27,6 +27,15 @@ export interface StockDashboardProduct {
   qtyLabel: string
   openedLabel: string | null
   isEmpty: boolean
+  /** « Au poids » / « À la pièce » — colonne du tableau sur écran large. */
+  saleModeLabel: string
+  /** Unités entamées, comptées dans `qty`. */
+  openedCount: number
+  /**
+   * Poids encore vendable des unités en stock, en grammes, somme des `remaining_weight` du serveur
+   * (RG-05) ; `null` pour un produit à la pièce.
+   */
+  remainingGrams: number | null
 }
 
 export interface StockDetailUnit {
@@ -209,6 +218,9 @@ export async function getStockDashboard(): Promise<{
       qtyLabel: pluralize(product.unitLabel, inStock),
       openedLabel: opened.length > 0 ? `dont ${opened.length} entamé${opened.length > 1 ? 's' : ''}` : null,
       isEmpty: inStock === 0,
+      saleModeLabel: metaParts[0]!,
+      openedCount: opened.length,
+      remainingGrams: product.saleMode === 'by_weight' ? totalGrams : null,
     }
   })
 
