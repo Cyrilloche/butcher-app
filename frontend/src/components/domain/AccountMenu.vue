@@ -51,7 +51,7 @@ async function confirmLogout() {
     </v-list>
   </v-menu>
 
-  <v-dialog v-model="confirmOpen" max-width="360">
+  <v-dialog v-model="confirmOpen">
     <v-card class="account-menu__dialog">
       <h2 class="text-h6 font-weight-bold mb-2">Se déconnecter ?</h2>
       <p v-if="auth.account" class="mb-2">Connecté en tant que {{ auth.account.displayName }}.</p>

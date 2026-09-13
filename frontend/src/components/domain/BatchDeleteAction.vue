@@ -54,7 +54,7 @@ async function confirm() {
     <v-icon size="18">phosphor:trash</v-icon>
   </button>
 
-  <v-dialog v-model="confirming" max-width="380">
+  <v-dialog v-model="confirming">
     <v-card class="batch-delete__dialog">
       <h2 class="text-h6 font-weight-bold mb-2">Supprimer cette fournée ?</h2>
       <p class="text-secondary mb-2">

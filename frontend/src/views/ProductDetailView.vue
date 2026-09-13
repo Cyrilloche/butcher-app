@@ -220,7 +220,7 @@ async function onWriteOffDone() {
         Retirer un produit du catalogue est réservé à l'administrateur.
       </p>
 
-      <v-dialog v-model="confirmingStatus" max-width="380">
+      <v-dialog v-model="confirmingStatus">
         <v-card class="product-detail-view__dialog">
           <h2 class="text-h6 font-weight-bold mb-2">
             {{ product.isActive ? 'Désactiver ce produit ?' : 'Réactiver ce produit ?' }}

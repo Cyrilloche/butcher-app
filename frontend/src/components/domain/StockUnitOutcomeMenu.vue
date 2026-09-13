@@ -129,7 +129,7 @@ async function confirm() {
     </v-list>
   </v-menu>
 
-  <v-dialog :model-value="pending !== null" max-width="380" @update:model-value="pending = null">
+  <v-dialog :model-value="pending !== null" @update:model-value="pending = null">
     <v-card v-if="dialog" class="stock-unit-outcome__dialog">
       <h2 class="text-h6 font-weight-bold mb-2">{{ dialog.title }}</h2>
       <p class="text-secondary mb-2">{{ dialog.body }}</p>

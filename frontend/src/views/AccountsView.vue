@@ -160,7 +160,7 @@ function isSelf(account: AccountDto) {
     <AccountEditDialog v-model="editOpen" :account="editedAccount" @saved="onSaved" />
     <AccountPasswordResetDialog v-model="resetOpen" :account="resetAccount" @done="reload" />
 
-    <v-dialog v-model="confirmDeactivation" max-width="380">
+    <v-dialog v-model="confirmDeactivation">
       <v-card v-if="deactivating" class="accounts-view__dialog">
         <h2 class="text-h6 font-weight-bold mb-2">Désactiver {{ deactivating.displayName }} ?</h2>
         <p class="text-secondary mb-5">

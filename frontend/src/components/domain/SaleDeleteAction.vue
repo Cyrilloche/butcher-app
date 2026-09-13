@@ -49,7 +49,7 @@ async function confirm() {
 
   <p v-if="error" class="sale-delete__error text-error">{{ error }}</p>
 
-  <v-dialog v-model="confirming" max-width="380">
+  <v-dialog v-model="confirming">
     <v-card class="sale-delete__dialog">
       <h2 class="text-h6 font-weight-bold mb-2">Supprimer cette vente ?</h2>
       <p class="text-secondary mb-2">

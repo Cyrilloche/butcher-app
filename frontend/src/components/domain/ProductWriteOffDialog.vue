@@ -71,7 +71,6 @@ async function confirm() {
 <template>
   <v-dialog
     :model-value="modelValue"
-    max-width="420"
     @update:model-value="(value) => emit('update:modelValue', value)"
   >
     <v-card class="write-off__dialog">

@@ -48,6 +48,11 @@ export default createVuetify({
       },
     },
   },
+  // Une seule largeur pour toutes les fenêtres (formulaires comme confirmations), celle de la création
+  // d'un compte : ne pas la redéfinir sur un v-dialog.
+  defaults: {
+    VDialog: { maxWidth: 440 },
+  },
   icons: {
     defaultSet: 'mdi',
     aliases,

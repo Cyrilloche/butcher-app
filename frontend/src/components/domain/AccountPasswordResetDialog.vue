@@ -50,7 +50,6 @@ async function save() {
 <template>
   <v-dialog
     :model-value="modelValue"
-    max-width="440"
     @update:model-value="(value) => emit('update:modelValue', value)"
   >
     <v-card v-if="account" class="account-reset__dialog">

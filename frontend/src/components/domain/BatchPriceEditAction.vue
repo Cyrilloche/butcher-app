@@ -62,7 +62,7 @@ async function save() {
     <v-icon size="18">phosphor:pencil-simple</v-icon>
   </button>
 
-  <v-dialog v-model="open" max-width="380">
+  <v-dialog v-model="open">
     <v-card class="batch-price-edit__dialog">
       <h2 class="text-h6 font-weight-bold mb-1">Corriger le prix</h2>
       <p class="text-secondary batch-price-edit__subtitle">Fournée {{ batchLabel }}</p>

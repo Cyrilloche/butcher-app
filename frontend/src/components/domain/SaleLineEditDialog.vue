@@ -89,7 +89,6 @@ async function remove() {
 <template>
   <v-dialog
     :model-value="modelValue"
-    max-width="400"
     @update:model-value="(value) => emit('update:modelValue', value)"
   >
     <v-card v-if="line" class="sale-line-edit__dialog">
