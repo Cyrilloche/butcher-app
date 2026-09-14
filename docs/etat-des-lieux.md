@@ -66,10 +66,10 @@ Le **périmètre fonctionnel de la Vague 1 est livré**, backend comme frontend 
 | # | Constat | Analyse |
 |---|---|---|
 | E-07 | RF-27 — `created_by` jamais renseigné | Inchangé. `created_at` / `updated_at` sont renseignés depuis le 2026-09-12. Le backoffice multi-comptes rendra ce champ nécessaire. |
-| E-08 | **Aucun test frontend** (la CI passe `--passWithNoTests`) face à 145 tests backend | L'asymétrie s'est creusée : la logique d'affichage métier a grossi côté frontend (`useStock`, totaux de poids, libellés de fournée). |
+| E-08 | ~~Aucun test frontend~~ | ✅ **Clos le 2026-09-14** : 115 tests Vitest — client HTTP et rafraîchissement, session, garde des écrans réservés, calculs de stock et de vente, et composants qui écrivent (saisie d'une vente, correction d'une ligne, sorties, prix d'une fournée). La CI n'accepte plus une suite vide. |
 | E-09 | Bascule liste / grille des clients | Abandon volontaire, peu de valeur pour deux utilisateurs. |
 | E-10 | `DELETE /api/customers/{id}` sans usage frontend | Volontaire : la suppression casserait la traçabilité lot ↔ client. |
-| E-11 | `frontend/index.html` porte encore `<title>Vite App</title>` | Cosmétique, relevé par l'audit du 05/09 ; le manifest PWA, lui, dit bien « Saloir ». |
+| E-11 | ~~`<title>Vite App</title>`~~ | ✅ Clos le 2026-09-14 : « Saloir », favicon provisoire. |
 
 ---
 
