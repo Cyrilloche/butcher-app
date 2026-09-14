@@ -3,6 +3,78 @@
 Généré à partir des messages de commit ([Conventional Commits](https://www.conventionalcommits.org/fr/)).
 Ne pas éditer à la main : régénérer avec `make changelog`.
 
+## frontend-v0.6.0 — 14/09/2026
+
+### Nouveautés
+
+- **backend** : Comptes nominatifs, rôle et état actif sur app_user (ADR-011) (3833593)
+- **backend** : Compte de la requête courante (ADR-011) (1f6d0a2)
+- **backend** : Réponse 403 pour une action réservée (5c5634a)
+- **backend** : L'auteur des fabrications, ventes et sorties est enregistré (RF-27) (5337064)
+- **backend** : Droits relus en base à chaque requête (ADR-011) (a49b8c6)
+- **backend** : Politique de mot de passe par rôle, messages en français ⚠️ **rupture** (b7c3db6)
+- **backend** : Un compte désactivé ne se connecte plus (FR-007) (34a6250)
+- **backend** : Compte connecté et changement de son mot de passe (dbdfce2)
+- **backend** : Gestion des comptes, dernier administrateur protégé (ADR-011) (7553eef)
+- **backend** : Routes de gestion des comptes, réservées à l'administrateur (a0db95d)
+- **frontend** : Client des comptes et du compte connecté (ADR-011) (e53c46b)
+- **backend** : Le nom de l'auteur est exposé sur les ventes, fabrications et sorties (6422f4a)
+- **frontend** : La session connaît le compte connecté (ADR-011) (0e47f0c)
+- **frontend** : L'auteur d'une vente et d'une fournée est affiché (RF-27) (bfb725f)
+- **backend** : Désactiver ou solder un produit est réservé à l'administrateur ⚠️ **rupture** (4bf12ab)
+- **frontend** : Écrans Comptes et Mon compte (ADR-011) (35c99bd)
+- **frontend** : Les gestes qui retirent un produit sont réservés à l'administrateur (cd43452)
+- **frontend** : Barre latérale sur écran large (backoffice PC) (229f062)
+- **frontend** : Calculs de la vue d'ensemble, premiers tests frontend (ba13d35)
+- **frontend** : Les formulaires restent lisibles sur écran large (b45f1e2)
+- **frontend** : Vue d'ensemble du backoffice PC (62acb60)
+- **frontend** : Ventes filtrables et triables sur écran large (E-06) (95dd35c)
+- **frontend** : Formulaires d'ajout en fenêtre sur écran large (57e447a)
+- **frontend** : Stock en tableau sur écran large (eaa9bdd)
+- **frontend** : Clients en tableau sur écran large, avec leurs achats (bbb7ece)
+- **frontend** : Produits en tableau sur écran large (8b5de2d)
+- **backend** : Table du journal audit_entry (US4) (a2f4e9a)
+- **backend** : Journal des gestes écrit à chaque enregistrement (US4) (dd854ed)
+- **backend** : Connexions réussies et refusées au journal (US4) (5051532)
+- **backend** : Consultation du journal, réservée à l'administrateur (US4) (3fa3e1e)
+- **frontend** : Écran Journal pour l'administrateur (US4) (9e33042)
+- **backend** : Rapports de ventes, réservés à l'administrateur (US5) (2df6927)
+- **frontend** : Écran Rapports, et vue d'ensemble lue sur les rapports (US5) (cececb5)
+
+### Corrections
+
+- **backend** : Using manquant pour le compte de la requête (99efa77)
+- **backend** : Le refus d'un email déjà pris ne se répète plus (b036c87)
+- **frontend** : Les éléments fixés en bas d'écran suivent la barre latérale (9618480)
+- **frontend** : Les pages de consultation prennent la largeur de la vue d'ensemble (f3d7f5d)
+- **frontend** : Toutes les fenêtres ont la même largeur (5dc7480)
+- **backend** : Borner le numéro de vente sur la journée de Paris (db8ecb4)
+- **frontend** : Titre Saloir et favicon provisoire dans l'onglet (e6bb425)
+
+### Refactorisations
+
+- **frontend** : Tableau triable commun aux écrans de consultation (6c72b29)
+
+### Documentation
+
+- **specs** : Spécification du backoffice PC, comptes nominatifs et rôles (b522ecc)
+- **specs** : Clarifications du backoffice PC (3b3fc17)
+- **specs** : Plan du backoffice PC, comptes nominatifs et rôles (ca034cb)
+- **specs** : Tâches du backoffice PC (315be64)
+- **adr** : ADR-011, comptes nominatifs avec deux rôles (cd6ca60)
+- Comptes nominatifs et rôles dans le PRD, le modèle et la constitution (7640c47)
+- **specs** : Résultat du quickstart du lot 1 (comptes et rôles) (da88f07)
+- **design** : Maquette PC de la vue d'ensemble du backoffice (01b556e)
+- **specs** : Plan et recherche du backoffice réalignés sur le code livré (3d0668a)
+- **specs** : Journal et rapports du backoffice détaillés (88afb02)
+- Journal et rapports dans le PRD, le modèle et CLAUDE.md (1649630)
+- **specs** : Résultat du quickstart des lots 3 et 4 (journal et rapports) (86031f7)
+- Backoffice fusionné, tests frontend et titre clos dans l'état des lieux (ed436c8)
+
+### Tests
+
+- **frontend** : Couvrir le client HTTP, la session, la garde de navigation et les écrans critiques (b381cab)
+
 ## frontend-v0.5.0 — 12/09/2026
 
 ### Nouveautés
