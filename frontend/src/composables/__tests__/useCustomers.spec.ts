@@ -1,6 +1,44 @@
 import { describe, expect, it } from 'vitest'
-import type { SaleDto } from '@/api/types'
-import { customerPurchaseStats } from '../useCustomers'
+import type { CustomerDto, SaleDto } from '@/api/types'
+import {
+  customerFullName,
+  customerInitials,
+  customerPurchaseStats,
+  groupCustomersByLetter,
+} from '../useCustomers'
+
+function customer(id: number, lastName: string, firstName: string | null = null): CustomerDto {
+  return { id, lastName, firstName, phone: null, notes: null }
+}
+
+describe('nom et initiales', () => {
+  it('place le prénom avant le nom quand il existe', () => {
+    expect(customerFullName(customer(1, 'Dupont', 'Jean'))).toBe('Jean Dupont')
+    expect(customerFullName(customer(2, 'Boulangerie'))).toBe('Boulangerie')
+  })
+
+  it('tire des initiales majuscules et sans accent', () => {
+    expect(customerInitials(customer(1, 'élise', 'Émile'))).toBe('EE')
+    expect(customerInitials(customer(2, 'Perrin'))).toBe('P')
+  })
+})
+
+describe('groupCustomersByLetter', () => {
+  it('trie par nom de famille et regroupe sous la lettre, un accent rangé avec sa lettre', () => {
+    const groups = groupCustomersByLetter([
+      customer(1, 'Martin'),
+      customer(2, 'Écuyer'),
+      customer(3, 'Durand'),
+      customer(4, 'Dupont'),
+    ])
+
+    expect(groups.map((g) => [g.letter, g.customers.map((c) => c.lastName)])).toEqual([
+      ['D', ['Dupont', 'Durand']],
+      ['E', ['Écuyer']],
+      ['M', ['Martin']],
+    ])
+  })
+})
 
 let nextId = 1
 
