@@ -1,4 +1,5 @@
 using Butcher.Api.Application.Dtos;
+using Butcher.Api.Common;
 using Butcher.Api.Common.Exceptions;
 using Butcher.Api.Domain.Entities;
 using Butcher.Api.Domain.Enums;
@@ -230,11 +231,12 @@ public class SaleService(AppDbContext dbContext) : ISaleService
     /// </summary>
     private async Task<string> GenerateSaleNumberAsync(DateTimeOffset date)
     {
-        var day = date.UtcDateTime.Date;
-        var nextDay = day.AddDays(1);
+        var day = BusinessTime.DayOf(date);
+        var start = BusinessTime.StartOfDay(day);
+        var end = BusinessTime.StartOfDay(day.AddDays(1));
 
         var existingCount = await dbContext.Sales
-            .CountAsync(s => s.Date >= day && s.Date < nextDay);
+            .CountAsync(s => s.Date >= start && s.Date < end);
 
         return $"V-{day:yyMMdd}-{existingCount + 1}";
     }
