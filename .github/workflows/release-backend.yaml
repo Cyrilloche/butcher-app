@@ -54,10 +54,12 @@ jobs:
         run: |
           set -e
           cp docker-compose.prod.yml /opt/butcher-app/docker-compose.yml
+          cp Caddyfile /opt/butcher-app/Caddyfile
           cd /opt/butcher-app
           sed -i "s|^BACKEND_VERSION=.*|BACKEND_VERSION=${{ needs.build-and-push.outputs.version }}|" .env
           docker compose pull backend
           docker compose up -d backend
+          docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile
 
   release-notes:
     name: Publish GitHub release notes
