@@ -22,6 +22,8 @@ const props = defineProps<{
   canSave: boolean
   saving: boolean
   error: string | null
+  /** Ce qui manque pour enregistrer, dit à côté du bouton tant qu'il est grisé (RU-01). */
+  hint?: string | null
 }>()
 const emit = defineEmits<{ save: []; cancel: [] }>()
 
@@ -42,6 +44,7 @@ if (!props.dialog && mdAndUp.value) {
     </div>
 
     <p v-if="error" class="app-form-shell__error app-form-shell__error--right text-error">{{ error }}</p>
+    <p v-else-if="!canSave && hint" class="app-form-shell__hint app-form-shell__hint--right text-secondary">{{ hint }}</p>
 
     <div class="app-form-shell__actions">
       <v-btn variant="text" color="secondary" @click="emit('cancel')">Annuler</v-btn>
@@ -58,6 +61,7 @@ if (!props.dialog && mdAndUp.value) {
 
     <div class="app-fixed-footer">
       <p v-if="error" class="app-form-shell__error text-error">{{ error }}</p>
+      <p v-else-if="!canSave && hint" class="app-form-shell__hint text-secondary">{{ hint }}</p>
       <AppButton block height="60" :color="canSave ? 'primary' : undefined" :disabled="!canSave || saving" @click="emit('save')">
         {{ saveLabel }}
       </AppButton>
@@ -87,6 +91,18 @@ if (!props.dialog && mdAndUp.value) {
   font-weight: 500;
   text-align: center;
   margin: 0 0 10px;
+}
+
+.app-form-shell__hint {
+  font-size: 15px;
+  font-weight: 500;
+  text-align: center;
+  margin: 0 0 10px;
+}
+
+.app-form-shell__hint--right {
+  text-align: right;
+  margin: 12px 0 0;
 }
 
 .app-form-shell__error--right {

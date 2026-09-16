@@ -10,7 +10,7 @@
 
 | Réf. | Retour (reformulé) | Type | Impact | Effort | Statut |
 |---|---|---|---|---|---|
-| RU-01 | Vente impossible à valider : le bouton « Enregistrer » restait grisé | Bug ? | Bloquant | ? | En attente d'informations |
+| RU-01 | Vente impossible à valider : le bouton « Enregistrer » restait grisé | Bug ? | Bloquant | S | Aide ajoutée, cause à confirmer |
 | RU-02 | La recherche d'une vente cache des produits : « que 8 affichés », « en tapant chipo on ne voit pas toutes les chipos » | Gêne d'usage | Bloquant en pratique | M | Corrigé, à valider par les utilisateurs |
 | RU-03 | Ajouter un produit à une vente déjà enregistrée, quand le client demande un complément | Demande | Fréquente | M | Fait, à valider par les utilisateurs |
 | RU-04 | Lancer une nouvelle vente depuis la fiche d'un client, client déjà rempli | Demande | Fréquente | S | Fait, à valider par les utilisateurs |
@@ -18,7 +18,7 @@
 | RU-06 | « Pouvoir modifier des commandes » | À préciser | ? | ? | À préciser |
 | RU-07 | « Intéressant d'avoir des allergies » | Demande nouvelle | Idée | M à L | À préciser |
 
-**Ordre de passage** : RU-02 → RU-04 → RU-03 → RU-05, puis RU-06 et RU-07 une fois précisés. RU-01 attend un cas reproductible.
+**Ordre de passage** : RU-02 → RU-04 → RU-03 → RU-05 → RU-01 (aide sous le bouton), traités et fusionnés dans `dev` le 2026-09-17. RU-06 et RU-07 attendent d'être précisés.
 
 ---
 
@@ -32,7 +32,7 @@ Le bouton ne s'active qu'avec un client **et** au moins un produit au panier (`S
 - le nom du client tapé dans la recherche mais pas choisi dans la liste ;
 - pour un produit vendable à la tranche (jambon), le choix « Vendre en entier » / « Vendre une tranche » resté sans réponse : le produit n'est pas au panier.
 
-Piste indépendante de la cause exacte : dire sous le bouton grisé ce qui manque (« Choisis un client », « Ajoute au moins un produit »).
+Fait, sans attendre la cause exacte : tant que le bouton est grisé, l'écran dit ce qui manque, dans l'ordre où il le demande — choisir le client dans la liste, terminer le choix d'un produit (en entier ou une tranche), ajouter au moins un produit. À confirmer avec les utilisateurs : si le blocage revient malgré ce message, il faudra un cas précis (produit, client, capture).
 
 ### RU-02 — La recherche d'une vente cache des produits
 

@@ -41,6 +41,18 @@ function removeFromCart(index: number) {
 const total = computed(() => state.cart.reduce((sum, l) => sum + l.amount, 0))
 const canSave = computed(() => state.customerId != null && state.cart.length > 0)
 
+/** Une unité choisie qui attend encore « en entier » ou « une tranche » n'est pas au panier. */
+const choosingLine = ref(false)
+
+// RU-01 : un bouton grisé sans explication a été lu comme « vente impossible ». On dit ce qui manque,
+// dans l'ordre où l'écran le demande.
+const saveHint = computed(() => {
+  if (state.customerId == null) return 'Pour enregistrer, choisis le client dans la liste.'
+  if (choosingLine.value) return 'Pour enregistrer, termine le choix du produit : en entier ou une tranche.'
+  if (state.cart.length === 0) return 'Pour enregistrer, ajoute au moins un produit.'
+  return null
+})
+
 const saving = ref(false)
 const saveError = ref<string | null>(null)
 
@@ -79,6 +91,7 @@ async function save() {
     :can-save="canSave"
     :saving="saving"
     :error="saveError"
+    :hint="saveHint"
     @save="save"
     @cancel="emit('cancel')"
   >
@@ -111,7 +124,13 @@ async function save() {
           </div>
         </div>
 
-        <SaleLineChooser :lots="lots" :excluded-ids="inCartIds" :loading="loadingLots" @add="(line) => state.cart.push(line)" />
+        <SaleLineChooser
+          :lots="lots"
+          :excluded-ids="inCartIds"
+          :loading="loadingLots"
+          @update:pending="(pending) => (choosingLine = pending)"
+          @add="(line) => state.cart.push(line)"
+        />
       </AppCard>
 
       <AppCard>

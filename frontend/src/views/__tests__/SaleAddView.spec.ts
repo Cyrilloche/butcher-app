@@ -207,6 +207,24 @@ describe('SaleAddView', () => {
     expect(push).toHaveBeenCalledWith('/sales')
   })
 
+  it('dit sous le bouton grisé ce qui manque pour enregistrer', async () => {
+    const wrapper = await mountView()
+    const hint = () => inDocument('.app-form-shell__hint')[0]?.text()
+
+    expect(hint()).toBe('Pour enregistrer, choisis le client dans la liste.')
+
+    await wrapper.find('.pick-customer').trigger('click')
+    expect(hint()).toBe('Pour enregistrer, ajoute au moins un produit.')
+
+    await search(wrapper, 'JB-260901')
+    await results(wrapper)[0]!.trigger('click')
+    expect(hint()).toBe('Pour enregistrer, termine le choix du produit : en entier ou une tranche.')
+
+    await buttonByText('Vendre en entier').trigger('click')
+    expect(saveButton().attributes('disabled')).toBeUndefined()
+    expect(hint()).toBeUndefined()
+  })
+
   it('affiche le refus du serveur tel quel', async () => {
     createSale.mockRejectedValue(new ApiError(409, "L'unité SC-260910-1 n'est plus en stock."))
     const wrapper = await mountView()
