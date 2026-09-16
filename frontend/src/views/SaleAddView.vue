@@ -3,25 +3,13 @@ import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AppFormShell from '@/components/base/AppFormShell.vue'
 import AppCard from '@/components/base/AppCard.vue'
-import AppButton from '@/components/base/AppButton.vue'
-import AppTextField from '@/components/base/AppTextField.vue'
 import { createSale } from '@/api/sales'
-import { listSellableLots, type SellableLot } from '@/composables/useSales'
+import { listSellableLots, type SaleLineDraft, type SellableLot } from '@/composables/useSales'
 import { formatWeight } from '@/composables/useStock'
 import { useAsyncData } from '@/composables/useAsyncData'
 import CustomerPicker from '@/components/domain/CustomerPicker.vue'
-import SellableLotSearch from '@/components/domain/SellableLotSearch.vue'
+import SaleLineChooser from '@/components/domain/SaleLineChooser.vue'
 import { ApiError } from '@/api/http'
-
-interface CartLine {
-  stockUnitId: number
-  productName: string
-  label: string
-  isFullSale: boolean
-  /** Kilogrammes, null pour un produit à la pièce. */
-  weightKg: number | null
-  amount: number
-}
 
 /**
  * `dialog` : ouvert en fenêtre depuis la liste (écran large), qui se recharge sur `saved`.
@@ -40,89 +28,11 @@ const { data: lots, loading: loadingLots } = useAsyncData(listSellableLots, [] a
 
 const state = reactive({
   customerId: props.customerId ?? (null as number | null),
-  cart: [] as CartLine[],
+  cart: [] as SaleLineDraft[],
   paid: true,
 })
 
 const inCartIds = computed(() => new Set(state.cart.map((l) => l.stockUnitId)))
-
-// Une unité `opened` (déjà entamée) ou d'un produit `allowPartialSale` demande une
-// décision avant d'atterrir dans le panier — les autres s'ajoutent directement.
-const pendingLot = ref<SellableLot | null>(null)
-const pendingMode = ref<'choice' | 'weight' | null>(null)
-const sliceGrams = ref('')
-/** Poids encore vendable (kg) sur l'unité en cours, tel que le serveur l'a calculé (RG-05).
- *  Le garde-fou serveur revalide à l'écriture : c'est lui qui fait foi. */
-const remainingWeightKg = ref<number | null>(null)
-
-function loadRemainingWeight(lot: SellableLot) {
-  remainingWeightKg.value = lot.remainingWeight
-}
-
-function pickLot(lot: SellableLot) {
-  if (lot.status === 'opened') {
-    pendingLot.value = lot
-    pendingMode.value = 'weight'
-    loadRemainingWeight(lot)
-  } else if (lot.allowPartialSale) {
-    pendingLot.value = lot
-    pendingMode.value = 'choice'
-  } else {
-    addFullSaleToCart(lot)
-  }
-}
-
-function startSlice() {
-  if (!pendingLot.value) return
-  pendingMode.value = 'weight'
-  loadRemainingWeight(pendingLot.value)
-}
-
-function clearPending() {
-  pendingLot.value = null
-  pendingMode.value = null
-  sliceGrams.value = ''
-  remainingWeightKg.value = null
-}
-
-const exceedsRemaining = computed(() => {
-  const grams = Number(sliceGrams.value)
-  if (remainingWeightKg.value == null || !(grams > 0)) return false
-  return grams / 1000 > remainingWeightKg.value
-})
-
-function addFullSaleToCart(lot: SellableLot) {
-  state.cart.push({
-    stockUnitId: lot.stockUnitId,
-    productName: lot.productName,
-    label: lot.label,
-    isFullSale: true,
-    weightKg: lot.weight,
-    amount: lot.price,
-  })
-  clearPending()
-}
-
-const sliceAmount = computed(() => {
-  const grams = Number(sliceGrams.value)
-  if (!pendingLot.value?.pricePerKg || !(grams > 0)) return 0
-  return Math.round((grams / 1000) * pendingLot.value.pricePerKg * 100) / 100
-})
-
-function confirmSlice() {
-  const lot = pendingLot.value
-  const grams = Number(sliceGrams.value)
-  if (!lot || !(grams > 0) || exceedsRemaining.value) return
-  state.cart.push({
-    stockUnitId: lot.stockUnitId,
-    productName: lot.productName,
-    label: lot.label,
-    isFullSale: false,
-    weightKg: grams / 1000,
-    amount: sliceAmount.value,
-  })
-  clearPending()
-}
 
 function removeFromCart(index: number) {
   state.cart.splice(index, 1)
@@ -201,67 +111,7 @@ async function save() {
           </div>
         </div>
 
-        <!-- Unité opened, ou available d'un produit vendable à la tranche : décision à prendre. -->
-        <div v-if="pendingLot" class="sale-add-view__pending">
-          <div class="sale-add-view__pending-header">
-            <div>
-              <div class="font-weight-medium">{{ pendingLot.productName }}</div>
-              <div class="text-secondary">{{ pendingLot.label }} · {{ pendingLot.detail }}</div>
-            </div>
-            <button type="button" class="sale-add-view__change" @click="clearPending">Annuler</button>
-          </div>
-
-          <div v-if="pendingMode === 'choice'" class="sale-add-view__pending-choice">
-            <AppButton color="primary" height="52" @click="addFullSaleToCart(pendingLot)">
-              Vendre en entier — {{ pendingLot.price.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} €
-            </AppButton>
-            <AppButton height="52" @click="startSlice">Vendre une tranche</AppButton>
-          </div>
-
-          <div v-else class="sale-add-view__pending-weight-block">
-            <p v-if="remainingWeightKg != null" class="sale-add-view__remaining" :class="{ 'text-error': exceedsRemaining }">
-              Poids restant : {{ formatWeight(Math.round(remainingWeightKg * 1000)) }}
-            </p>
-
-            <!-- Libellé hors de la rangée : dans le flex, il se faisait écraser mot par mot. -->
-            <label for="slice-grams" class="sale-add-view__pending-label">Poids de la tranche</label>
-            <div class="sale-add-view__pending-weight">
-              <AppTextField
-                id="slice-grams"
-                v-model="sliceGrams"
-                type="number"
-                inputmode="numeric"
-                min="0"
-                suffix="g"
-                hide-details
-              />
-              <div class="sale-add-view__pending-amount text-secondary">
-                {{ sliceAmount > 0 ? `${sliceAmount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €` : '—' }}
-              </div>
-              <AppButton
-                color="primary"
-                height="52"
-                :disabled="!(Number(sliceGrams) > 0) || exceedsRemaining"
-                @click="confirmSlice"
-              >
-                Ajouter
-              </AppButton>
-            </div>
-
-            <p v-if="exceedsRemaining" class="text-error sale-add-view__remaining-warning">
-              Ce poids dépasse le poids restant estimé sur cette unité.
-            </p>
-          </div>
-        </div>
-
-        <!-- Masquée et non démontée pendant une décision : la saisie en cours y est gardée. -->
-        <SellableLotSearch
-          v-show="!pendingLot"
-          :lots="lots"
-          :excluded-ids="inCartIds"
-          :loading="loadingLots"
-          @pick="pickLot"
-        />
+        <SaleLineChooser :lots="lots" :excluded-ids="inCartIds" :loading="loadingLots" @add="(line) => state.cart.push(line)" />
       </AppCard>
 
       <AppCard>
@@ -303,82 +153,6 @@ async function save() {
   font-size: 16px;
   font-weight: 600;
   margin-bottom: 12px;
-}
-
-.sale-add-view__pending {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  background: rgb(var(--v-theme-status-neutral-container));
-  border-radius: 10px;
-  padding: 14px;
-  margin-bottom: 10px;
-}
-
-.sale-add-view__pending-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.sale-add-view__pending-choice {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.sale-add-view__pending-weight-block {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.sale-add-view__remaining {
-  font-size: 14px;
-  font-weight: 500;
-  margin: 0;
-}
-
-.sale-add-view__remaining-warning {
-  font-size: 14px;
-  font-weight: 500;
-  margin: 0;
-}
-
-.sale-add-view__pending-weight {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-}
-
-.sale-add-view__pending-label {
-  font-size: 15px;
-  font-weight: 500;
-  color: rgb(var(--v-theme-on-surface));
-}
-
-.sale-add-view__pending-weight > :first-child {
-  flex: 1;
-  min-width: 0;
-}
-
-.sale-add-view__pending-amount {
-  font-size: 16px;
-  font-weight: 600;
-  padding-bottom: 14px;
-  white-space: nowrap;
-}
-
-.sale-add-view__change {
-  border: none;
-  background: none;
-  color: rgb(var(--v-theme-primary));
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: var(--font-body);
-  min-height: 44px;
 }
 
 .sale-add-view__cart {

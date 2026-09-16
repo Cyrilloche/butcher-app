@@ -7,6 +7,7 @@ import AppButton from '@/components/base/AppButton.vue'
 import AppTextField from '@/components/base/AppTextField.vue'
 import AuthorLabel from '@/components/domain/AuthorLabel.vue'
 import CustomerPicker from '@/components/domain/CustomerPicker.vue'
+import SaleAddLineDialog from '@/components/domain/SaleAddLineDialog.vue'
 import SaleDeleteAction from '@/components/domain/SaleDeleteAction.vue'
 import SaleLineEditDialog from '@/components/domain/SaleLineEditDialog.vue'
 import { getSale, setSalePayment, updateSale } from '@/api/sales'
@@ -131,6 +132,10 @@ function openLine(movement: StockMovementDto) {
 async function onLineChanged() {
   await reload()
 }
+
+// --- Ajout d'un produit, complément demandé par le client (RU-03) ------------------------------
+
+const addLineOpen = ref(false)
 
 async function onSaleDeleted() {
   await router.push('/sales')
@@ -264,6 +269,11 @@ async function onSaleDeleted() {
       </AppCard>
 
       <template v-if="!editing">
+        <AppButton block height="56" color="primary" @click="addLineOpen = true">
+          <v-icon start size="18">phosphor:plus</v-icon>
+          Ajouter un produit
+        </AppButton>
+
         <AppButton
           v-if="!sale.paid"
           block
@@ -297,6 +307,8 @@ async function onSaleDeleted() {
       @saved="onLineChanged"
       @removed="onLineChanged"
     />
+
+    <SaleAddLineDialog v-model="addLineOpen" :sale="sale" @added="onLineChanged" />
   </v-container>
 </template>
 
