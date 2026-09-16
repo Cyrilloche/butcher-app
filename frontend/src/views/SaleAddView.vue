@@ -23,16 +23,23 @@ interface CartLine {
   amount: number
 }
 
-/** `dialog` : ouvert en fenêtre depuis la liste (écran large), qui se recharge sur `saved`. */
-const props = defineProps<{ dialog?: boolean }>()
+/**
+ * `dialog` : ouvert en fenêtre depuis la liste (écran large), qui se recharge sur `saved`.
+ * `customerId` : vente lancée depuis la fiche d'un client (RU-04). Le client est déjà choisi, reste
+ * modifiable, et la page ramène à sa fiche plutôt qu'à la liste des ventes.
+ */
+const props = defineProps<{ dialog?: boolean; customerId?: number }>()
 const emit = defineEmits<{ saved: []; cancel: [] }>()
 
 const router = useRouter()
 
+const backTo = props.customerId != null ? `/customers/${props.customerId}` : '/sales'
+const backLabel = props.customerId != null ? 'Client' : 'Ventes'
+
 const { data: lots, loading: loadingLots } = useAsyncData(listSellableLots, [] as SellableLot[])
 
 const state = reactive({
-  customerId: null as number | null,
+  customerId: props.customerId ?? (null as number | null),
   cart: [] as CartLine[],
   paid: true,
 })
@@ -143,7 +150,7 @@ async function save() {
       })),
     })
     if (props.dialog) emit('saved')
-    else await router.push('/sales')
+    else await router.push(backTo)
   } catch (err) {
     saveError.value = err instanceof ApiError ? err.message : "Erreur lors de l'enregistrement, réessaie."
   } finally {
@@ -155,8 +162,8 @@ async function save() {
 <template>
   <AppFormShell
     title="Nouvelle vente"
-    back-to="/sales"
-    back-label="Ventes"
+    :back-to="backTo"
+    :back-label="backLabel"
     :dialog="dialog"
     :save-label="saving ? 'Enregistrement...' : canSave ? `Enregistrer la vente — ${total.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €` : 'Enregistrer la vente'"
     :can-save="canSave"

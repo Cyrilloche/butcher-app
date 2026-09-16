@@ -7,7 +7,8 @@ import type * as SalesApi from '@/api/sales'
 import type * as UseSales from '@/composables/useSales'
 import SaleAddView from '../SaleAddView.vue'
 
-vi.mock('vue-router', () => ({ useRouter: () => ({ push: vi.fn<() => void>(), replace: vi.fn<() => void>() }) }))
+const push = vi.fn<(to: string) => void>()
+vi.mock('vue-router', () => ({ useRouter: () => ({ push, replace: vi.fn<() => void>() }) }))
 vi.mock('@/api/sales', () => ({ createSale: vi.fn<typeof SalesApi.createSale>() }))
 vi.mock('@/composables/useSales', () => ({ listSellableLots: vi.fn<typeof UseSales.listSellableLots>() }))
 
@@ -51,9 +52,9 @@ const jambon: SellableLot = {
 }
 const jambonEntame: SellableLot = { ...jambon, stockUnitId: 3, label: 'JB-260820-1', status: 'opened', remainingWeight: 2.15 }
 
-async function mountView() {
+async function mountView(props: { dialog?: boolean; customerId?: number } = { dialog: true }) {
   const wrapper = mountWithVuetify(SaleAddView, {
-    props: { dialog: true },
+    props,
     global: { stubs: { CustomerPicker: CustomerPickerStub } },
   })
   await settle()
@@ -178,6 +179,32 @@ describe('SaleAddView', () => {
 
     await sliceInput(wrapper).setValue('2150')
     expect(buttonByText('Ajouter').attributes('disabled')).toBeUndefined()
+  })
+
+  it('part du client de la fiche d’où la vente est lancée, et y ramène une fois enregistrée', async () => {
+    createSale.mockResolvedValue({} as never)
+    const wrapper = await mountView({ customerId: 7 })
+
+    await search(wrapper, 'saucisson')
+    await results(wrapper)[0]!.trigger('click')
+    await saveButton().trigger('click')
+    await settle()
+
+    expect(createSale).toHaveBeenCalledWith(expect.objectContaining({ customerId: 7 }))
+    expect(push).toHaveBeenCalledWith('/customers/7')
+  })
+
+  it('ramène à la liste des ventes sans client de départ', async () => {
+    createSale.mockResolvedValue({} as never)
+    const wrapper = await mountView({})
+
+    await wrapper.find('.pick-customer').trigger('click')
+    await search(wrapper, 'saucisson')
+    await results(wrapper)[0]!.trigger('click')
+    await saveButton().trigger('click')
+    await settle()
+
+    expect(push).toHaveBeenCalledWith('/sales')
   })
 
   it('affiche le refus du serveur tel quel', async () => {

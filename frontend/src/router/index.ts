@@ -24,7 +24,13 @@ const router = createRouter({
       props: true,
     },
     { path: '/sales', name: 'sales', component: () => import('@/views/SalesView.vue') },
-    { path: '/sales/add', name: 'sales-add', component: () => import('@/views/SaleAddView.vue') },
+    {
+      path: '/sales/add',
+      name: 'sales-add',
+      component: () => import('@/views/SaleAddView.vue'),
+      // `?client=12` : vente lancée depuis la fiche d'un client (RU-04).
+      props: (route) => ({ customerId: route.query.client ? Number(route.query.client) : undefined }),
+    },
     {
       path: '/sales/:id',
       name: 'sales-detail',

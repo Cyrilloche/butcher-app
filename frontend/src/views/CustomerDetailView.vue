@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, reactive, ref, watch } from 'vue'
 import AppPageHeader from '@/components/base/AppPageHeader.vue'
 import AppCard from '@/components/base/AppCard.vue'
 import AppTextField from '@/components/base/AppTextField.vue'
@@ -7,6 +7,7 @@ import AppButton from '@/components/base/AppButton.vue'
 import { getCustomer, updateCustomer } from '@/api/customers'
 import { listSales } from '@/api/sales'
 import { useAsyncData } from '@/composables/useAsyncData'
+import { useAddDialog } from '@/composables/useAddDialog'
 import { ApiError } from '@/api/http'
 import type { SaleDto } from '@/api/types'
 
@@ -15,7 +16,16 @@ const customerId = computed(() => Number(props.id))
 
 const { data: customer, loading, error, reload } = useAsyncData(() => getCustomer(customerId.value), null)
 
-const { data: sales } = useAsyncData(() => listSales({ customerId: customerId.value }), [] as SaleDto[])
+const { data: sales, reload: reloadSales } = useAsyncData(() => listSales({ customerId: customerId.value }), [] as SaleDto[])
+
+// Nouvelle vente pour ce client (RU-04) : une page sur téléphone, une fenêtre sur écran large.
+const SaleAddView = defineAsyncComponent(() => import('@/views/SaleAddView.vue'))
+const { mdAndUp, open: saleOpen } = useAddDialog()
+
+function onSaleSaved() {
+  saleOpen.value = false
+  reloadSales()
+}
 
 watch(customerId, reload)
 
@@ -110,6 +120,17 @@ async function save() {
         </div>
       </AppCard>
 
+      <AppButton
+        block
+        height="56"
+        color="primary"
+        prepend-icon="phosphor:plus"
+        :to="mdAndUp ? undefined : `/sales/add?client=${customer.id}`"
+        @click="saleOpen = mdAndUp"
+      >
+        Nouvelle vente
+      </AppButton>
+
       <AppCard>
         <div class="customer-detail-view__section-title text-secondary">Coordonnées</div>
         <div class="customer-detail-view__form">
@@ -159,6 +180,10 @@ async function save() {
         {{ saving ? 'Enregistrement...' : 'Enregistrer les modifications' }}
       </AppButton>
     </div>
+
+    <v-dialog v-model="saleOpen">
+      <SaleAddView v-if="saleOpen" dialog :customer-id="customer.id" @saved="onSaleSaved" @cancel="saleOpen = false" />
+    </v-dialog>
   </v-container>
 </template>
 
