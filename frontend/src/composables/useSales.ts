@@ -6,7 +6,10 @@ import type { ProductDto, ProductionBatchDto, StockUnitDto, StockUnitStatus } fr
 
 export interface SellableLot {
   stockUnitId: number
+  productId: number
   productName: string
+  /** Code court du produit (`SC`), celui qui préfixe les numéros d'étiquette. */
+  productCode: string
   /** Numéro d'étiquette de l'unité, tel que le serveur l'a émis (`CODE-YYMMDD-N`). */
   label: string
   detail: string
@@ -64,7 +67,9 @@ export async function listSellableLots(): Promise<SellableLot[]> {
       if (unit.status !== 'available' && unit.status !== 'opened') return
       lots.push({
         stockUnitId: unit.id,
+        productId: product.id,
         productName: product.name,
+        productCode: product.code,
         label: unit.unitNumber,
         detail: unitDetail(unit, batch),
         remainingWeight: unit.remainingWeight,
@@ -76,10 +81,10 @@ export async function listSellableLots(): Promise<SellableLot[]> {
       })
     })
   }
-  // La liste de sélection est plate : elle ne montre pas les fournées, seulement des
-  // étiquettes. L'ordre des fournées (date décroissante) n'y veut donc rien dire, et
-  // mélangeait les rangs. On trie par produit, puis par numéro d'étiquette, avec une
-  // comparaison numérique pour que -2 précède -10.
+  // La recherche ne montre pas les fournées, seulement des produits puis des étiquettes.
+  // L'ordre des fournées (date décroissante) n'y veut donc rien dire, et mélangeait les
+  // rangs. On trie par produit, puis par numéro d'étiquette, avec une comparaison
+  // numérique pour que -2 précède -10.
   return lots.sort(
     (a, b) =>
       a.productName.localeCompare(b.productName, 'fr') ||
