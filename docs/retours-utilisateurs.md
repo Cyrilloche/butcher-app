@@ -13,7 +13,7 @@
 | RU-01 | Vente impossible à valider : le bouton « Enregistrer » restait grisé | Bug ? | Bloquant | ? | En attente d'informations |
 | RU-02 | La recherche d'une vente cache des produits : « que 8 affichés », « en tapant chipo on ne voit pas toutes les chipos » | Gêne d'usage | Bloquant en pratique | M | Corrigé, à valider par les utilisateurs |
 | RU-03 | Ajouter un produit à une vente déjà enregistrée, quand le client demande un complément | Demande | Fréquente | M | À faire |
-| RU-04 | Lancer une nouvelle vente depuis la fiche d'un client, client déjà rempli | Demande | Fréquente | S | À faire |
+| RU-04 | Lancer une nouvelle vente depuis la fiche d'un client, client déjà rempli | Demande | Fréquente | S | Fait, à valider par les utilisateurs |
 | RU-05 | Sur PC, la barre latérale défile | Bug d'affichage | Cosmétique | S | À faire |
 | RU-06 | « Pouvoir modifier des commandes » | À préciser | ? | ? | À préciser |
 | RU-07 | « Intéressant d'avoir des allergies » | Demande nouvelle | Idée | M à L | À préciser |
