@@ -40,6 +40,7 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 | Backoffice PC — lot 2 : mise en page PC | ✅ **Fusionné dans `dev`** : barre latérale, vue d'ensemble, Ventes/Stock/Clients/Produits en tableaux triables (`AppSortableTable`), formulaires d'ajout en fenêtre sur écran large (`AppFormShell`), largeur unique des fenêtres (440 px, défaut Vuetify) ; mobile inchangé |
 | Backoffice PC — lots 3 et 4 : journal et rapports (RF-32, RF-33) | ✅ **Fusionné dans `dev`** : table `audit_entry` écrite par `SaveChanges`, une entrée par geste, contenu des suppressions, connexions tracées ; écran Journal. Rapports par période, mois, client, produit et à encaisser, calculés par le serveur en jours de Paris ; écran Rapports, vue d'ensemble lue sur les rapports. Quickstart des lots 3 et 4 déroulé — `specs/005-backoffice/tasks.md` |
 | Développement Vague 1 | ✅ **Complet** — RF-08/RF-09 (DLC, matière première) reportées en V2 le 2026-09-11 ; recette manuelle de la correction d'une vente déroulée et validée le 2026-09-11 |
+| Retours de la première recette réelle (2026-09-16) | 🔄 `docs/retours-utilisateurs.md` : recherche d'une vente par produit (RU-02), vente depuis la fiche client (RU-04), ajout d'un produit à une vente enregistrée (RU-03), barre latérale PC (RU-05), aide sous le bouton grisé (RU-01) fusionnés dans `dev` le 2026-09-17 ; RU-06 (commandes) et RU-07 (allergies) à préciser |
 | Analyse d'écart doc ↔ code | ✅ `docs/etat-des-lieux.md` v2.0 (12/09/2026) |
 
 **Méthode : dé-risquage avant développement.** On valide les points techniques risqués par des *spikes* isolés **avant** de construire les fonctionnalités. Spikes prévus, dans l'ordre :
@@ -70,6 +71,7 @@ La documentation de référence vit dans `docs/`. **En cas de doute, ces documen
 | `docs/ADR.md` | Le *avec quoi* : les 10 décisions d'architecture, chacune avec son contexte, ses conséquences et les alternatives écartées. |
 | `docs/data-model.md` | Le modèle de données détaillé (entités, contraintes, format du numéro de lot, DBML, table de correspondance FR/EN, points d'extension V2+). |
 | `docs/etat-des-lieux.md` | Le *où on en est* : analyse d'écart entre ce qui était prévu et ce qui tourne, datée. Photographie, pas référence — les décisions qu'elle appelle redescendent dans les documents ci-dessus. |
+| `docs/retours-utilisateurs.md` | Les retours de test en condition réelle, triés en tickets `RU-xx` (type, impact, effort, statut). Une branche par ticket depuis `dev`, fusionnée sans squash. |
 | `CHANGELOG.md` | Journal des versions publiées, **généré** depuis les messages de commit (`make changelog`). Ne jamais l'éditer à la main. |
 
 > Les exigences sont référencées par identifiant (`RF-07`, `RG-02`, `ADR-005`…). Utiliser ces références dans le code, les commits et les discussions pour la traçabilité.
