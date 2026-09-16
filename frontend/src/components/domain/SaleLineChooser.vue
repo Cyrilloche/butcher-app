@@ -6,7 +6,7 @@
   l'ajoute à la vente enregistrée (RU-03) : les deux offrent le même geste.
 -->
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import AppButton from '@/components/base/AppButton.vue'
 import AppTextField from '@/components/base/AppTextField.vue'
 import SellableLotSearch from '@/components/domain/SellableLotSearch.vue'
@@ -19,7 +19,11 @@ defineProps<{
   excludedIds: Set<number>
   loading: boolean
 }>()
-const emit = defineEmits<{ add: [line: SaleLineDraft] }>()
+const emit = defineEmits<{
+  add: [line: SaleLineDraft]
+  /** Vrai tant qu'une unité attend sa décision (en entier, tranche) : elle n'est pas encore ajoutée. */
+  'update:pending': [pending: boolean]
+}>()
 
 // Une unité `opened` (déjà entamée) ou d'un produit `allowPartialSale` demande une
 // décision avant d'être ajoutée — les autres le sont directement.
@@ -29,6 +33,8 @@ const sliceGrams = ref('')
 /** Poids encore vendable (kg) sur l'unité en cours, tel que le serveur l'a calculé (RG-05).
  *  Le garde-fou serveur revalide à l'écriture : c'est lui qui fait foi. */
 const remainingWeightKg = ref<number | null>(null)
+
+watch(pendingLot, (lot) => emit('update:pending', lot != null))
 
 function loadRemainingWeight(lot: SellableLot) {
   remainingWeightKg.value = lot.remainingWeight
