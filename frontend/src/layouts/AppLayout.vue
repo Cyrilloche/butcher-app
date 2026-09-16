@@ -131,12 +131,17 @@ const initial = computed(() => (auth.account?.displayName.trim().charAt(0) ?? '?
   border-right: 1px solid rgb(var(--v-theme-field-border));
 }
 
+/*
+ * Tout doit tenir sans défiler sur un portable (RU-05) : avec les huit entrées d'un administrateur,
+ * l'ancien espacement demandait 715 px, plus que la hauteur utile d'un écran de 768 px une fois le
+ * navigateur ouvert. Les marges resserrées la ramènent sous 600 px.
+ */
 .app-sidebar__inner {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 16px;
   min-height: 100%;
-  padding: 28px 18px 24px;
+  padding: 20px 18px 16px;
 }
 
 .app-sidebar__brand {
@@ -180,7 +185,7 @@ const initial = computed(() => (auth.account?.displayName.trim().charAt(0) ?? '?
 }
 
 .app-sidebar__today {
-  padding: 12px 14px;
+  padding: 8px 14px;
   background: rgb(var(--v-theme-background));
   border-radius: 12px;
   display: flex;
@@ -204,14 +209,14 @@ const initial = computed(() => (auth.account?.displayName.trim().charAt(0) ?? '?
 .app-sidebar__nav {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .app-sidebar__link {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 11px 14px;
+  padding: 9px 14px;
   border-radius: 10px;
   text-decoration: none;
   color: rgb(var(--v-theme-secondary));
@@ -231,6 +236,13 @@ const initial = computed(() => (auth.account?.displayName.trim().charAt(0) ?? '?
 
 .app-sidebar__spacer {
   flex: 1;
+}
+
+/* Écran vraiment bas : la date du jour, simple repère, laisse la place à la navigation. */
+@media (max-height: 640px) {
+  .app-sidebar__today {
+    display: none;
+  }
 }
 
 .app-sidebar__account {
