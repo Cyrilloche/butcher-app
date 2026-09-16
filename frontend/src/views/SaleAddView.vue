@@ -10,6 +10,7 @@ import { listSellableLots, type SellableLot } from '@/composables/useSales'
 import { formatWeight } from '@/composables/useStock'
 import { useAsyncData } from '@/composables/useAsyncData'
 import CustomerPicker from '@/components/domain/CustomerPicker.vue'
+import SellableLotSearch from '@/components/domain/SellableLotSearch.vue'
 import { ApiError } from '@/api/http'
 
 interface CartLine {
@@ -32,20 +33,11 @@ const { data: lots, loading: loadingLots } = useAsyncData(listSellableLots, [] a
 
 const state = reactive({
   customerId: null as number | null,
-  lotQuery: '',
   cart: [] as CartLine[],
   paid: true,
 })
 
 const inCartIds = computed(() => new Set(state.cart.map((l) => l.stockUnitId)))
-const lotResults = computed(() => {
-  const q = state.lotQuery.trim().toLowerCase()
-  if (q.length < 2) return []
-  return lots.value
-    .filter((l) => !inCartIds.value.has(l.stockUnitId))
-    .filter((l) => l.productName.toLowerCase().includes(q) || l.label.toLowerCase().includes(q))
-    .slice(0, 8)
-})
 
 // Une unité `opened` (déjà entamée) ou d'un produit `allowPartialSale` demande une
 // décision avant d'atterrir dans le panier — les autres s'ajoutent directement.
@@ -71,7 +63,6 @@ function pickLot(lot: SellableLot) {
   } else {
     addFullSaleToCart(lot)
   }
-  state.lotQuery = ''
 }
 
 function startSlice() {
@@ -256,42 +247,14 @@ async function save() {
           </div>
         </div>
 
-        <template v-else>
-          <div class="sale-add-view__search">
-            <v-icon size="20">phosphor:magnifying-glass</v-icon>
-            <input
-              v-model="state.lotQuery"
-              type="text"
-              placeholder="Produit ou n° de lot"
-              class="sale-add-view__search-input"
-            />
-          </div>
-
-          <p v-if="loadingLots" class="text-secondary mb-0">Chargement des lots disponibles...</p>
-          <div v-else-if="lotResults.length > 0" class="sale-add-view__results">
-            <button
-              v-for="lot in lotResults"
-              :key="lot.stockUnitId"
-              type="button"
-              class="sale-add-view__result"
-              @click="pickLot(lot)"
-            >
-              <span class="sale-add-view__result-info">
-                <span class="sale-add-view__result-name">
-                  {{ lot.label }}
-                  <span v-if="lot.status === 'opened'" class="sale-add-view__result-opened">Entamé</span>
-                </span>
-                <span class="sale-add-view__result-detail text-secondary">{{ lot.detail }}</span>
-              </span>
-              <span v-if="lot.status === 'available'" class="sale-add-view__result-price">
-                {{ lot.price.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} €
-              </span>
-            </button>
-          </div>
-          <p v-else-if="state.lotQuery.trim().length >= 2" class="text-secondary sale-add-view__no-results">
-            Aucun lot disponible ne correspond.
-          </p>
-        </template>
+        <!-- Masquée et non démontée pendant une décision : la saisie en cours y est gardée. -->
+        <SellableLotSearch
+          v-show="!pendingLot"
+          :lots="lots"
+          :excluded-ids="inCartIds"
+          :loading="loadingLots"
+          @pick="pickLot"
+        />
       </AppCard>
 
       <AppCard>
@@ -333,88 +296,6 @@ async function save() {
   font-size: 16px;
   font-weight: 600;
   margin-bottom: 12px;
-}
-
-.sale-add-view__search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgb(var(--v-theme-field-surface));
-  border: 1.5px solid rgb(var(--v-theme-field-border));
-  border-radius: 10px;
-  padding: 0 14px;
-  height: 52px;
-  color: rgb(var(--v-theme-secondary));
-  margin-bottom: 10px;
-}
-
-.sale-add-view__search-input {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  outline: none;
-  background: none;
-  font-family: var(--font-body);
-  font-size: 17px;
-  color: rgb(var(--v-theme-on-surface));
-  height: 100%;
-}
-
-.sale-add-view__results {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.sale-add-view__result {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border: none;
-  background: rgb(var(--v-theme-status-neutral-container));
-  border-radius: 10px;
-  padding: 10px 14px;
-  cursor: pointer;
-  font-family: var(--font-body);
-  text-align: left;
-  min-height: 48px;
-}
-
-.sale-add-view__result-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-/* Le numéro d'étiquette ne se coupe jamais : il se recopie à la main. */
-.sale-add-view__result-name {
-  font-size: 16px;
-  font-weight: 500;
-  color: rgb(var(--v-theme-on-surface));
-  white-space: nowrap;
-}
-
-.sale-add-view__result-detail {
-  font-size: 14px;
-}
-
-.sale-add-view__result-price {
-  flex-shrink: 0;
-  white-space: nowrap;
-  font-weight: 600;
-  color: rgb(var(--v-theme-success));
-}
-
-.sale-add-view__result-opened {
-  background: rgb(var(--v-theme-warning-container));
-  color: rgb(var(--v-theme-warning));
-  font-size: 12px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 999px;
-  margin-left: 6px;
 }
 
 .sale-add-view__pending {
@@ -480,12 +361,6 @@ async function save() {
   font-weight: 600;
   padding-bottom: 14px;
   white-space: nowrap;
-}
-
-.sale-add-view__no-results {
-  text-align: center;
-  padding: 6px 0;
-  margin: 0;
 }
 
 .sale-add-view__change {

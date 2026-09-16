@@ -11,7 +11,7 @@
 | Réf. | Retour (reformulé) | Type | Impact | Effort | Statut |
 |---|---|---|---|---|---|
 | RU-01 | Vente impossible à valider : le bouton « Enregistrer » restait grisé | Bug ? | Bloquant | ? | En attente d'informations |
-| RU-02 | La recherche d'une vente cache des produits : « que 8 affichés », « en tapant chipo on ne voit pas toutes les chipos » | Gêne d'usage | Bloquant en pratique | M | En cours |
+| RU-02 | La recherche d'une vente cache des produits : « que 8 affichés », « en tapant chipo on ne voit pas toutes les chipos » | Gêne d'usage | Bloquant en pratique | M | Corrigé, à valider par les utilisateurs |
 | RU-03 | Ajouter un produit à une vente déjà enregistrée, quand le client demande un complément | Demande | Fréquente | M | À faire |
 | RU-04 | Lancer une nouvelle vente depuis la fiche d'un client, client déjà rempli | Demande | Fréquente | S | À faire |
 | RU-05 | Sur PC, la barre latérale défile | Bug d'affichage | Cosmétique | S | À faire |

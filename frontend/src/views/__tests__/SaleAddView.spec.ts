@@ -23,7 +23,9 @@ const CustomerPickerStub = defineComponent({
 
 const saucisson: SellableLot = {
   stockUnitId: 1,
+  productId: 1,
   productName: 'Saucisson',
+  productCode: 'SC',
   label: 'SC-260910-1',
   detail: '1,24 kg · 18,50 € / kg',
   status: 'available',
@@ -35,7 +37,9 @@ const saucisson: SellableLot = {
 }
 const jambon: SellableLot = {
   stockUnitId: 2,
+  productId: 2,
   productName: 'Jambon',
+  productCode: 'JB',
   label: 'JB-260901-1',
   detail: '5,4 kg · 25,00 € / kg',
   status: 'available',
@@ -57,11 +61,11 @@ async function mountView() {
 }
 
 async function search(wrapper: ReturnType<typeof mountWithVuetify>, text: string) {
-  await wrapper.find('.sale-add-view__search-input').setValue(text)
+  await wrapper.find('.sellable-lot-search__input').setValue(text)
 }
 
 function results(wrapper: ReturnType<typeof mountWithVuetify>) {
-  return wrapper.findAll('.sale-add-view__result')
+  return wrapper.findAll('.sellable-lot-search__unit')
 }
 
 /** Champ du poids de la tranche : l'identifiant est posé sur l'enveloppe du champ Vuetify. */
@@ -83,17 +87,17 @@ afterEach(() => {
 })
 
 describe('SaleAddView', () => {
-  it('ne cherche qu’à partir de deux caractères, par produit ou numéro d’étiquette', async () => {
+  it('garde la recherche après un choix, et la rend après une décision sur un jambon', async () => {
     const wrapper = await mountView()
 
-    await search(wrapper, 's')
-    expect(results(wrapper)).toHaveLength(0)
+    await search(wrapper, 'JB-2609')
+    await results(wrapper)[0]!.trigger('click')
+    expect(wrapper.find('.sellable-lot-search').isVisible()).toBe(false)
 
-    await search(wrapper, 'jb-2609')
-    expect(results(wrapper).map((r) => r.text())).toEqual([expect.stringContaining('JB-260901-1')])
+    await buttonByText('Vendre en entier').trigger('click')
 
-    await search(wrapper, 'zz')
-    expect(wrapper.text()).toContain('Aucun lot disponible ne correspond.')
+    expect(wrapper.find('.sellable-lot-search').isVisible()).toBe(true)
+    expect((wrapper.find('.sellable-lot-search__input').element as HTMLInputElement).value).toBe('JB-2609')
   })
 
   it('enregistre une vente en entier au prix pré-calculé, et ne propose plus l’unité déjà au panier', async () => {
