@@ -26,6 +26,17 @@ export interface SellableLot {
   allowPartialSale: boolean
 }
 
+/** Ligne de vente choisie, pas encore enregistrée : au panier d'une saisie, ou à ajouter à une vente. */
+export interface SaleLineDraft {
+  stockUnitId: number
+  productName: string
+  label: string
+  isFullSale: boolean
+  /** Kilogrammes, null pour un produit à la pièce. */
+  weightKg: number | null
+  amount: number
+}
+
 /** Prix d'une unité vendue en entier : poids réel × prix/kg du lot (RG-03), ou prix pièce du lot tel quel. */
 function unitPrice(unit: StockUnitDto, batch: ProductionBatchDto): number {
   return unit.weight != null ? Math.round(unit.weight * batch.salePrice * 100) / 100 : batch.salePrice

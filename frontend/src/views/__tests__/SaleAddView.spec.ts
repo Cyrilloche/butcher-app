@@ -71,7 +71,7 @@ function results(wrapper: ReturnType<typeof mountWithVuetify>) {
 
 /** Champ du poids de la tranche : l'identifiant est posé sur l'enveloppe du champ Vuetify. */
 function sliceInput(wrapper: ReturnType<typeof mountWithVuetify>) {
-  return wrapper.find('.sale-add-view__pending-weight input')
+  return wrapper.find('.sale-line-chooser__pending-weight input')
 }
 
 function saveButton() {
@@ -147,7 +147,7 @@ describe('SaleAddView', () => {
 
     await buttonByText('Vendre une tranche').trigger('click')
     await sliceInput(wrapper).setValue('400')
-    expect(wrapper.find('.sale-add-view__pending-amount').text()).toBe('10,00 €')
+    expect(wrapper.find('.sale-line-chooser__pending-amount').text()).toBe('10,00 €')
 
     await buttonByText('Ajouter').trigger('click')
     expect(wrapper.find('.sale-add-view__cart').text()).toContain('tranche, 400 g')
