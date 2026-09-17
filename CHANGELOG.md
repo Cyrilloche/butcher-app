@@ -3,6 +3,25 @@
 Généré à partir des messages de commit ([Conventional Commits](https://www.conventionalcommits.org/fr/)).
 Ne pas éditer à la main : régénérer avec `make changelog`.
 
+## frontend-v0.7.0 — 17/09/2026
+
+### Nouveautés
+
+- **frontend** : Nouvelle vente depuis la fiche d'un client, client déjà choisi (RU-04) (8279b90)
+- **frontend** : Ajouter un produit à une vente enregistrée, quand le client demande un complément (RU-03) (eca7194)
+
+### Corrections
+
+- **frontend** : La recherche d'une vente propose tous les produits, puis toutes leurs unités (RU-02) (f196cd1)
+- **frontend** : La barre latérale tient sans défiler sur un écran de portable (RU-05) (0ffb887)
+- **frontend** : La saisie d'une vente dit ce qui manque tant que le bouton est grisé (RU-01) (4098cd6)
+
+### Documentation
+
+- Retours utilisateurs de la recette du 2026-09-16 (1c696cc)
+- Retours utilisateurs référencés dans CLAUDE.md (09f3e0c)
+- RU-06 et RU-07 sans suite, correctifs de la recette publiés en frontend-v0.7.0 (2cd003b)
+
 ## frontend-v0.6.0 — 14/09/2026
 
 ### Nouveautés
