@@ -15,10 +15,10 @@
 | RU-03 | Ajouter un produit à une vente déjà enregistrée, quand le client demande un complément | Demande | Fréquente | M | Fait, à valider par les utilisateurs |
 | RU-04 | Lancer une nouvelle vente depuis la fiche d'un client, client déjà rempli | Demande | Fréquente | S | Fait, à valider par les utilisateurs |
 | RU-05 | Sur PC, la barre latérale défile | Bug d'affichage | Cosmétique | S | Fait, à valider par les utilisateurs |
-| RU-06 | « Pouvoir modifier des commandes » | À préciser | ? | ? | À préciser |
-| RU-07 | « Intéressant d'avoir des allergies » | Demande nouvelle | Idée | M à L | À préciser |
+| RU-06 | « Pouvoir modifier des commandes » | À préciser | ? | ? | Sans suite |
+| RU-07 | « Intéressant d'avoir des allergies » | Demande nouvelle | Idée | M à L | Sans suite |
 
-**Ordre de passage** : RU-02 → RU-04 → RU-03 → RU-05 → RU-01 (aide sous le bouton), traités et fusionnés dans `dev` le 2026-09-17. RU-06 et RU-07 attendent d'être précisés.
+**Ordre de passage** : RU-02 → RU-04 → RU-03 → RU-05 → RU-01 (aide sous le bouton), traités et fusionnés dans `dev` le 2026-09-17. RU-06 et RU-07 classés sans suite le 2026-09-17, à la demande du porteur de projet. Correctifs publiés dans `frontend-v0.7.0`, à retester par les utilisateurs.
 
 ---
 
@@ -62,9 +62,13 @@ Retour brut : « Sur PC, la sidebar est scrollable ».
 
 Retour brut : « Pouvoir modifier des commandes ». À préciser. La correction d'une vente existe déjà (client, date, paiement, montant d'une ligne, retrait d'une ligne). Trois lectures possibles : la correction existante n'a pas été trouvée ; il s'agit de RU-03 ; ou il s'agit de vraies commandes (un client réserve, récupère plus tard), un concept nouveau qui relèverait de la V2.
 
+**Sans suite** (2026-09-17) : jugé non nécessaire.
+
 ### RU-07 — Allergies
 
 Retour brut : « Intéressant d'avoir des allergies ». À préciser : allergies d'un **client** (une note sur sa fiche) ou allergènes d'un **produit** (lié aux recettes, prévues en V2) ?
+
+**Sans suite** (2026-09-17) : jugé non nécessaire. Le champ Notes de la fiche client propose déjà « allergies » en exemple.
 
 ---
 
