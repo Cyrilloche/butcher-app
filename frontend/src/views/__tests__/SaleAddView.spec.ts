@@ -121,7 +121,7 @@ describe('SaleAddView', () => {
 
     expect(createSale).toHaveBeenCalledWith({
       customerId: 3,
-      paid: true,
+      paid: false,
       lines: [{ stockUnitId: 1, isFullSale: true, soldWeight: 1.237, amount: 22.88 }],
     })
     expect(wrapper.emitted('saved')).toHaveLength(1)
@@ -152,13 +152,13 @@ describe('SaleAddView', () => {
     await buttonByText('Ajouter').trigger('click')
     expect(wrapper.find('.sale-add-view__cart').text()).toContain('tranche, 400 g')
 
-    await buttonByText('À payer').trigger('click')
+    await buttonByText('Payée').trigger('click')
     await saveButton().trigger('click')
     await settle()
 
     expect(createSale).toHaveBeenCalledWith({
       customerId: 3,
-      paid: false,
+      paid: true,
       lines: [{ stockUnitId: 2, isFullSale: false, soldWeight: 0.4, amount: 10 }],
     })
   })
