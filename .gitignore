@@ -1,2 +1,4 @@
 development/.env
+# Voix enregistrées pour le spike de l'assistant vocal : personnes réelles, jamais commitées
+development/assistant-corpus/
 .env

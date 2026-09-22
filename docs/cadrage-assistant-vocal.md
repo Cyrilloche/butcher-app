@@ -1,6 +1,6 @@
 # Cadrage — Assistant vocal (R&D)
 
-> Document de travail, vivant. Il consigne les décisions de cadrage au fil des discussions, avant l'ADR-012 et la spec `specs/006-assistant-vocal`. Les décisions structurantes redescendront dans `ADR.md` et `PRD.md` ; ce document n'en tient pas lieu.
+> Document de travail, vivant. Il consigne les décisions de cadrage au fil des discussions, avant l'ADR-012 et la spec `specs/006-assistant-vocal`. Les décisions structurantes redescendront dans `ADR.md` et `PRD.md` ; ce document n'en tient pas lieu. Le plan du spike est dans `docs/spike-assistant-vocal.md`.
 
 | Version | Date | Objet |
 |---|---|---|
