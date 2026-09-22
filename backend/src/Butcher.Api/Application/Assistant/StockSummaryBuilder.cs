@@ -125,8 +125,11 @@ public static class StockSummaryBuilder
     {
         if (kilograms is not { } kg)
             return;
+        // « 3 kilos et 660 » : les grammes au-delà du kilo, exacts ou arrondis à la dizaine.
+        var grams = (kg - Math.Floor(kg)) * 1000m;
         allowed.UnionWith([Math.Round(kg), Math.Round(kg, 1), Math.Round(kg, 2), Math.Round(kg, 3),
-            Math.Round(kg * 1000m), Math.Round(kg * 100m) * 10m, Math.Floor(kg), Math.Floor(kg * 10m) / 10m]);
+            Math.Round(kg * 1000m), Math.Round(kg * 100m) * 10m, Math.Floor(kg), Math.Floor(kg * 10m) / 10m,
+            Math.Round(grams), Math.Round(grams / 10m) * 10m]);
     }
 
     private static void AddDate(HashSet<decimal> allowed, DateOnly? date)

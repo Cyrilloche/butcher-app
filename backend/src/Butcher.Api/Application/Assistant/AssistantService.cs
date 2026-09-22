@@ -20,6 +20,9 @@ public sealed class AssistantService(AppDbContext dbContext, IMistralClient mist
 {
     private string ChatModel => configuration["Assistant:ChatModel"] ?? "ministral-14b-2512";
 
+    /// <summary>Mise en phrase par le LLM : désactivée par défaut (voir <see cref="AssistantEngine"/>).</summary>
+    private bool LlmSpeech => string.Equals(configuration["Assistant:LlmSpeech"], "true", StringComparison.OrdinalIgnoreCase);
+
     public async Task<AssistantReply> AskTextAsync(string text, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(text))
@@ -31,7 +34,7 @@ public sealed class AssistantService(AppDbContext dbContext, IMistralClient mist
             .Select(p => new CatalogProduct(p.Code, p.Name, p.SaleMode, p.AllowPartialSale)).ToListAsync(cancellationToken);
         var stock = await LoadStockAsync(cancellationToken);
 
-        var (reply, _) = await new AssistantEngine(mistral, ChatModel).AskAsync(text.Trim(), customers, catalog, stock, cancellationToken);
+        var (reply, _) = await new AssistantEngine(mistral, ChatModel, LlmSpeech).AskAsync(text.Trim(), customers, catalog, stock, cancellationToken);
         return reply;
     }
 

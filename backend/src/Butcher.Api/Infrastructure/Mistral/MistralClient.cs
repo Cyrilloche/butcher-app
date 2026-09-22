@@ -102,7 +102,7 @@ public sealed class MistralClient(HttpClient http, IConfiguration configuration,
             }
 
             logger.LogWarning("Mistral a répondu {Status} : {Body}", (int)response.StatusCode, content);
-            throw new ServiceUnavailableException("L'assistant vocal ne répond pas pour le moment.");
+            throw new ServiceUnavailableException($"L'assistant vocal ne répond pas pour le moment (Mistral {(int)response.StatusCode}).");
         }
     }
 }

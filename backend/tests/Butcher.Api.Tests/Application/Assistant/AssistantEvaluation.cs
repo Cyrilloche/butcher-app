@@ -118,14 +118,28 @@ public class AssistantEvaluation(ITestOutputHelper output)
 
         foreach (var model in models)
         {
-            var engine = new AssistantEngine(client, model);
+            // La mise en phrase par le LLM est mesurée, même si l'application ne l'utilise plus par défaut.
+            var engine = new AssistantEngine(client, model, llmSpeech: Environment.GetEnvironmentVariable("ASSISTANT_EVAL_LLM_SPEECH") != "0");
             var csv = new StringBuilder("source;phrase;texte;attendu;intention;champs;client;chiffres_inventes;outils;phrase_llm;phrase_dite;ms;jetons\n");
             var scores = new Dictionary<string, Score>();
+            var errors = 0;
             foreach (var (source, phraseId, text, _, _) in rows)
             {
                 // Débit du compte (Ministral 14B : 30 requêtes par minute, deux par question de stock).
                 await Task.Delay(delay);
-                var (reply, trace) = await engine.AskAsync(text, Customers, Catalog, Stock);
+                AssistantReply reply;
+                AssistantTrace trace;
+                try
+                {
+                    (reply, trace) = await engine.AskAsync(text, Customers, Catalog, Stock);
+                }
+                catch (Exception error)
+                {
+                    errors++;
+                    output.WriteLine($"  {model} {source} {phraseId} « {text} » → erreur : {error.Message}");
+                    csv.Append($"{source};{phraseId};{Csv(text)};erreur;{Csv(error.Message)}\n");
+                    continue;
+                }
                 var expected = Expectations[phraseId];
                 var intentOk = IntentMatches(expected, reply, trace);
                 var fieldsOk = expected.Intent is Intent.Sale or Intent.StockAndSale ? FieldsMatch(expected, trace) : (bool?)null;
@@ -146,6 +160,7 @@ public class AssistantEvaluation(ITestOutputHelper output)
 
             foreach (var (source, s) in scores)
                 output.WriteLine(s.Summary(model, source));
+            output.WriteLine($"{model} : {errors} phrases en erreur");
             var resultsDir = Path.Combine(RepositoryRoot(), "development", "assistant-corpus", "results");
             Directory.CreateDirectory(resultsDir);
             await File.WriteAllTextAsync(Path.Combine(resultsDir, $"assistant-eval-{model}.csv"), csv.ToString());

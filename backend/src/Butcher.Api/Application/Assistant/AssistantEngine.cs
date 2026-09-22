@@ -33,7 +33,12 @@ public sealed record AssistantTrace(string Pseudonymized, IReadOnlyList<ToolCall
 /// avec trois outils, exécution par le backend. Le LLM choisit l'intention et remplit des champs ;
 /// les unités, les chiffres et le client viennent du backend. Rien n'est écrit en base.
 /// </summary>
-public sealed class AssistantEngine(IMistralClient mistral, string model)
+/// <param name="llmSpeech">
+/// Faire dire la réponse de stock par le LLM. Désactivé par défaut depuis l'étape 3 : le LLM a dit
+/// « 1 jambon entier » pour 2, avec un chiffre qui existait ailleurs dans les données, ce que le garde-fou
+/// ne voit pas. La phrase du backend est juste par construction.
+/// </param>
+public sealed class AssistantEngine(IMistralClient mistral, string model, bool llmSpeech = false)
 {
     public const string NotUnderstoodSpeech =
         "Je n'ai pas compris. Tu peux me demander ce qu'il reste en stock, ou me dicter une vente.";
@@ -63,7 +68,7 @@ public sealed class AssistantEngine(IMistralClient mistral, string model)
         var completionTokens = first.CompletionTokens;
 
         IReadOnlyList<ProductStock>? stockAnswer = null;
-        string? speech = null, llmSpeech = null;
+        string? speech = null, spokenByLlm = null;
         IReadOnlyList<string> invented = [];
         SaleDraft? draft = null;
 
@@ -73,28 +78,32 @@ public sealed class AssistantEngine(IMistralClient mistral, string model)
             var code = ReadString(Parse(stockCall.Arguments), "product_code");
             var product = catalog.FirstOrDefault(p => string.Equals(p.Code, code, StringComparison.OrdinalIgnoreCase));
             stockAnswer = StockSummaryBuilder.Build(stock, product?.Code);
-            var fallback = code is not null && product is null
+            speech = code is not null && product is null
                 ? "Je ne connais pas ce produit."
                 : StockSummaryBuilder.Speech(stockAnswer, product?.Name);
 
-            // Seconde demande : mettre en phrase le résultat de l'outil, sans rien calculer.
-            messages.Add(first.Message.DeepClone());
-            messages.Add(new JsonObject
+            if (llmSpeech && (code is null || product is not null))
             {
-                ["role"] = "tool", ["name"] = "get_stock", ["tool_call_id"] = stockCall.Id,
-                ["content"] = JsonSerializer.Serialize(stockAnswer, ToolJson),
-            });
-            messages.Add(new JsonObject { ["role"] = "user", ["content"] = PhrasingInstruction });
-            calls++;
-            var phrased = await mistral.ChatAsync(model, messages, null, "none", cancellationToken);
-            promptTokens += phrased.PromptTokens;
-            completionTokens += phrased.CompletionTokens;
+                // Seconde demande : mettre en phrase le résultat de l'outil, sans rien calculer. Mistral
+                // attend une réponse pour chaque outil appelé, même celui qu'on ne met pas en phrase.
+                messages.Add(first.Message.DeepClone());
+                foreach (var call in first.ToolCalls)
+                    messages.Add(new JsonObject
+                    {
+                        ["role"] = "tool", ["name"] = call.Name, ["tool_call_id"] = call.Id,
+                        ["content"] = call == stockCall ? JsonSerializer.Serialize(stockAnswer, ToolJson) : "{\"ok\": true}",
+                    });
+                messages.Add(new JsonObject { ["role"] = "user", ["content"] = PhrasingInstruction });
+                calls++;
+                var phrased = await mistral.ChatAsync(model, messages, null, "none", cancellationToken);
+                promptTokens += phrased.PromptTokens;
+                completionTokens += phrased.CompletionTokens;
 
-            llmSpeech = phrased.Content?.Trim();
-            invented = string.IsNullOrWhiteSpace(llmSpeech) ? [] : StockSummaryBuilder.InventedNumbers(llmSpeech, stockAnswer);
-            speech = string.IsNullOrWhiteSpace(llmSpeech) || invented.Count > 0 || product is null && code is not null
-                ? fallback
-                : llmSpeech;
+                spokenByLlm = phrased.Content?.Trim();
+                invented = string.IsNullOrWhiteSpace(spokenByLlm) ? [] : StockSummaryBuilder.InventedNumbers(spokenByLlm, stockAnswer);
+                if (!string.IsNullOrWhiteSpace(spokenByLlm) && invented.Count == 0)
+                    speech = spokenByLlm;
+            }
         }
 
         var saleCall = first.ToolCalls.FirstOrDefault(c => c.Name == "draft_sale");
@@ -110,7 +119,7 @@ public sealed class AssistantEngine(IMistralClient mistral, string model)
             : stockAnswer is not null ? AssistantReplyKind.Answer
             : AssistantReplyKind.NotUnderstood;
         var reply = new AssistantReply(kind, speech ?? NotUnderstoodSpeech, text, stockAnswer, draft);
-        var trace = new AssistantTrace(pseudonymized.Text, first.ToolCalls, llmSpeech, invented, calls,
+        var trace = new AssistantTrace(pseudonymized.Text, first.ToolCalls, spokenByLlm, invented, calls,
             promptTokens, completionTokens, watch.Elapsed);
         return (reply, trace);
     }
@@ -146,7 +155,8 @@ public sealed class AssistantEngine(IMistralClient mistral, string model)
     private const string PhrasingInstruction =
         "Réponds maintenant à voix haute, en une ou deux phrases courtes, en tutoyant. Dis l'essentiel : "
         + "le nombre d'unités, le poids arrondi, et la date la plus ancienne s'il y a plusieurs fournées. "
-        + "Pour le jambon, sépare les entiers des entamés. N'utilise que les chiffres du résultat de l'outil, "
+        + "Pour le jambon, sépare les entiers des entamés. Les dates sont des dates de fabrication, jamais des dates limites. "
+        + "N'utilise que les chiffres du résultat de l'outil, "
         + "sans rien calculer d'autre, écrits en chiffres. Pas de liste, pas de mise en forme.";
 
     private static string SystemPrompt(IReadOnlyList<CatalogProduct> catalog)
@@ -162,17 +172,18 @@ public sealed class AssistantEngine(IMistralClient mistral, string model)
             - get_stock : une question sur ce qui reste en stock ;
             - draft_sale : une vente (« vends », « mets », « X a pris… », ou simplement « deux saucissons à madame Y ») ;
             - not_understood : tout le reste (hors sujet, annulation ou modification d'une vente, phrase incomplète).
-            Une phrase qui pose une question de stock et demande une vente appelle les deux outils.
+            Une phrase qui pose une question de stock et demande une vente appelle les deux outils ; une vente seule n'appelle pas get_stock.
 
             Catalogue, seuls codes admis :
             {products}
-            Un produit absent du catalogue n'est jamais remplacé par un autre : appelle not_understood.
+            Un produit absent du catalogue, ou un mot que tu ne reconnais pas comme un produit du catalogue, n'est jamais remplacé
+            par un produit qui lui ressemble : appelle not_understood.
 
             Clients : leurs noms sont remplacés par des jetons comme [CLIENT_1]. Recopie le jeton dans customer_token.
             [CLIENT_INCONNU] ou aucun jeton : laisse customer_token vide. Une vente ne concerne qu'un client : s'il y en a plusieurs, garde le premier.
 
             Quantité : nombre d'unités. Poids en grammes : « une livre » = 500, « un demi-kilo » = 500, « un saucisson de 350 » = 350.
-            Un prix dit (« à 8 euros ») va dans price_eur. Une correction (« trois, non deux ») : garde la dernière valeur.
+            Un prix dit (« à 8 euros ») va dans price_eur. Une correction remplace ce qui précède : « trois, non deux » veut dire 2.
             Tranche : pour un produit qui se vend à la tranche, un poids sans nombre d'unités (« 200 grammes de jambon ») ou des tranches (« quatre tranches »)
             donne slice = true, avec weight_g si un poids est dit. « Un jambon entier » donne slice = false.
             Paiement : paid = true seulement si la phrase dit que c'est payé.
