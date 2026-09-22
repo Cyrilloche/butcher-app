@@ -5,6 +5,7 @@
 | Version | Date | Objet |
 |---|---|---|
 | 0.1 | 2026-09-22 | Premier cadrage : besoin, architecture du POC, protection des données, vente à la voix |
+| 0.2 | 2026-09-22 | Réponse à une question de stock, R&D en local, essais de transcription sur le PC |
 
 ---
 
@@ -38,6 +39,8 @@ Attendu pour la suite : si l'outil est adopté, les demandes vont s'élargir. Le
 | D-06 | La voix ne passe **pas** par la Web Speech API du navigateur : le téléphone enregistre (`MediaRecorder`) et envoie l'audio au backend. | Navigateur incertain (Chrome probable, pas garanti) ; dans les dérivés de Chromium, l'API est souvent présente mais inopérante. Et l'audio partirait chez Google sans contrat de sous-traitance. |
 | D-07 | Tout appel externe passe par le **backend**, jamais directement depuis le frontend. | Clés d'API hors du téléphone, droits relus en base (ADR-011), pseudonymisation centralisée, contrat REST (ADR-003). |
 | D-08 | Un nom de client **non reconnu est retiré** du texte ; on garde ce qui a été compris. | Aucun nom ne part en clair vers le LLM, et la phrase reste exploitable : le client se choisit à l'écran (D-02). |
+| D-09 | La R&D se fait **entièrement en local**, sans déploiement prévu. Le bouton micro est visible par **tous les comptes**. | Pas d'utilisateur réel exposé : aucun besoin d'activation par compte. La branche `feat/assistant-vocal` n'est pas fusionnée dans `dev` tant que l'assistant n'est pas décidé. |
+| D-10 | La transcription locale (option A) se mesure d'abord sur le **PC de développement**, avec la mémoire vidéo **bridée à 2 Go**. | Le serveur de la P600 est aussi le serveur de prod : on n'y fait pas d'essais. |
 
 ## 4. Architecture
 
@@ -103,19 +106,35 @@ Le montant pré-rempli suit le calcul habituel ; l'utilisateur garde la main des
 
 Point d'appui existant : `SaleAddView` accepte déjà un client pré-rempli (`/sales/add?client=12`, RU-04). Il reste à pré-remplir le panier et le paiement.
 
-## 7. Questions ouvertes
+## 7. Réponse à une question de stock (Q-06)
+
+Une réponse détaillée est l'intérêt même de l'assistant, mais **à l'oral, une réponse longue se perd** : au-delà de deux ou trois chiffres, on ne retient plus rien. Proposition : **deux niveaux**.
+
+| Niveau | Contenu | Exemple pour « il me reste combien de saucissons ? » |
+|---|---|---|
+| **Dit à voix haute** | L'essentiel, en une ou deux phrases : nombre d'unités, poids total, et un seul fait notable s'il y en a un | « Il te reste 12 saucissons, environ 3,4 kilos. Les plus anciens datent du 2 septembre. » |
+| **Affiché à l'écran** | Le détail : fournée par fournée (date, nombre, poids, prix), unité entamée et son restant, avec un lien vers Détail Stock | Tableau par fournée |
+
+Règles :
+- **Les chiffres viennent du serveur**, jamais d'un calcul du LLM (même principe que `remaining_weight`, `CLAUDE.md` §9). Le LLM met en phrase les valeurs que l'outil lui renvoie.
+- **Les chiffres dits sont vérifiés** pendant le spike : chaque nombre prononcé doit figurer dans la réponse de l'outil. Un LLM qui arrondit ou invente un chiffre est éliminatoire.
+- **Poids arrondis à l'oral** (« environ 3,4 kilos »), exacts à l'écran.
+- **Jambon** : dire les entiers et les entamés séparément (« 2 jambons entiers, et un entamé dont il reste environ 4 kilos »).
+- Les questions de suivi (« et la plus vieille fournée ? ») supposent une conversation à plusieurs tours : hors POC, à garder en tête dans l'architecture.
+
+## 8. Questions ouvertes
 
 | Réf. | Question | Statut |
 |---|---|---|
-| Q-01 | Choix du fournisseur — meilleur compromis qualité / prix, hébergement UE, DPA, conservation | En cours (§8) |
+| Q-01 | Choix du fournisseur — meilleur compromis qualité / prix, hébergement UE, DPA, conservation | En cours (§9) |
 | Q-02 | Le formulaire manuel coche « payé » par défaut, la voix « non payé » : l’écart est-il voulu ? | ✅ Non : le formulaire passe à « À payer » par défaut (branche `fix/vente-a-payer-par-defaut`) |
 | Q-03 | Phrases réelles de l'utilisateur, pour constituer le jeu de test | ✅ Jeu de phrases type proposé (`docs/assistant-vocal-phrases-test.md`), testé par plusieurs voix |
 | Q-04 | Nom de client non reconnu : bloquer l'envoi, retirer le nom, ou envoyer en clair ? | ✅ Retiré, le reste est traité (D-08) |
-| Q-05 | Machine de la P600 (option A) : VPS ou machine à domicile ? Conditionne le réseau et le repli | Ouvert, hors POC |
-| Q-06 | Réponse vocale à la question de stock : quel niveau de détail (total, par fournée, poids) ? | Ouvert |
-| Q-07 | Qui voit le bouton micro : tous les comptes, ou activé par compte pendant la R&D ? | Ouvert |
+| Q-05 | Machine de la P600 (option A) : VPS ou machine à domicile ? Conditionne le réseau et le repli | ✅ Serveur à domicile, qui est aussi le serveur de prod ; essais sur le PC bridé à 2 Go (D-10). Charge sur la prod à évaluer avant toute mise en service |
+| Q-06 | Réponse vocale à la question de stock : quel niveau de détail (total, par fournée, poids) ? | Proposé : deux niveaux, l'essentiel à voix haute et le détail à l'écran (§7) |
+| Q-07 | Qui voit le bouton micro : tous les comptes, ou activé par compte pendant la R&D ? | ✅ Tous les comptes, R&D en local uniquement (D-09) |
 
-## 8. Choix du fournisseur (Q-01) — premiers éléments
+## 9. Choix du fournisseur (Q-01) — premiers éléments
 
 Relevé du 2026-09-22, à reconfirmer sur la documentation officielle au moment de l'ADR-012.
 
