@@ -6,6 +6,7 @@
 |---|---|---|
 | 0.1 | 2026-09-22 | Premier plan : questions, étapes, mesures, critères |
 | 0.2 | 2026-09-22 | Seuils de réussite arrêtés et justifiés |
+| 0.3 | 2026-09-22 | Résultats des étapes 0 et 1 |
 
 ---
 
@@ -140,3 +141,34 @@ Les deux critères à zéro sont éliminatoires : une vente au mauvais client ou
 | Le LLM reformule un chiffre | Critère éliminatoire ; repli possible : une phrase construite par le backend à partir d'un modèle, sans LLM pour la réponse orale. |
 | Chrome Android enregistre dans un format refusé par un moteur | Vérifié dès l'étape 0 ; conversion par `ffmpeg` côté backend si besoin. |
 | Latence cumulée (envoi, transcription, LLM, synthèse) trop longue | Mesurée par tranche à l'étape 4 ; pistes : transcription temps réel, modèle plus petit. |
+
+## 7. Résultats
+
+### Étape 0 — Corpus (2026-09-22)
+
+Une voix (porteur du projet, 30–50 ans, voix moyenne, Samsung A55, Chrome), 40 phrases au calme. Format confirmé : `webm/opus`, 17 à 52 Ko par prise. Manquent : d'autres voix, dont celle de l'utilisateur visé, et les conditions « cuisine » et « loin ».
+
+**Biais à garder en tête** : le testeur connaît le but de chaque phrase. Une voix qui l'ignore sera plus révélatrice.
+
+### Étape 1 — Transcription (2026-09-22)
+
+Ce qui est mesuré : la présence, dans la transcription, du **client**, des **nombres** et des **produits** attendus (`transcription/score.py`). Pas d'écart mot à mot : la phrase est reformulée librement, par protocole.
+
+| Moteur | Client juste | Nombres justes | Produits justes | Durée médiane | Mémoire vidéo |
+|---|---|---|---|---|---|
+| **Voxtral Mini Transcribe 2** | **27/30 (90 %)** | 20/23 (87 %) | 35/37 (95 %) | **0,48 s** | — |
+| Voxtral, vocabulaire guidé | 25/30 (83 %) | 20/23 (87 %) | 36/37 (97 %) | 0,51 s | — |
+| faster-whisper *medium*, vocabulaire guidé | 20/30 (67 %) | 18/23 (78 %) | 37/37 (100 %) | 2,56 s | 1,28 Go |
+| faster-whisper *medium* | 20/30 (67 %) | 19/23 (83 %) | 32/37 (86 %) | 2,43 s | 1,16 Go |
+| faster-whisper *small* | 15/30 (50 %) | 19/23 (83 %) | 19/37 (51 %) | 0,95 s | 1,10 Go |
+
+Durées Whisper mesurées sur la T1200 du PC de développement, en int8 : la P600 sera plus lente. Durées Voxtral : aller-retour réseau compris.
+
+**Lecture** :
+- **Voxtral atteint le seuil de 90 % au calme.** Ses trois clients manqués sont tous « les Moreau », transcrit « les moraux », « au mot » : même prononciation, que la reconnaissance phonétique de l'étape 2 doit rattraper. Aucun client n'est transcrit en un **autre** client connu.
+- **« deux » devient « de »** (« Vent de saucisson », « Paul Lefebvre de saucisson ») et « dix » se perd une fois : homophones du français. Le nombre manquant se voit dans le formulaire pré-rempli (D-02) ; à surveiller à l'étape 3.
+- **Le verbe « vends » est fragile** (« Bon », « Vent », « Mais »). Il pèse peu : « deux saucissons à madame Martin » dit déjà une vente. À vérifier à l'étape 3.
+- **Le vocabulaire guidé n'apporte rien à Voxtral** : il aide les produits d'une unité mais fait perdre deux clients (« Mme Barthin »). Conforme à la documentation, qui le dit expérimental hors anglais. **Écarté.**
+- **Whisper *medium* tient dans 2 Go** (1,3 Go au pic) mais reste loin de Voxtral sur les clients, et sa durée sur la T1200 (≈ 2,5 s) laisse prévoir un dépassement du délai de 4 s sur la P600. **L'option A n'est pas viable au niveau de qualité visé** ; elle ne reviendrait qu'avec un meilleur modèle local.
+
+**Conclusion provisoire** : Voxtral Mini Transcribe 2, sans vocabulaire guidé. À confirmer sur d'autres voix et en cuisine.
