@@ -21,6 +21,7 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
                 UnauthorizedException => (StatusCodes.Status401Unauthorized, "Non autorisé"),
                 ForbiddenException => (StatusCodes.Status403Forbidden, "Accès réservé"),
                 TooManyRequestsException => (StatusCodes.Status429TooManyRequests, "Trop de tentatives"),
+                ServiceUnavailableException => (StatusCodes.Status503ServiceUnavailable, "Service indisponible"),
                 _ => (StatusCodes.Status500InternalServerError, "Erreur interne"),
             };
 

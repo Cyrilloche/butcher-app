@@ -2,13 +2,54 @@ namespace Butcher.Api.Tests.Application.Assistant;
 
 /// <summary>
 /// Jeu d'évaluation de la reconnaissance des clients (docs/spike-assistant-vocal.md) :
-/// transcriptions réelles de l'étape 1 et phrases écrites (source « ecrit ») pour les noms inconnus.
+/// phrases du jeu de test telles qu'écrites (« phrase »), transcriptions réelles de l'étape 1
+/// et phrases écrites pour les noms inconnus (« ecrit »).
 /// Généré par spikes/assistant-vocal/names/dataset.py : ne pas modifier à la main.
 /// </summary>
 public static class CorpusTranscripts
 {
     public static readonly (string Source, string PhraseId, string Text, int[] Truth, string[] Unknown)[] All =
     [
+        ("phrase", "A1", "Il me reste combien de saucissons ?", [], []),
+        ("phrase", "A2", "Combien j'ai de jambon ?", [], []),
+        ("phrase", "A3", "Est-ce qu'il reste des terrines ?", [], []),
+        ("phrase", "A4", "Qu'est-ce qu'il me reste en stock ?", [], []),
+        ("phrase", "A5", "Il en reste combien, du saucisson de la semaine dernière ?", [], []),
+        ("phrase", "A6", "Le jambon entamé, il en reste combien à peu près ?", [], []),
+        ("phrase", "A7", "J'ai encore du sauciss… du saucisson ?", [], []),
+        ("phrase", "A8", "Dis-moi voir combien il reste de terrines", [], []),
+        ("phrase", "B1", "Vends deux saucissons à madame Martin", [1], []),
+        ("phrase", "B2", "Mets un saucisson pour Martine", [2], []),
+        ("phrase", "B3", "La Josette a pris trois terrines", [3], []),
+        ("phrase", "B4", "Une terrine pour Gérard", [6], []),
+        ("phrase", "B5", "J'ai vendu un saucisson et une terrine aux Moreau", [5], []),
+        ("phrase", "B6", "Paul Lefèvre, deux saucissons", [4], []),
+        ("phrase", "B7", "Euh… vends… attends… deux saucissons à madame Martin", [1], []),
+        ("phrase", "B8", "Vends trois saucissons, non deux, à madame Martin", [1], []),
+        ("phrase", "C1", "Un saucisson d'environ 300 grammes pour madame Martin", [1], []),
+        ("phrase", "C2", "Donne un gros saucisson à Gérard", [6], []),
+        ("phrase", "C3", "Un saucisson à 8 euros pour la Josette", [3], []),
+        ("phrase", "C4", "Un saucisson de trois cent cinquante pour Paul", [4], []),
+        ("phrase", "C5", "Un demi-kilo de saucisson pour les Moreau", [5], []),
+        ("phrase", "D1", "200 grammes de jambon pour madame Martin", [1], []),
+        ("phrase", "D2", "Coupe deux cent cinquante grammes de jambon à Gérard", [6], []),
+        ("phrase", "D3", "Une livre de jambon pour les Moreau", [5], []),
+        ("phrase", "D4", "Quatre tranches de jambon pour la Josette", [3], []),
+        ("phrase", "D5", "Un jambon entier pour Paul Lefèvre", [4], []),
+        ("phrase", "E1", "Deux saucissons à madame Martin, elle a payé", [1], []),
+        ("phrase", "E2", "Une terrine pour Gérard, il me paiera la semaine prochaine", [6], []),
+        ("phrase", "E3", "Madame Martin a payé en liquide pour ses deux saucissons", [1], []),
+        ("phrase", "E4", "Trois terrines aux Moreau", [5], []),
+        ("phrase", "F1", "Vends deux saucissons à madame Petitjean", [], ["Petitjean"]),
+        ("phrase", "F2", "Vends deux saucissons", [], []),
+        ("phrase", "F3", "Vends quelque chose à madame Martin", [1], []),
+        ("phrase", "F4", "Madame Martin", [1], []),
+        ("phrase", "F5", "Vends dix saucissons à Gérard", [6], []),
+        ("phrase", "F6", "Vends deux chorizos à madame Martin", [1], []),
+        ("phrase", "F7", "Mets des chansons pour enfants", [], []),
+        ("phrase", "F8", "Annule la dernière vente", [], []),
+        ("phrase", "F9", "Vends deux saucissons à madame Martin et une terrine à Gérard", [1, 6], []),
+        ("phrase", "F10", "Combien il reste de saucissons, et mets-en deux pour Gérard", [6], []),
         ("voxtral-vocab", "A1", "Il me reste combien de saucissons ?", [], []),
         ("voxtral-vocab", "A2", "Combien j'ai de jambon ?", [], []),
         ("voxtral-vocab", "A3", "Qu'est-ce qu'il reste de terrine ?", [], []),

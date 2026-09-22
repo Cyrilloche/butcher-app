@@ -5,18 +5,21 @@ Une seule source pour les deux versions comparées :
 - backend/tests/.../Assistant/CorpusTranscripts.cs, lu par les tests C#.
 
 Contenu : les transcriptions réelles de l'étape 1 (development/assistant-corpus/results/,
-hors de git) et des phrases écrites pour éprouver les noms inconnus, marquées « ecrit ».
+hors de git), les phrases du jeu de test telles qu'écrites (« phrase ») et des phrases écrites
+pour éprouver les noms inconnus (« ecrit »).
 
     python dataset.py
 """
 
 import csv
 import json
+import re
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 RESULTS_DIR = ROOT / "development" / "assistant-corpus" / "results"
+PHRASES_DOC = ROOT / "docs" / "assistant-vocal-phrases-test.md"
 CSHARP = ROOT / "backend/tests/Butcher.Api.Tests/Application/Assistant/CorpusTranscripts.cs"
 
 MARTIN, MARTINE, JOSETTE, PAUL, MOREAU, GERARD = 1, 2, 3, 4, 5, 6
@@ -63,8 +66,19 @@ WRITTEN = [
 ]
 
 
+def written_phrases():
+    """Les phrases du jeu de test telles qu'écrites : isolent les erreurs du LLM de celles de la transcription."""
+    pattern = re.compile(r"^\| ([A-F]\d+) \| (.+?) \| (.+?) \|\s*$")
+    for line in PHRASES_DOC.read_text(encoding="utf-8").splitlines():
+        if match := pattern.match(line):
+            yield match.group(1), match.group(2)
+
+
 def rows():
     out = []
+    for phrase_id, text in written_phrases():
+        out.append({"source": "phrase", "id": phrase_id, "text": text,
+                    "truth": CORPUS_TRUTH.get(phrase_id, []), "unknown": CORPUS_UNKNOWN.get(phrase_id, [])})
     for path in sorted(RESULTS_DIR.glob("*.csv")):
         for r in csv.DictReader(path.open(encoding="utf-8")):
             phrase_id = r["file"].rsplit("-", 1)[1].split(".")[0]
@@ -89,7 +103,8 @@ def write_csharp(data):
         "",
         "/// <summary>",
         "/// Jeu d'évaluation de la reconnaissance des clients (docs/spike-assistant-vocal.md) :",
-        "/// transcriptions réelles de l'étape 1 et phrases écrites (source « ecrit ») pour les noms inconnus.",
+        "/// phrases du jeu de test telles qu'écrites (« phrase »), transcriptions réelles de l'étape 1",
+        "/// et phrases écrites pour les noms inconnus (« ecrit »).",
         "/// Généré par spikes/assistant-vocal/names/dataset.py : ne pas modifier à la main.",
         "/// </summary>",
         "public static class CorpusTranscripts",
