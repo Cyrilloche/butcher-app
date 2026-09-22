@@ -5,6 +5,7 @@
 | Version | Date | Objet |
 |---|---|---|
 | 0.1 | 2026-09-22 | Premier plan : questions, étapes, mesures, critères |
+| 0.2 | 2026-09-22 | Seuils de réussite arrêtés et justifiés |
 
 ---
 
@@ -115,18 +116,18 @@ Point d'entrée de spike `POST /api/assistant/text` (texte en entrée, pas encor
 
 ## 5. Critères de réussite
 
-Seuils proposés, à confirmer avant l'étape 1 pour ne pas les ajuster aux résultats :
+Seuils **arrêtés le 2026-09-22, avant toute mesure** : ils ne se changent pas au vu des résultats. Un seuil manqué se discute dans le bilan, il ne se déplace pas.
 
-| Critère | Seuil |
-|---|---|
-| Nom du client juste à la transcription, au calme | ≥ 90 % |
-| Nom du client juste à la transcription, en cuisine | ≥ 75 % |
-| **Mauvais client choisi** par la reconnaissance | **0** sur tout le jeu |
-| Intention juste (texte bien transcrit) | ≥ 95 % |
-| Champs justes d'un brouillon de vente | ≥ 90 % |
-| **Chiffre inventé** dans une réponse | **0** sur tout le jeu |
-| Délai fin de parole → réponse, sur le téléphone | ≤ 4 s en médiane |
-| Coût par demande | ≤ 0,01 $ |
+| Critère | Seuil | Pourquoi ce niveau |
+|---|---|---|
+| Nom du client juste à la transcription, au calme | ≥ 90 % | Au-delà d'une erreur sur dix, on choisit le client à l'écran presque à chaque fois, et l'assistant n'apporte plus rien. |
+| Nom du client juste à la transcription, en cuisine | ≥ 75 % | Condition réelle d'usage, mais un nom raté n'est pas grave : il est retiré et se choisit à l'écran. |
+| **Mauvais client choisi** par la reconnaissance | **0** sur tout le jeu | Une vente au mauvais nom fausse les impayés et la traçabilité sans que personne ne s'en aperçoive. |
+| Intention juste (texte bien transcrit) | ≥ 95 % | Le texte est juste : une erreur ici est celle du LLM seul, et elle se corrige par le choix du modèle. |
+| Champs justes d'un brouillon de vente | ≥ 90 % | Le formulaire se relit avant validation (D-02) : une correction de temps en temps est acceptable. |
+| **Chiffre inventé** dans une réponse | **0** sur tout le jeu | Une réponse orale n'est pas relue : un stock faux dit avec assurance fait refuser une vente ou promettre ce qui n'existe pas. |
+| Délai fin de parole → réponse, sur le téléphone | ≤ 4 s en médiane | Ordre de grandeur des assistants grand public : au-delà, on croit que ça n'a pas marché et on recommence. |
+| Coût par demande | ≤ 0,01 $ | Dix fois l'estimation (cadrage §9) : ce seuil ne sert qu'à détecter une erreur de conception. |
 
 Les deux critères à zéro sont éliminatoires : une vente au mauvais client ou un stock faux dit avec assurance coûtent plus que l'assistant ne fait gagner.
 
