@@ -29,7 +29,7 @@ const { data: lots, loading: loadingLots } = useAsyncData(listSellableLots, [] a
 const state = reactive({
   customerId: props.customerId ?? (null as number | null),
   cart: [] as SaleLineDraft[],
-  paid: true,
+  paid: false,
 })
 
 const inCartIds = computed(() => new Set(state.cart.map((l) => l.stockUnitId)))
