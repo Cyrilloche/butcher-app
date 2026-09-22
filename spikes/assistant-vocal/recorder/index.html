@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Saloir — Enregistrement des phrases</title>
+<style>
+  :root {
+    --bg: #ECE2D0; --surface: #FBF7EE; --text: #2B241E; --muted: #6E5A45;
+    --primary: #C4623C; --primary-dark: #A54E2E;
+    --success: #4E7A4E; --success-bg: #DCE9D6; --error: #B0362A; --error-bg: #F3D9D3;
+    --line: #D9CCB4;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 17px/1.45 "Work Sans", system-ui, sans-serif;
+  }
+  main { max-width: 520px; margin: 0 auto; padding: 16px 16px 40px; }
+  h1, h2 { font-family: "Zilla Slab", Georgia, serif; margin: 8px 0 12px; }
+  h1 { font-size: 26px; }
+  h2 { font-size: 21px; }
+  .card { background: var(--surface); border-radius: 14px; padding: 18px; margin-bottom: 14px; }
+  .muted { color: var(--muted); font-size: 15px; }
+  label { display: block; font-weight: 600; margin: 12px 0 4px; }
+  input[type=text], select {
+    width: 100%; font: inherit; padding: 12px; border: 1px solid var(--line);
+    border-radius: 10px; background: #fff; color: var(--text);
+  }
+  .check { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; }
+  .check input { width: 22px; height: 22px; margin-top: 2px; flex: none; }
+  button {
+    font: inherit; font-weight: 600; border: 0; border-radius: 12px; padding: 14px 18px;
+    cursor: pointer; min-height: 52px;
+  }
+  button:disabled { opacity: .45; cursor: default; }
+  .primary { background: var(--primary); color: #fff; width: 100%; }
+  .primary:not(:disabled):active { background: var(--primary-dark); }
+  .ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; }
+  .conditions { display: grid; gap: 10px; }
+  .condition { text-align: left; background: var(--surface); color: var(--text); border: 2px solid transparent; }
+  .condition small { display: block; font-weight: 400; color: var(--muted); }
+  .condition .count { float: right; font-weight: 400; color: var(--muted); }
+  .progress { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .dots { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 14px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+  .dot.done { background: var(--success); }
+  .dot.current { outline: 2px solid var(--primary); outline-offset: 1px; }
+  .phrase { font-family: "Zilla Slab", Georgia, serif; font-size: 25px; line-height: 1.3; margin: 6px 0 10px; }
+  .record-zone { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 8px 0; }
+  .mic {
+    width: 112px; height: 112px; border-radius: 50%; background: var(--primary); color: #fff;
+    display: grid; place-items: center; box-shadow: 0 4px 14px rgba(43, 36, 30, .25);
+  }
+  .mic svg { width: 46px; height: 46px; }
+  .mic.recording { background: var(--error); animation: pulse 1.2s infinite; }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 16px rgba(176, 54, 42, .18); } }
+  .timer { font-variant-numeric: tabular-nums; color: var(--muted); min-height: 1.4em; }
+  audio { width: 100%; margin: 6px 0 12px; }
+  .message { padding: 12px; border-radius: 10px; margin-bottom: 12px; }
+  .message.error { background: var(--error-bg); color: var(--error); }
+  .message.ok { background: var(--success-bg); color: var(--success); }
+  .hidden { display: none !important; }
+  .link { background: none; color: var(--muted); text-decoration: underline; min-height: 0; padding: 8px; font-weight: 400; }
+</style>
+</head>
+<body>
+<main>
+  <div id="message" class="message hidden" role="alert"></div>
+
+  <!-- 1. Accueil -->
+  <section id="welcome">
+    <h1>Essais de l'assistant vocal</h1>
+    <div class="card">
+      <p style="margin-top:0">Merci de nous aider ! Tu vas dire une quarantaine de petites phrases, comme si tu parlais à ton téléphone. Ça prend environ dix minutes.</p>
+      <label for="token">Code d'accès</label>
+      <input id="token" type="text" autocomplete="off" autocapitalize="off">
+      <label for="tester">Ton prénom</label>
+      <input id="tester" type="text" autocomplete="off">
+      <label for="age">Tranche d'âge</label>
+      <select id="age">
+        <option value="">—</option><option>moins de 30 ans</option><option>30–50 ans</option>
+        <option>50–70 ans</option><option>plus de 70 ans</option>
+      </select>
+      <label for="voice">Ta voix</label>
+      <select id="voice"><option value="">—</option><option>grave</option><option>moyenne</option><option>aiguë</option></select>
+      <label for="accent">Un accent ? (facultatif)</label>
+      <input id="accent" type="text" placeholder="ex. du Sud, alsacien…">
+      <label for="phone">Téléphone utilisé (facultatif)</label>
+      <input id="phone" type="text" placeholder="ex. Samsung A52">
+      <label class="check" style="margin-top:18px">
+        <input id="consent" type="checkbox">
+        <span>J'accepte que ma voix soit enregistrée pour tester l'assistant de Saloir. Les enregistrements restent sur l'ordinateur du projet, ne sont jamais publiés, et peuvent être envoyés à un service de transcription hébergé en Europe (Mistral) le temps des essais.</span>
+      </label>
+    </div>
+    <button id="start" class="primary" disabled>Commencer</button>
+  </section>
+
+  <!-- 2. Choix de la condition -->
+  <section id="conditions" class="hidden">
+    <h1>Où es-tu ?</h1>
+    <p class="muted">Enregistre la série dans une condition, puis recommence dans une autre si tu peux.</p>
+    <div class="conditions">
+      <button class="condition" data-condition="calme"><span class="count"></span>Au calme<small>Pièce silencieuse, téléphone à la main</small></button>
+      <button class="condition" data-condition="cuisine"><span class="count"></span>En cuisine<small>Avec du bruit : hotte, eau, radio basse</small></button>
+      <button class="condition" data-condition="loin"><span class="count"></span>Téléphone posé<small>Sur la table, à un bras de distance</small></button>
+    </div>
+  </section>
+
+  <!-- 3. Enregistrement -->
+  <section id="recorder" class="hidden">
+    <div class="progress">
+      <strong id="position"></strong>
+      <button id="back-to-conditions" class="link">Changer de lieu</button>
+    </div>
+    <div id="dots" class="dots"></div>
+    <div class="card">
+      <div class="muted">Lis la phrase une fois, puis dis-la <strong>comme tu parlerais à ton téléphone</strong>, avec tes mots. Pas besoin de la réciter.</div>
+      <div id="phrase" class="phrase"></div>
+      <div class="record-zone">
+        <button id="mic" class="mic" aria-label="Enregistrer">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 15a4 4 0 0 0 4-4V6a4 4 0 1 0-8 0v5a4 4 0 0 0 4 4Zm7-4a1 1 0 1 0-2 0 5 5 0 0 1-10 0 1 1 0 1 0-2 0 7 7 0 0 0 6 6.92V21h-2a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2h-2v-3.08A7 7 0 0 0 19 11Z"/></svg>
+        </button>
+        <div id="timer" class="timer">Appuie pour parler, appuie encore quand tu as fini</div>
+      </div>
+      <div id="review" class="hidden">
+        <audio id="playback" controls></audio>
+        <div class="row">
+          <button id="redo" class="ghost">Refaire</button>
+          <button id="keep" class="primary">Garder</button>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <button id="previous" class="ghost">Précédente</button>
+      <button id="skip" class="ghost">Passer</button>
+    </div>
+  </section>
+
+  <!-- 4. Fin -->
+  <section id="finished" class="hidden">
+    <h1>Merci !</h1>
+    <div class="card"><p id="finished-text" style="margin:0"></p></div>
+    <button id="another" class="primary">Enregistrer dans un autre lieu</button>
+  </section>
+</main>
+
+<script>
+const MAX_SECONDS = 15
+const $ = (id) => document.getElementById(id)
+const state = { token: '', tester: '', condition: '', phrases: [], done: new Set(), index: 0 }
+let stream = null, recorder = null, chunks = [], blob = null, timerId = null
+
+function store(key, value) { try { sessionStorage.setItem(key, value) } catch {} }
+function load(key) { try { return sessionStorage.getItem(key) || '' } catch { return '' } }
+
+function show(section) {
+  for (const id of ['welcome', 'conditions', 'recorder', 'finished']) $(id).classList.toggle('hidden', id !== section)
+  window.scrollTo(0, 0)
+}
+
+function notify(text, kind = 'error') {
+  const box = $('message')
+  box.textContent = text
+  box.className = `message ${kind}`
+  if (kind === 'ok') setTimeout(() => box.classList.add('hidden'), 1500)
+}
+function clearMessage() { $('message').className = 'message hidden' }
+
+async function api(path, options = {}) {
+  const response = await fetch(path, { ...options, headers: { 'X-Corpus-Token': state.token, ...(options.headers || {}) } })
+  const body = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(body.error || `Erreur ${response.status}`)
+  return body
+}
+
+// --- Accueil ---
+const params = new URLSearchParams(location.search)
+$('token').value = params.get('code') || load('token')
+$('tester').value = load('tester')
+const canStart = () => $('tester').value.trim() && $('consent').checked
+for (const id of ['tester', 'consent']) $(id).addEventListener('input', () => { $('start').disabled = !canStart() })
+
+$('start').addEventListener('click', async () => {
+  clearMessage()
+  state.token = $('token').value.trim()
+  try {
+    const saved = await api('/api/testers', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tester: $('tester').value, consent: $('consent').checked, age_range: $('age').value,
+        voice: $('voice').value, accent: $('accent').value, phone: $('phone').value,
+      }),
+    })
+    state.tester = saved.tester
+    state.phrases = await api('/api/phrases')
+    store('token', state.token); store('tester', $('tester').value)
+    await openConditions()
+  } catch (e) { notify(e.message) }
+})
+
+// --- Conditions ---
+async function openConditions() {
+  for (const button of document.querySelectorAll('.condition')) {
+    const done = await api(`/api/progress?tester=${state.tester}&condition=${button.dataset.condition}`)
+    button.querySelector('.count').textContent = `${done.length} / ${state.phrases.length}`
+  }
+  show('conditions')
+}
+
+for (const button of document.querySelectorAll('.condition')) {
+  button.addEventListener('click', async () => {
+    clearMessage()
+    try {
+      stream = stream || await navigator.mediaDevices.getUserMedia({ audio: true })
+    } catch {
+      return notify("Le micro n'est pas accessible. Autorise-le dans le navigateur, puis réessaie.")
+    }
+    state.condition = button.dataset.condition
+    state.done = new Set(await api(`/api/progress?tester=${state.tester}&condition=${state.condition}`))
+    const firstTodo = state.phrases.findIndex((p) => !state.done.has(p.id))
+    state.index = firstTodo === -1 ? 0 : firstTodo
+    renderPhrase()
+    show('recorder')
+  })
+}
+$('back-to-conditions').addEventListener('click', () => { stopRecording(true); openConditions() })
+
+// --- Enregistrement ---
+const LABELS = { calme: 'Au calme', cuisine: 'En cuisine', loin: 'Téléphone posé' }
+
+function renderPhrase() {
+  const phrase = state.phrases[state.index]
+  $('position').textContent = `Phrase ${state.index + 1} / ${state.phrases.length} · ${LABELS[state.condition]}`
+  $('phrase').textContent = phrase.phrase
+  $('dots').innerHTML = state.phrases.map((p, i) =>
+    `<span class="dot${state.done.has(p.id) ? ' done' : ''}${i === state.index ? ' current' : ''}"></span>`).join('')
+  $('review').classList.add('hidden')
+  $('timer').textContent = state.done.has(phrase.id)
+    ? 'Déjà enregistrée. Tu peux la refaire, ou passer.'
+    : 'Appuie pour parler, appuie encore quand tu as fini'
+  $('previous').disabled = state.index === 0
+  blob = null
+}
+
+function pickMimeType() {
+  return ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4']
+    .find((t) => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || ''
+}
+
+function startRecording() {
+  chunks = []
+  const mimeType = pickMimeType()
+  recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
+  recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data) }
+  recorder.onstop = () => {
+    if (recorder.discarded) return
+    blob = new Blob(chunks, { type: recorder.mimeType })
+    $('playback').src = URL.createObjectURL(blob)
+    $('review').classList.remove('hidden')
+    $('timer').textContent = 'Écoute-toi : on garde ?'
+  }
+  recorder.start()
+  $('mic').classList.add('recording')
+  $('review').classList.add('hidden')
+  const started = Date.now()
+  timerId = setInterval(() => {
+    const seconds = Math.floor((Date.now() - started) / 1000)
+    $('timer').textContent = `Je t'écoute… ${seconds} s`
+    if (seconds >= MAX_SECONDS) stopRecording()
+  }, 250)
+}
+
+function stopRecording(discard = false) {
+  clearInterval(timerId)
+  $('mic').classList.remove('recording')
+  if (recorder && recorder.state === 'recording') {
+    recorder.discarded = discard
+    recorder.stop()
+  }
+}
+
+$('mic').addEventListener('click', () => {
+  if (recorder && recorder.state === 'recording') stopRecording()
+  else startRecording()
+})
+$('redo').addEventListener('click', () => { blob = null; $('review').classList.add('hidden'); startRecording() })
+
+$('keep').addEventListener('click', async () => {
+  if (!blob) return
+  const phrase = state.phrases[state.index]
+  $('keep').disabled = true
+  try {
+    await api(`/api/recordings?tester=${state.tester}&condition=${state.condition}&id=${phrase.id}`, {
+      method: 'POST', headers: { 'Content-Type': blob.type.split(';')[0] }, body: blob,
+    })
+    state.done.add(phrase.id)
+    notify('Enregistrée', 'ok')
+    next()
+  } catch (e) {
+    notify(`Pas enregistrée : ${e.message}`)
+  } finally {
+    $('keep').disabled = false
+  }
+})
+
+function next() {
+  const after = state.phrases.findIndex((p, i) => i > state.index && !state.done.has(p.id))
+  if (after !== -1) { state.index = after; return renderPhrase() }
+  const remaining = state.phrases.filter((p) => !state.done.has(p.id)).length
+  if (remaining) { state.index = state.phrases.findIndex((p) => !state.done.has(p.id)); return renderPhrase() }
+  $('finished-text').textContent = `Les ${state.phrases.length} phrases sont enregistrées pour « ${LABELS[state.condition]} ».`
+  show('finished')
+}
+
+$('skip').addEventListener('click', () => {
+  stopRecording(true)
+  if (state.index < state.phrases.length - 1) { state.index++; renderPhrase() } else next()
+})
+$('previous').addEventListener('click', () => { stopRecording(true); state.index--; renderPhrase() })
+$('another').addEventListener('click', openConditions)
+</script>
+</body>
+</html>
