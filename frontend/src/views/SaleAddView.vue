@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AppFormShell from '@/components/base/AppFormShell.vue'
 import AppCard from '@/components/base/AppCard.vue'
+import AppHintBox from '@/components/base/AppHintBox.vue'
 import { createSale } from '@/api/sales'
 import { listSellableLots, type SaleLineDraft, type SellableLot } from '@/composables/useSales'
 import { formatWeight } from '@/composables/useStock'
@@ -10,6 +11,7 @@ import { useAsyncData } from '@/composables/useAsyncData'
 import CustomerPicker from '@/components/domain/CustomerPicker.vue'
 import SaleLineChooser from '@/components/domain/SaleLineChooser.vue'
 import { ApiError } from '@/api/http'
+import { draftToCart, takeAssistantDraft } from '@/composables/useAssistantDraft'
 
 /**
  * `dialog` : ouvert en fenêtre depuis la liste (écran large), qui se recharge sur `saved`.
@@ -31,6 +33,25 @@ const state = reactive({
   cart: [] as SaleLineDraft[],
   paid: false,
 })
+
+// Vente dictée à l'assistant vocal (spike R&D) : le brouillon remplit le formulaire, qui se relit et
+// se corrige comme une saisie à la main avant d'être enregistré (cadrage D-02).
+const assistantDraft = takeAssistantDraft()
+const assistantWarnings = ref<string[]>([])
+if (assistantDraft) {
+  if (assistantDraft.customerId != null) state.customerId = assistantDraft.customerId
+  state.paid = assistantDraft.paid
+  watch(
+    loadingLots,
+    (loading) => {
+      if (loading) return
+      const { cart, warnings } = draftToCart(assistantDraft, lots.value)
+      state.cart = cart
+      assistantWarnings.value = warnings
+    },
+    { immediate: true },
+  )
+}
 
 const inCartIds = computed(() => new Set(state.cart.map((l) => l.stockUnitId)))
 
@@ -97,6 +118,11 @@ async function save() {
   >
 
     <div class="sale-add-view__sections">
+      <div v-if="assistantDraft" class="sale-add-view__assistant">
+        <AppHintBox icon="microphone">Vente préparée par l'assistant : vérifie-la avant d'enregistrer.</AppHintBox>
+        <AppHintBox v-for="warning in assistantWarnings" :key="warning" icon="info">{{ warning }}</AppHintBox>
+      </div>
+
       <AppCard>
         <div class="sale-add-view__section-title text-secondary">1. Le client</div>
 
@@ -229,5 +255,10 @@ async function save() {
   border-color: rgb(var(--v-theme-warning));
   background: rgb(var(--v-theme-warning-container));
   color: rgb(var(--v-theme-warning));
+}
+.sale-add-view__assistant {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 </style>

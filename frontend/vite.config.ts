@@ -1,3 +1,4 @@
+import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath, URL } from 'node:url'
 
 import { defineConfig } from 'vite'
@@ -16,11 +17,30 @@ import pkg from './package.json' with { type: 'json' }
  */
 const appVersion = process.env.APP_VERSION || `${pkg.version}-dev`
 
+/**
+ * Essais de l'assistant vocal sur téléphone (spike R&D, docs/spike-assistant-vocal.md) : le micro
+ * n'est accessible qu'en HTTPS, et l'API doit être jointe par la même adresse que la page.
+ * `SALOIR_DEV_HTTPS=1 npm run dev -- --host` sert en HTTPS avec le certificat auto-signé de
+ * l'enregistreur du corpus, et relaie /api vers le backend local. Sans la variable, rien ne change.
+ */
+const devHttps = process.env.SALOIR_DEV_HTTPS === '1'
+const certDir = fileURLToPath(new URL('../development/assistant-corpus/.cert/', import.meta.url))
+if (devHttps && !existsSync(`${certDir}cert.pem`)) {
+  throw new Error(`Certificat introuvable dans ${certDir} : lancer une fois l'enregistreur (spikes/assistant-vocal/recorder).`)
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(appVersion),
+    ...(devHttps ? { 'import.meta.env.VITE_API_BASE_URL': JSON.stringify('') } : {}),
   },
+  server: devHttps
+    ? {
+        https: { cert: readFileSync(`${certDir}cert.pem`), key: readFileSync(`${certDir}key.pem`) },
+        proxy: { '/api': process.env.SALOIR_API_URL ?? 'http://localhost:5045' },
+      }
+    : undefined,
   plugins: [
     vue(),
     vueDevTools(),

@@ -44,7 +44,9 @@ export async function rawRequest<T>(
   accessToken?: string | null,
 ): Promise<T> {
   const headers = new Headers(options.headers)
-  if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
+  // Un FormData (audio de l'assistant) porte sa propre frontière multipart : le navigateur pose l'en-tête.
+  if (options.body && !(options.body instanceof FormData) && !headers.has('Content-Type'))
+    headers.set('Content-Type', 'application/json')
   if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`)
 
   const res = await fetch(`${BASE_URL}${path}`, {

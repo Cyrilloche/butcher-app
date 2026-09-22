@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import AccountMenu from '@/components/domain/AccountMenu.vue'
+import AssistantButton from '@/components/domain/AssistantButton.vue'
 import { accountRoleLabels } from '@/composables/useAccounts'
 import { useAuthStore } from '@/stores/auth'
 
@@ -104,6 +105,9 @@ const initial = computed(() => (auth.account?.displayName.trim().charAt(0) ?? '?
   <v-main>
     <RouterView />
   </v-main>
+
+  <!-- Assistant vocal : spike R&D en local, pour tous les comptes (cadrage D-09). -->
+  <AssistantButton v-if="showNavigation" />
 
   <v-bottom-navigation v-if="showNavigation && !mdAndUp" grow color="primary">
     <v-btn to="/" value="stock">

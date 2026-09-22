@@ -414,3 +414,58 @@ export interface ValidationProblemDetailsDto {
   title: string
   errors: Record<string, string[]>
 }
+
+// --- Assistant vocal (spike R&D, docs/spike-assistant-vocal.md) --------
+
+export type AssistantReplyKind = 'answer' | 'sale_draft' | 'not_understood'
+
+export interface BatchStockDto {
+  productionDate: string
+  salePrice: number
+  count: number
+  /** Kilogrammes encore vendables ; null à la pièce. */
+  remainingKg: number | null
+}
+
+export interface OpenedUnitStockDto {
+  unitNumber: string
+  productionDate: string
+  remainingKg: number | null
+}
+
+export interface ProductStockDto {
+  code: string
+  name: string
+  saleMode: SaleMode
+  wholeCount: number
+  openedCount: number
+  remainingKg: number | null
+  oldestDate: string | null
+  batches: BatchStockDto[]
+  opened: OpenedUnitStockDto[]
+}
+
+/** Ligne proposée par l'assistant : l'unité choisie par le serveur, sans montant (le formulaire le calcule). */
+export interface DraftLineDto {
+  stockUnitId: number
+  isFullSale: boolean
+  /** Kilogrammes d'une tranche ; null pour une unité entière ou un poids à saisir. */
+  soldWeight: number | null
+}
+
+export interface SaleDraftDto {
+  customerId: number | null
+  paid: boolean
+  lines: DraftLineDto[]
+  warnings: string[]
+}
+
+export interface AssistantReplyDto {
+  kind: AssistantReplyKind
+  /** Phrase à dire à voix haute. */
+  speech: string
+  /** Ce que l'assistant a entendu. */
+  heard: string
+  stock: ProductStockDto[] | null
+  draft: SaleDraftDto | null
+}
