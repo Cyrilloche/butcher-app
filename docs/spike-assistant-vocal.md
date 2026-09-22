@@ -7,6 +7,7 @@
 | 0.1 | 2026-09-22 | Premier plan : questions, étapes, mesures, critères |
 | 0.2 | 2026-09-22 | Seuils de réussite arrêtés et justifiés |
 | 0.3 | 2026-09-22 | Résultats des étapes 0 et 1 |
+| 0.4 | 2026-09-22 | Résultats de l’étape 2, comparaison C# et Python |
 
 ---
 
@@ -172,3 +173,32 @@ Durées Whisper mesurées sur la T1200 du PC de développement, en int8 : la P60
 - **Whisper *medium* tient dans 2 Go** (1,3 Go au pic) mais reste loin de Voxtral sur les clients, et sa durée sur la T1200 (≈ 2,5 s) laisse prévoir un dépassement du délai de 4 s sur la P600. **L'option A n'est pas viable au niveau de qualité visé** ; elle ne reviendrait qu'avec un meilleur modèle local.
 
 **Conclusion provisoire** : Voxtral Mini Transcribe 2, sans vocabulaire guidé. À confirmer sur d'autres voix et en cuisine.
+
+### Étape 2 — Reconnaissance des clients (2026-09-22)
+
+Deux versions, mêmes règles de prudence, même jeu : les 200 transcriptions de l'étape 1 et 16 phrases écrites pour éprouver les noms inconnus (source « écrit » : noms absents de la base, avec et sans majuscule, et pièges comme « pour Noël »).
+
+- **C#** (`CustomerNameMatcher`) : phonétique française et règles écrites à la main, aucune dépendance.
+- **Python** (`spikes/assistant-vocal/names/prototype.py`) : espeak-ng pour la prononciation, rapidfuzz, spaCy `fr_core_news_md` pour repérer les noms. Presidio écarté : en français, sa détection des noms repose sur spaCy, qui est testé directement.
+
+| Mesure | C# | Python |
+|---|---|---|
+| **Mauvais client choisi** (216 phrases) | **0** | **0** |
+| Clients trouvés — Voxtral | 27/29 (93 %) | 27/29 (93 %) |
+| Clients trouvés — Voxtral, vocabulaire guidé | 27/29 | 26/29 |
+| Clients trouvés — Whisper *medium* | 25/29 | 25/29 |
+| Nom inconnu du corpus retiré (Petitjean) | oui | oui |
+| **Noms inconnus restés dans le texte** — phrases écrites | **4/13** | **1/13** |
+| Fausses alertes (« Noël », « Pâques » retirés) | 2 | 2 |
+| Durée par phrase | < 1 ms | 8 ms (médiane) |
+
+**Lecture** :
+- **Le critère éliminatoire tient dans les deux versions** : aucun mauvais client. La règle de prudence a servi sur un vrai cas : Whisper a entendu « Martin » pour « Martine », et aucun client n'a été choisi.
+- **Sur les clients connus, les deux versions font jeu égal.** Les deux manques Voxtral sont communs : « pour Martine », non choisi par prudence (Martin existe), et « au mot » pour « aux Moreau », trop loin pour être rattrapé sans risque.
+- **Le seul apport de Python est la détection des noms inconnus écrits en minuscules** (« pour bernadette », « jean-pierre »), que spaCy repère et que les règles C# laissent passer. Or Voxtral, le moteur retenu, met une majuscule aux noms propres ; les minuscules viennent de Whisper, écarté.
+- **espeak-ng n'est pas meilleur que les règles écrites à la main** sur ce corpus : il prononce le « b » de « Lefebvre », et bascule en anglais sur un nom qu'il croit étranger (« Barthin »).
+- Les fausses alertes viennent de la règle des majuscules, commune aux deux versions ; elles retirent un mot sans danger pour la confidentialité.
+
+**Conclusion provisoire** : **garder la version C#**, dans le backend. Un service Python ajouterait un conteneur, un langage et un modèle de 40 Mo pour un gain qui ne concerne pas le moteur retenu. À rouvrir si les voix suivantes montrent Voxtral écrivant des noms en minuscules ; la parade C# la plus simple serait alors de retirer tout mot inconnu après « à » ou « pour », au prix de quelques mots retirés à tort.
+
+**Limite** : un seul nom inconnu dans le corpus réel. Les phrases écrites mesurent la mécanique, pas la façon dont un vrai moteur transcrit un nom qu'il n'a jamais entendu.

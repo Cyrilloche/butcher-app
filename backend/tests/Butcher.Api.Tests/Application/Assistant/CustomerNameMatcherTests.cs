@@ -22,17 +22,6 @@ public class CustomerNameMatcherTests(ITestOutputHelper output)
         new(Gerard, "Gérard", null),
     ];
 
-    /// <summary>Le ou les clients réellement cités dans chaque phrase ; F1 cite un nom inconnu.</summary>
-    private static readonly Dictionary<string, int[]> Truth = new()
-    {
-        ["B1"] = [Martin], ["B2"] = [Martine], ["B3"] = [Josette], ["B4"] = [Gerard], ["B5"] = [Moreau],
-        ["B6"] = [Paul], ["B7"] = [Martin], ["B8"] = [Martin], ["C1"] = [Martin], ["C2"] = [Gerard],
-        ["C3"] = [Josette], ["C4"] = [Paul], ["C5"] = [Moreau], ["D1"] = [Martin], ["D2"] = [Gerard],
-        ["D3"] = [Moreau], ["D4"] = [Josette], ["D5"] = [Paul], ["E1"] = [Martin], ["E2"] = [Gerard],
-        ["E3"] = [Martin], ["E4"] = [Moreau], ["F3"] = [Martin], ["F4"] = [Martin], ["F5"] = [Gerard],
-        ["F6"] = [Martin], ["F9"] = [Martin, Gerard], ["F10"] = [Gerard],
-    };
-
     private readonly CustomerNameMatcher _matcher = new(Customers);
 
     [Theory]
@@ -107,28 +96,32 @@ public class CustomerNameMatcherTests(ITestOutputHelper output)
     public void Corpus_NeverChoosesTheWrongCustomer_AndReportsScores()
     {
         var wrong = new List<string>();
-        foreach (var engine in CorpusTranscripts.All.GroupBy(t => t.Engine))
+        foreach (var source in CorpusTranscripts.All.GroupBy(t => t.Source))
         {
-            int expected = 0, found = 0, missed = 0, removedUnknown = 0;
-            foreach (var (_, phraseId, text) in engine)
+            int expected = 0, found = 0, unknownNames = 0, leaks = 0, falseAlarms = 0;
+            foreach (var (_, phraseId, text, truth, unknown) in source)
             {
-                var truth = Truth.GetValueOrDefault(phraseId, []);
                 var result = _matcher.Pseudonymize(text);
                 var chosen = result.Mentions.Where(m => m.Status == MentionStatus.Matched)
                     .Select(m => m.CustomerId!.Value).ToList();
 
                 wrong.AddRange(chosen.Where(id => !truth.Contains(id))
-                    .Select(id => $"{engine.Key} {phraseId} « {text} » → client {id}"));
+                    .Select(id => $"{source.Key} {phraseId} « {text} » → client {id}"));
                 expected += truth.Length;
                 found += truth.Count(chosen.Contains);
-                missed += truth.Count(id => !chosen.Contains(id));
-                if (phraseId == "F1" && result.Mentions.Any(m => m.Status == MentionStatus.Unknown))
-                    removedUnknown++;
-                if (truth.Any(id => !chosen.Contains(id)))
-                    output.WriteLine($"  {engine.Key} {phraseId} manqué : « {text} » → « {result.Text} »");
+                unknownNames += unknown.Length;
+                var leaked = unknown.Where(name => FrenchPhonetic.Normalize(result.Text)
+                    .Contains(FrenchPhonetic.Normalize(name))).ToList();
+                leaks += leaked.Count;
+                if (truth.Length == 0 && unknown.Length == 0 && result.Mentions.Count > 0)
+                    falseAlarms++;
+
+                if (truth.Any(id => !chosen.Contains(id)) || leaked.Count > 0
+                    || (truth.Length == 0 && unknown.Length == 0 && result.Mentions.Count > 0))
+                    output.WriteLine($"  {source.Key} {phraseId} : « {text} » → « {result.Text} »");
             }
-            output.WriteLine($"{engine.Key} : {found}/{expected} clients trouvés, {missed} à choisir à l'écran, "
-                + $"nom inconnu retiré : {(removedUnknown == 1 ? "oui" : "non")}");
+            output.WriteLine($"{source.Key} : {found}/{expected} clients trouvés, "
+                + $"{leaks}/{unknownNames} noms inconnus restés dans le texte, {falseAlarms} fausses alertes");
         }
 
         Assert.True(wrong.Count == 0, "Mauvais client choisi :\n" + string.Join("\n", wrong));

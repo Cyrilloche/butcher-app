@@ -10,7 +10,7 @@ python3 score.py --detail                   # client, nombres et produits justes
 Pour faster-whisper (GPU NVIDIA), dans un environnement virtuel :
 
 ```bash
-python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+python3 -m venv .venv && .venv/bin/pip install --no-cache-dir -r requirements.txt
 SP=$(.venv/bin/python -c "import site; print(site.getsitepackages()[0])")
 export LD_LIBRARY_PATH=$SP/nvidia/cublas/lib:$SP/nvidia/cudnn/lib
 .venv/bin/python bench.py whisper-small whisper-medium whisper-medium-vocab

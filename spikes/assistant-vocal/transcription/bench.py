@@ -23,6 +23,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 CORPUS_DIR = ROOT / "development" / "assistant-corpus"
 RESULTS_DIR = CORPUS_DIR / "results"
+# Modèles et caches de téléchargement rangés avec le corpus, hors de git et hors du dossier personnel.
+MODELS_DIR = CORPUS_DIR / ".models"
+os.environ.setdefault("HF_HOME", str(MODELS_DIR / "huggingface"))
 
 # Vocabulaire guidé : produits, gestes et unités. Jamais les clients (cadrage §9, D-05).
 VOCABULARY = [
@@ -116,7 +119,7 @@ def whisper(size, with_vocabulary):
 
     probe = GpuMemoryProbe().start()  # avant le chargement : le modèle compte dans le pic
     # int8 : ce que la P600 (Pascal) exécute efficacement ; le float16 y est lent.
-    model = WhisperModel(size, device="cuda", compute_type="int8")
+    model = WhisperModel(size, device="cuda", compute_type="int8", download_root=str(MODELS_DIR))
     hotwords = " ".join(VOCABULARY) if with_vocabulary else None
 
     def transcribe(path):
