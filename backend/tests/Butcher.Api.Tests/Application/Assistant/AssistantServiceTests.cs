@@ -1,4 +1,3 @@
-using System.Text.Json.Nodes;
 using Butcher.Api.Application.Assistant;
 using Butcher.Api.Application.Dtos;
 using Butcher.Api.Application.Services;
@@ -23,44 +22,6 @@ public class AssistantServiceTests(PostgresDatabaseFixture fixture) : IAsyncLife
     public Task InitializeAsync() => fixture.ResetAsync();
 
     public Task DisposeAsync() => Task.CompletedTask;
-
-    /// <summary>Mistral simulé : une transcription et un appel d'outil fixés, et la trace de ce qu'il a reçu.</summary>
-    private sealed class FakeMistralClient : IMistralClient
-    {
-        public string Transcript { get; set; } = "";
-
-        public List<ToolCall> ToolCalls { get; } = [];
-
-        public Exception? ChatFailure { get; set; }
-
-        public int ChatCalls { get; private set; }
-
-        public List<string> SpokenTexts { get; } = [];
-
-        public FakeMistralClient Answers(string tool, string arguments)
-        {
-            ToolCalls.Add(new ToolCall($"call-{ToolCalls.Count}", tool, arguments));
-            return this;
-        }
-
-        public Task<ChatResult> ChatAsync(string model, JsonArray messages, JsonArray? tools, string toolChoice,
-            CancellationToken cancellationToken = default)
-        {
-            ChatCalls++;
-            if (ChatFailure is not null)
-                throw ChatFailure;
-            return Task.FromResult(new ChatResult(null, ToolCalls, 100, 10, new JsonObject()));
-        }
-
-        public Task<string> TranscribeAsync(Stream audio, string fileName, string contentType,
-            CancellationToken cancellationToken = default) => Task.FromResult(Transcript);
-
-        public Task<byte[]> SpeakAsync(string text, CancellationToken cancellationToken = default)
-        {
-            SpokenTexts.Add(text);
-            return Task.FromResult("ID3"u8.ToArray());
-        }
-    }
 
     private async Task<Guid> SeedAccountAsync()
     {
