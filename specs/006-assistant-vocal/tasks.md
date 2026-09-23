@@ -28,8 +28,8 @@ tâche « reprend » ou « vérifie » ce qui existe ; elle ne le réécrit pas.
 
 **Purpose**: les documents de `docs/` font foi et se mettent à jour dans le même lot (principe IV).
 
-- [ ] T001 Ajouter à `docs/PRD.md` **RF-34** (dicter une question de stock, réponse dite et affichée, chiffres du serveur), **RF-35** (dicter une vente : brouillon ouvert pré-rempli dans « Nouvelle vente », jamais enregistré par l'assistant, jamais un mauvais client), **RF-36** (activation compte par compte par l'administrateur, journal des demandes sans audio, limite par compte, suivi de l'usage) ; inscrire l'assistant vocal au périmètre (§4) avec renvoi à ADR-012 et `specs/006-assistant-vocal`
-- [ ] T002 [P] Mettre à jour `docs/data-model.md` : `app_user.assistant_enabled` (§3.1), nouvelle section `voice_request` (colonnes, index, immuabilité, données transmises à l'extérieur) d'après `specs/006-assistant-vocal/data-model.md`, libellés des enums `voice_request_outcome` et `voice_input_mode` à la correspondance (§4.2), ligne d'historique de version
+- [X] T001 Ajouter à `docs/PRD.md` **RF-34** (dicter une question de stock, réponse dite et affichée, chiffres du serveur), **RF-35** (dicter une vente : brouillon ouvert pré-rempli dans « Nouvelle vente », jamais enregistré par l'assistant, jamais un mauvais client), **RF-36** (activation compte par compte par l'administrateur, journal des demandes sans audio, limite par compte, suivi de l'usage) ; inscrire l'assistant vocal au périmètre (§4) avec renvoi à ADR-012 et `specs/006-assistant-vocal`
+- [X] T002 [P] Mettre à jour `docs/data-model.md` : `app_user.assistant_enabled` (§3.1), nouvelle section `voice_request` (colonnes, index, immuabilité, données transmises à l'extérieur) d'après `specs/006-assistant-vocal/data-model.md`, libellés des enums `voice_request_outcome` et `voice_input_mode` à la correspondance (§4.2), ligne d'historique de version
 
 ---
 
