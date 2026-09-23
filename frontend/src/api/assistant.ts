@@ -13,7 +13,10 @@ export function askAssistantByText(text: string): Promise<AssistantReplyDto> {
   return apiFetch<AssistantReplyDto>('/api/assistant/text', { method: 'POST', json: { text } })
 }
 
-/** La phrase de réponse lue par la voix de Mistral (MP3). Elle ne contient aucun nom de client. */
-export function speakWithAssistantVoice(text: string): Promise<Blob> {
-  return apiFetch<Blob>('/api/assistant/speech', { method: 'POST', json: { text }, blob: true })
+/**
+ * La réponse d'une demande, lue par la voix de Mistral (MP3). Le serveur relit la phrase qu'il a
+ * journalisée : aucun texte ne lui est envoyé (FR-020).
+ */
+export function speakWithAssistantVoice(requestId: number): Promise<Blob> {
+  return apiFetch<Blob>(`/api/assistant/requests/${requestId}/speech`, { blob: true })
 }

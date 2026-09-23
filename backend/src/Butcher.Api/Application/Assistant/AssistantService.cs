@@ -14,7 +14,8 @@ public interface IAssistantService
 
     Task<AssistantReply> AskVoiceAsync(Stream audio, string fileName, string contentType, CancellationToken cancellationToken = default);
 
-    Task<byte[]> SpeakAsync(string text, CancellationToken cancellationToken = default);
+    /// <summary>La phrase de réponse d'une demande du compte connecté, lue par la voix de Mistral (MP3).</summary>
+    Task<byte[]> SpeakReplyAsync(long requestId, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -35,6 +36,9 @@ public sealed class AssistantService(
 {
     public const string NothingHeardSpeech = "Je n'ai rien entendu. Réessaie en parlant près du téléphone.";
 
+    /// <summary>Au-delà, la voix d'une réponse ne se demande plus : la réponse a été lue ou abandonnée.</summary>
+    public static readonly TimeSpan SpeechWindow = TimeSpan.FromMinutes(10);
+
     private string ChatModel => configuration["Assistant:ChatModel"] ?? "ministral-14b-2512";
 
     public Task<AssistantReply> AskTextAsync(string text, CancellationToken cancellationToken = default)
@@ -51,12 +55,21 @@ public sealed class AssistantService(
         HandleAsync(VoiceInputMode.Voice,
             token => mistral.TranscribeAsync(audio, fileName, contentType, token), cancellationToken);
 
-    /// <summary>Lit une phrase de l'assistant avec la voix de Mistral. Une phrase courte : celles de l'assistant le sont.</summary>
-    public Task<byte[]> SpeakAsync(string text, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Seule la phrase de réponse journalisée d'une demande du même compte, récente, part au service de
+    /// synthèse : aucun texte ne peut lui être passé (FR-020, FR-021 ; research R-05).
+    /// </summary>
+    public async Task<byte[]> SpeakReplyAsync(long requestId, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(text) || text.Length > 500)
-            throw new BadRequestException("Phrase vide ou trop longue.");
-        return mistral.SpeakAsync(text.Trim(), cancellationToken);
+        var accountId = currentAccount.AccountId ?? throw new UnauthorizedException("Compte non identifié.");
+        var since = DateTimeOffset.UtcNow - SpeechWindow;
+        var speech = await dbContext.VoiceRequests.AsNoTracking()
+            .Where(r => r.Id == requestId && r.AccountId == accountId && r.OccurredAt >= since && r.ReplySpeech != null)
+            .Select(r => r.ReplySpeech)
+            .SingleOrDefaultAsync(cancellationToken)
+            ?? throw new NotFoundException("Cette réponse n'est plus disponible.");
+
+        return await mistral.SpeakAsync(speech, cancellationToken);
     }
 
     /// <summary>

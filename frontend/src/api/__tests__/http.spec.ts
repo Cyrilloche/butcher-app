@@ -68,7 +68,7 @@ describe('rawRequest', () => {
   it('rend un fichier binaire quand on le demande (voix de l’assistant)', async () => {
     fetchMock.mockResolvedValue(new Response('ID3', { headers: { 'Content-Type': 'audio/mpeg' } }))
 
-    const result = await rawRequest<Blob>('/api/assistant/speech', { method: 'POST', body: '{}' }, 'jeton', true)
+    const result = await rawRequest<Blob>('/api/assistant/requests/42/speech', {}, 'jeton', true)
 
     expect(result).toBeInstanceOf(Blob)
     expect(result.size).toBe(3)

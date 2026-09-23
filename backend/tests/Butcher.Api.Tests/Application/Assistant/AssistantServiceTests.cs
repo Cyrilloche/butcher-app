@@ -219,4 +219,78 @@ public class AssistantServiceTests(PostgresDatabaseFixture fixture) : IAsyncLife
 
         Assert.Equal(before, AuditCount());
     }
+
+    // --- Voix d'une réponse (FR-020, FR-021) --------------------------------------------------------
+
+    private async Task<long> AskOnceAsync(Guid accountId, FakeMistralClient mistral)
+    {
+        var (dbContext, service) = CreateSut(accountId, mistral);
+        await using var _ = dbContext;
+        return (await service.AskTextAsync("Combien de terrines ?")).RequestId;
+    }
+
+    [Fact]
+    public async Task SpeakReply_ReadsExactlyTheJournaledAnswer()
+    {
+        var accountId = await SeedAccountAsync();
+        await SeedStockAsync();
+        var mistral = new FakeMistralClient().Answers("get_stock", """{"product_code": "TR"}""");
+        var requestId = await AskOnceAsync(accountId, mistral);
+        var (dbContext, service) = CreateSut(accountId, mistral);
+        await using var _ = dbContext;
+
+        var audio = await service.SpeakReplyAsync(requestId);
+
+        Assert.Equal("ID3"u8.ToArray(), audio);
+        var request = Assert.Single(await VoiceRequestsAsync());
+        Assert.Equal([request.ReplySpeech!], mistral.SpokenTexts);
+    }
+
+    [Fact]
+    public async Task SpeakReply_OfAnotherAccount_IsNotFound()
+    {
+        var owner = await SeedAccountAsync();
+        var other = await SeedAccountAsync();
+        await SeedStockAsync();
+        var mistral = new FakeMistralClient().Answers("get_stock", """{"product_code": "TR"}""");
+        var requestId = await AskOnceAsync(owner, mistral);
+        var (dbContext, service) = CreateSut(other, mistral);
+        await using var _ = dbContext;
+
+        await Assert.ThrowsAsync<NotFoundException>(() => service.SpeakReplyAsync(requestId));
+        Assert.Empty(mistral.SpokenTexts);
+    }
+
+    [Fact]
+    public async Task SpeakReply_TooOld_IsNotFound()
+    {
+        var accountId = await SeedAccountAsync();
+        await SeedStockAsync();
+        var mistral = new FakeMistralClient().Answers("get_stock", """{"product_code": "TR"}""");
+        var requestId = await AskOnceAsync(accountId, mistral);
+        await using (var writer = fixture.CreateDbContext())
+        {
+            await writer.VoiceRequests.Where(r => r.Id == requestId)
+                .ExecuteUpdateAsync(set => set.SetProperty(r => r.OccurredAt,
+                    DateTimeOffset.UtcNow - AssistantService.SpeechWindow - TimeSpan.FromMinutes(1)));
+        }
+        var (dbContext, service) = CreateSut(accountId, mistral);
+        await using var _ = dbContext;
+
+        await Assert.ThrowsAsync<NotFoundException>(() => service.SpeakReplyAsync(requestId));
+    }
+
+    [Fact]
+    public async Task SpeakReply_OfARequestWithoutAnswer_IsNotFound()
+    {
+        var accountId = await SeedAccountAsync();
+        var mistral = new FakeMistralClient { ChatFailure = new ServiceUnavailableException("indisponible") };
+        var (dbContext, service) = CreateSut(accountId, mistral);
+        await using var _ = dbContext;
+        await Assert.ThrowsAsync<ServiceUnavailableException>(() => service.AskTextAsync("Il reste du jambon ?"));
+        var failed = Assert.Single(await VoiceRequestsAsync());
+
+        await Assert.ThrowsAsync<NotFoundException>(() => service.SpeakReplyAsync(failed.Id));
+        Assert.Empty(mistral.SpokenTexts);
+    }
 }

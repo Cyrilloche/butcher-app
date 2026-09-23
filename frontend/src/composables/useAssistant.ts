@@ -177,7 +177,7 @@ async function ask(request: () => Promise<AssistantReplyDto>) {
     reply.value = await request()
     phase.value = 'answered'
     open.value = true
-    void speak(reply.value.speech)
+    void speak(reply.value)
   } catch (err) {
     fail(err instanceof ApiError ? err.message : "L'assistant ne répond pas. Réessaie dans un instant.")
   }
@@ -221,13 +221,14 @@ function stopSpeaking() {
 }
 
 /**
- * Lit la réponse avec la voix de Mistral (Voxtral TTS, environ 1 s de plus), et se rabat sur la voix
- * du téléphone si elle ne vient pas. Le texte, lui, s'affiche tout de suite.
+ * Lit la réponse avec la voix de Mistral (environ 1 s de plus), et se rabat sur la voix du téléphone si
+ * elle ne vient pas (FR-008). Le texte, lui, s'affiche tout de suite.
  */
-async function speak(text: string) {
+async function speak(answer: AssistantReplyDto) {
   stopSpeaking()
+  const text = answer.speech
   try {
-    const audio = new Audio(URL.createObjectURL(await speakWithAssistantVoice(text)))
+    const audio = new Audio(URL.createObjectURL(await speakWithAssistantVoice(answer.requestId)))
     playing = audio
     audio.onended = () => URL.revokeObjectURL(audio.src)
     await audio.play()

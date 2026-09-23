@@ -8,8 +8,6 @@ namespace Butcher.Api.Controllers;
 
 public sealed record AssistantTextRequest(string Text);
 
-public sealed record AssistantSpeechRequest(string Text);
-
 /// <summary>
 /// Assistant vocal (spike R&amp;D, docs/spike-assistant-vocal.md). Lecture seule : il répond à une
 /// question de stock ou prépare un brouillon de vente, que l'utilisateur enregistre par le formulaire.
@@ -27,11 +25,14 @@ public class AssistantController(IAssistantService assistantService) : Controlle
         return Ok(await assistantService.AskTextAsync(request.Text, cancellationToken));
     }
 
-    /// <summary>La phrase de réponse, lue par la voix de Mistral (MP3). Le téléphone se rabat sur sa propre voix en cas d'échec.</summary>
-    [HttpPost("speech")]
-    public async Task<IActionResult> Speak(AssistantSpeechRequest request, CancellationToken cancellationToken)
+    /// <summary>
+    /// La réponse d'une demande du compte, lue par la voix de Mistral (MP3). Le téléphone se rabat sur sa
+    /// propre voix en cas d'échec (FR-008).
+    /// </summary>
+    [HttpGet("requests/{id:long}/speech")]
+    public async Task<IActionResult> Speak(long id, CancellationToken cancellationToken)
     {
-        return File(await assistantService.SpeakAsync(request.Text, cancellationToken), "audio/mpeg");
+        return File(await assistantService.SpeakReplyAsync(id, cancellationToken), "audio/mpeg");
     }
 
     [HttpPost("voice")]
