@@ -27,6 +27,8 @@ export interface MeDto {
   email: string
   displayName: string
   role: AccountRole
+  /** L'assistant vocal est activé pour ce compte : le « + » propose « Dicter » (RF-36). */
+  assistantEnabled: boolean
 }
 
 export interface ChangePasswordRequest {
@@ -43,6 +45,8 @@ export interface AccountDto {
   displayName: string
   role: AccountRole
   isActive: boolean
+  /** L'assistant vocal est activé pour ce compte (RF-36). */
+  assistantEnabled: boolean
   lastLoginAt: string | null
   createdAt: string
 }
@@ -59,6 +63,8 @@ export interface UpdateAccountRequest {
   role: AccountRole
   /** Obligatoire pour promouvoir un utilisateur administrateur (32 caractères au moins). */
   newPassword?: string
+  /** Active ou désactive l'assistant vocal ; absent, la valeur ne change pas. */
+  assistantEnabled?: boolean
 }
 
 export interface ResetPasswordRequest {
@@ -417,7 +423,7 @@ export interface ValidationProblemDetailsDto {
 
 // --- Assistant vocal (spike R&D, docs/spike-assistant-vocal.md) --------
 
-export type AssistantReplyKind = 'answer' | 'sale_draft' | 'not_understood'
+export type AssistantReplyKind = 'stock_answer' | 'sale_draft' | 'not_understood'
 
 export interface BatchStockDto {
   productionDate: string
@@ -461,6 +467,8 @@ export interface SaleDraftDto {
 }
 
 export interface AssistantReplyDto {
+  /** Identifiant de la demande journalisée : sert à demander la voix de la réponse (FR-020). */
+  requestId: number
   kind: AssistantReplyKind
   /** Phrase à dire à voix haute. */
   speech: string

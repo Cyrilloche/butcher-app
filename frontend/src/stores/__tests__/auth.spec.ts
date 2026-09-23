@@ -15,8 +15,8 @@ vi.mock('@/api/auth', () => ({
 const authApi = vi.mocked(await import('@/api/auth'))
 
 const session = { accessToken: 'jeton', expiresAtUtc: '2026-09-14T12:00:00Z' }
-const admin: MeDto = { id: 'a', email: 'admin@saloir.local', displayName: 'Admin', role: 'admin' }
-const user: MeDto = { id: 'u', email: 'mamie@saloir.local', displayName: 'Mamie', role: 'user' }
+const admin: MeDto = { id: 'a', email: 'admin@saloir.local', displayName: 'Admin', role: 'admin', assistantEnabled: false }
+const user: MeDto = { id: 'u', email: 'mamie@saloir.local', displayName: 'Mamie', role: 'user', assistantEnabled: false }
 
 beforeEach(() => {
   setActivePinia(createPinia())
@@ -45,6 +45,19 @@ describe('login', () => {
     await auth.login('mamie@saloir.local', 'phrase de passe')
 
     expect(auth.isAdmin).toBe(false)
+  })
+
+  it("ne propose l'assistant vocal qu'au compte pour lequel il est activé", async () => {
+    authApi.login.mockResolvedValue(session)
+    authApi.me.mockResolvedValue(user)
+    const auth = useAuthStore()
+    await auth.login('mamie@saloir.local', 'phrase de passe')
+    expect(auth.assistantEnabled).toBe(false)
+
+    authApi.me.mockResolvedValue({ ...user, assistantEnabled: true })
+    await auth.login('mamie@saloir.local', 'phrase de passe')
+
+    expect(auth.assistantEnabled).toBe(true)
   })
 
   it('ne garde pas une session dont le compte ne se charge pas', async () => {
