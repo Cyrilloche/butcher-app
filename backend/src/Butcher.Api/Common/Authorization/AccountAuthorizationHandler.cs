@@ -11,14 +11,16 @@ namespace Butcher.Api.Common.Authorization;
 /// </summary>
 /// <remarks>
 /// Un refus porte une raison, que <see cref="AccountAuthorizationResultHandler"/> traduit en réponse :
-/// compte inconnu ou désactivé → <c>401</c>, pour que le client ferme la session ; rôle insuffisant →
-/// <c>403</c>.
+/// compte inconnu ou désactivé → <c>401</c>, pour que le client ferme la session ; rôle insuffisant ou
+/// assistant vocal non activé → <c>403</c>.
 /// </remarks>
 public sealed class AccountAuthorizationHandler(AppDbContext dbContext) : AuthorizationHandler<AccountRequirement>
 {
     public const string InactiveAccountReason = "inactive_account";
 
     public const string AdminRequiredReason = "admin_required";
+
+    public const string AssistantDisabledReason = "assistant_disabled";
 
     protected override async Task HandleRequirementAsync(
         AuthorizationHandlerContext context, AccountRequirement requirement)
@@ -31,7 +33,7 @@ public sealed class AccountAuthorizationHandler(AppDbContext dbContext) : Author
         var account = await dbContext.AppUsers
             .AsNoTracking()
             .Where(u => u.Id == accountId)
-            .Select(u => new { u.IsActive, u.Role })
+            .Select(u => new { u.IsActive, u.Role, u.AssistantEnabled })
             .SingleOrDefaultAsync();
 
         if (account is not { IsActive: true })
@@ -43,6 +45,12 @@ public sealed class AccountAuthorizationHandler(AppDbContext dbContext) : Author
         if (requirement.RequireAdmin && account.Role != AccountRole.Admin)
         {
             context.Fail(new AuthorizationFailureReason(this, AdminRequiredReason));
+            return;
+        }
+
+        if (requirement.RequireAssistant && !account.AssistantEnabled)
+        {
+            context.Fail(new AuthorizationFailureReason(this, AssistantDisabledReason));
             return;
         }
 

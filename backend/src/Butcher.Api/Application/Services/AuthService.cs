@@ -146,6 +146,7 @@ public class AuthService(AppDbContext dbContext, UserManager<AppUser> userManage
             Email = user.Email ?? string.Empty,
             DisplayName = user.DisplayName,
             Role = user.Role,
+            AssistantEnabled = user.AssistantEnabled,
         };
     }
 

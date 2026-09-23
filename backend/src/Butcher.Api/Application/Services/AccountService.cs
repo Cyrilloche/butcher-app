@@ -67,6 +67,7 @@ public class AccountService(AppDbContext dbContext, UserManager<AppUser> userMan
 
         account.DisplayName = displayName;
         account.Role = request.Role;
+        account.AssistantEnabled = request.AssistantEnabled ?? account.AssistantEnabled;
 
         if (isPromotion)
         {
@@ -198,6 +199,7 @@ public class AccountService(AppDbContext dbContext, UserManager<AppUser> userMan
         DisplayName = account.DisplayName,
         Role = account.Role,
         IsActive = account.IsActive,
+        AssistantEnabled = account.AssistantEnabled,
         LastLoginAt = account.LastLoginAt,
         CreatedAt = account.CreatedAt,
     };

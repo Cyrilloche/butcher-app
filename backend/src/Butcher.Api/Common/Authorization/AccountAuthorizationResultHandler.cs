@@ -31,6 +31,13 @@ public sealed class AccountAuthorizationResultHandler : IAuthorizationMiddleware
             return;
         }
 
+        if (reasons.Contains(AccountAuthorizationHandler.AssistantDisabledReason))
+        {
+            await WriteProblemAsync(
+                context, StatusCodes.Status403Forbidden, "Accès réservé", "L'assistant vocal n'est pas activé pour ton compte.");
+            return;
+        }
+
         await _default.HandleAsync(next, context, policy, authorizeResult);
     }
 

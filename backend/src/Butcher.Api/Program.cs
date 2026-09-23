@@ -94,6 +94,7 @@ builder.Services.AddAuthorization(options =>
     options.DefaultPolicy = AuthorizationPolicies.ActiveAccount;
     options.FallbackPolicy = AuthorizationPolicies.ActiveAccount;
     options.AddPolicy(AuthorizationPolicies.AdminOnly, AuthorizationPolicies.Admin);
+    options.AddPolicy(AuthorizationPolicies.AssistantEnabled, AuthorizationPolicies.Assistant);
 });
 builder.Services.AddScoped<IAuthorizationHandler, AccountAuthorizationHandler>();
 builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, AccountAuthorizationResultHandler>();

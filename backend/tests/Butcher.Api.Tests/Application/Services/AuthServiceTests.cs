@@ -185,6 +185,20 @@ public class AuthServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifetime
         Assert.Equal(Email, me.Email);
         Assert.Equal("Mireille", me.DisplayName);
         Assert.Equal(AccountRole.Admin, me.Role);
+        Assert.False(me.AssistantEnabled);
+    }
+
+    [Fact]
+    public async Task GetAccountAsync_ReportsTheAssistantOnceEnabled()
+    {
+        var (_, userManager, service) = CreateSut(fixture);
+        var user = await SeedUserAsync(userManager);
+        user.AssistantEnabled = true;
+        await userManager.UpdateAsync(user);
+
+        var me = await service.GetAccountAsync(user.Id);
+
+        Assert.True(me.AssistantEnabled);
     }
 
     [Fact]

@@ -11,6 +11,9 @@ public static class AuthorizationPolicies
     /// <summary>Réservé à un compte administrateur actif.</summary>
     public const string AdminOnly = "AdminOnly";
 
+    /// <summary>Réservé à un compte actif pour lequel l'administrateur a activé l'assistant vocal (RF-36).</summary>
+    public const string AssistantEnabled = "AssistantEnabled";
+
     /// <summary>Tout compte authentifié et actif : politique par défaut et de repli.</summary>
     public static AuthorizationPolicy ActiveAccount { get; } = new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
@@ -20,5 +23,10 @@ public static class AuthorizationPolicies
     public static AuthorizationPolicy Admin { get; } = new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
         .AddRequirements(AccountRequirement.Administrator)
+        .Build();
+
+    public static AuthorizationPolicy Assistant { get; } = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .AddRequirements(AccountRequirement.AssistantUser)
         .Build();
 }

@@ -1,5 +1,7 @@
 using Butcher.Api.Application.Assistant;
+using Butcher.Api.Common.Authorization;
 using Butcher.Api.Common.Exceptions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Butcher.Api.Controllers;
@@ -14,6 +16,7 @@ public sealed record AssistantSpeechRequest(string Text);
 /// </summary>
 [ApiController]
 [Route("api/assistant")]
+[Authorize(Policy = AuthorizationPolicies.AssistantEnabled)]
 public class AssistantController(IAssistantService assistantService) : ControllerBase
 {
     private const long MaxAudioBytes = 5 * 1024 * 1024;
