@@ -96,7 +96,8 @@ pas). Effet à la requête suivante du compte (FR-026).
 
 ### `GET /api/reports/assistant?from=2026-09-01&to=2026-09-30` — usage *(nouvelle)*
 
-Période en jours de Paris (`BusinessTime`), l'année en cours par défaut, comme les autres rapports.
+Période **obligatoire** (`from`, `to`, sinon `400`), en jours de Paris (`BusinessTime`), comme les autres
+rapports ; c'est l'écran Rapports qui propose l'année en cours.
 
 ```jsonc
 [
@@ -104,13 +105,16 @@ Période en jours de Paris (`BusinessTime`), l'année en cours par défaut, comm
     "accountId": "…", "accountName": "Gérard",
     "weekStart": "2026-09-21",      // lundi, heure de Paris
     "requests": 12,
-    "byOutcome": { "stock_answer": 5, "sale_draft": 6, "not_understood": 1, "error": 0, "rate_limited": 0 },
-    "medianDurationMs": 1480
+    "stockAnswers": 5, "saleDrafts": 6, "notUnderstood": 1, "errors": 0, "rateLimited": 0,
+    "medianDurationMs": 1480            // null si aucune demande traitée ; les refus par la limite n'y comptent pas
   }
 ]
 ```
 
 ### `GET /api/reports/assistant/requests?from&to&accountId&limit=50` — détail *(nouvelle)*
 
-Les demandes les plus récentes d'abord : `id`, `occurredAt`, `accountName`, `inputMode`,
+Période obligatoire ; `limit` entre 1 et 200. Les demandes les plus récentes d'abord : `id`, `occurredAt`, `accountName`, `inputMode`,
 `heardText`, `outcome`, `replySpeech`, `durationMs`. Sert à comprendre un raté (FR-025).
+
+> Les issues sont des champs nommés et non un dictionnaire : un enum en clé de dictionnaire ne suit pas
+> la sérialisation `snake_case` du reste de l'API (`CLAUDE.md` §9).

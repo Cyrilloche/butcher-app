@@ -14,7 +14,7 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 
 ## 2. État d'avancement & feuille de route
 
-**Phase actuelle : Vague 1 complète côté périmètre fonctionnel. Backend complet, socle de déploiement livré (ADR-010), frontend au niveau de l'API. La saisie DLC/matière première d'un lot (RF-08/RF-09) est reportée en V2 le 2026-09-11 : deux champs facultatifs de plus sur le parcours le plus fragile, alors que la prise en main de l'outil est déjà le vrai défi. La recette manuelle de la correction d'une vente est déroulée et validée (2026-09-11). Depuis, le poids encore vendable d'un jambon entamé est visible et les totaux de stock disent enfin ce qui reste à vendre (2026-09-12). Le prix d'une fournée se corrige depuis Détail Stock, et la connexion est durcie (verrouillage, limitation de débit, phrase de passe de 32 caractères, en-têtes de sécurité) — 2026-09-12. En-têtes et redirection HTTPS sont en prod. Avant l'usage réel restent la sauvegarde et la rotation du mot de passe de prod (`docs/etat-des-lieux.md` §5). Le backoffice PC (`specs/005-backoffice`) est fusionné dans `dev` le 2026-09-14 : comptes nominatifs et rôles (ADR-011), mise en page PC, journal des gestes et rapports de ventes. Le frontend a ses tests (115, Vitest). Dernière release avant la recette complète avec les utilisateurs, sur une base de prod remise à zéro.**
+**Phase actuelle : Vague 1 complète côté périmètre fonctionnel. Backend complet, socle de déploiement livré (ADR-010), frontend au niveau de l'API. La saisie DLC/matière première d'un lot (RF-08/RF-09) est reportée en V2 le 2026-09-11 : deux champs facultatifs de plus sur le parcours le plus fragile, alors que la prise en main de l'outil est déjà le vrai défi. La recette manuelle de la correction d'une vente est déroulée et validée (2026-09-11). Depuis, le poids encore vendable d'un jambon entamé est visible et les totaux de stock disent enfin ce qui reste à vendre (2026-09-12). Le prix d'une fournée se corrige depuis Détail Stock, et la connexion est durcie (verrouillage, limitation de débit, phrase de passe de 32 caractères, en-têtes de sécurité) — 2026-09-12. En-têtes et redirection HTTPS sont en prod. Avant l'usage réel restent la sauvegarde et la rotation du mot de passe de prod (`docs/etat-des-lieux.md` §5). Le backoffice PC (`specs/005-backoffice`) est fusionné dans `dev` le 2026-09-14 : comptes nominatifs et rôles (ADR-011), mise en page PC, journal des gestes et rapports de ventes. Le frontend a ses tests (115, Vitest). Dernière release avant la recette complète avec les utilisateurs, sur une base de prod remise à zéro. Un **assistant vocal** (RF-34 à RF-36, ADR-012, `specs/006-assistant-vocal`) est implémenté sur la branche `feat/assistant-vocal` le 2026-09-24, non fusionné : recette sur téléphone et mise en production restent à faire (`specs/006-assistant-vocal/quickstart.md`).**
 
 | Étape | Statut |
 |---|---|
@@ -42,6 +42,7 @@ Application de gestion (« mini-ERP ») pour une activité **annexe de charcuter
 | Développement Vague 1 | ✅ **Complet** — RF-08/RF-09 (DLC, matière première) reportées en V2 le 2026-09-11 ; recette manuelle de la correction d'une vente déroulée et validée le 2026-09-11 |
 | Retours de la première recette réelle (2026-09-16) | ✅ `docs/retours-utilisateurs.md` : recherche d'une vente par produit (RU-02), vente depuis la fiche client (RU-04), ajout d'un produit à une vente enregistrée (RU-03), barre latérale PC (RU-05), aide sous le bouton grisé (RU-01) fusionnés dans `dev` et publiés en `frontend-v0.7.0` le 2026-09-17, à retester par les utilisateurs ; RU-06 (commandes) et RU-07 (allergies) sans suite |
 | Analyse d'écart doc ↔ code | ✅ `docs/etat-des-lieux.md` v2.0 (12/09/2026) |
+| Assistant vocal (RF-34 à RF-36, ADR-012) | 🟡 **Implémenté sur `feat/assistant-vocal` (2026-09-24), non fusionné.** Spike (`docs/spike-assistant-vocal.md`) puis spec 006 : question de stock et vente dictées depuis le « + », voix de Mistral, activation compte par compte, journal `voice_request`, limite par compte, section « Assistant vocal » des Rapports. Restent la recette sur téléphone et la mise en production (`Caddyfile` à copier : micro et audio) — `specs/006-assistant-vocal/quickstart.md` |
 
 **Méthode : dé-risquage avant développement.** On valide les points techniques risqués par des *spikes* isolés **avant** de construire les fonctionnalités. Spikes prévus, dans l'ordre :
 
@@ -68,9 +69,10 @@ La documentation de référence vit dans `docs/`. **En cas de doute, ces documen
 | Document | Contient |
 |---|---|
 | `docs/PRD.md` | Le *quoi* : contexte, objectifs, périmètre par vagues, exigences fonctionnelles (`RF-xx`), règles de gestion (`RG-xx`), exigences non fonctionnelles (`RNF-xx`), risques. |
-| `docs/ADR.md` | Le *avec quoi* : les 10 décisions d'architecture, chacune avec son contexte, ses conséquences et les alternatives écartées. |
+| `docs/ADR.md` | Le *avec quoi* : les 12 décisions d'architecture, chacune avec son contexte, ses conséquences et les alternatives écartées. |
 | `docs/data-model.md` | Le modèle de données détaillé (entités, contraintes, format du numéro de lot, DBML, table de correspondance FR/EN, points d'extension V2+). |
 | `docs/etat-des-lieux.md` | Le *où on en est* : analyse d'écart entre ce qui était prévu et ce qui tourne, datée. Photographie, pas référence — les décisions qu'elle appelle redescendent dans les documents ci-dessus. |
+| `docs/assistant-vocal-fonctionnement.md` | Comment marche l'assistant vocal : parcours d'une demande, qui décide quoi (LLM ou serveur), ce qui part chez Mistral, carte des fichiers. |
 | `docs/retours-utilisateurs.md` | Les retours de test en condition réelle, triés en tickets `RU-xx` (type, impact, effort, statut). Une branche par ticket depuis `dev`, fusionnée sans squash. |
 | `CHANGELOG.md` | Journal des versions publiées, **généré** depuis les messages de commit (`make changelog`). Ne jamais l'éditer à la main. |
 
@@ -128,6 +130,7 @@ butcher-app/
 │   │   ├── views/         # StockView, SalesView, CustomersView, ProductsView, LoginView
 │   │   └── router/
 │   └── Dockerfile
+├── spikes/                # outillage de R&D hors build (assistant vocal : enregistreur, bancs)
 ├── Caddyfile              # reverse proxy : frontend + /api/* sur la même origine
 ├── docker-compose.yml     # pile locale complète
 ├── docker-compose.prod.yml# pile de production (images versionnées + tunnel Cloudflare)
@@ -244,6 +247,11 @@ Ces règles sont le cœur de la logique. Le backend en est le garant.
 - ❌ Écrire une `AuditEntry` depuis un service métier → `SaveChanges` déduit le geste du `ChangeTracker`. Un service qui en écrirait une doublerait l'entrée ; seul `AuthService` en écrit, pour les connexions, qui ne changent aucune ligne visible. Une nouvelle entité à journaliser se déclare dans `AuditTrail`.
 - ❌ Journaliser une conséquence comme un geste → le statut d'une unité changé par un mouvement du même enregistrement n'a pas d'entrée, les lignes d'une vente suivent leur vente. Une entrée par geste (clarification du 2026-09-13).
 - ❌ Calculer un rapport côté client, ou depuis un poids et un prix → `ReportService` additionne les `amount` enregistrés ; la vue d'ensemble et l'écran Rapports lisent les mêmes routes pour annoncer les mêmes chiffres.
+- ❌ Transmettre un nom de client, ou la liste des clients, au service de compréhension (LLM) de l'assistant vocal → `CustomerNameMatcher` les remplace par des jetons avant l'appel ; un nom inconnu est retiré. Seule la transcription entend les noms (ADR-012).
+- ❌ Faire écrire par le LLM un chiffre, une unité ou un client → le LLM rend une intention et des champs ; `SaleDraftBuilder` choisit les unités, `StockSummaryBuilder` écrit la phrase dite. Au banc, le LLM a annoncé « 1 jambon entier » pour 2 (`docs/spike-assistant-vocal.md` §7).
+- ❌ Envoyer un texte libre au service de voix (Voxtral TTS) → seule la phrase de réponse journalisée d'une demande du même compte se lit, par `GET /api/assistant/requests/{id}/speech`.
+- ❌ Écrire une `VoiceRequest` ailleurs que dans `AssistantService` → une ligne par demande, erreur et limite comprises, jamais l'audio ; c'est aussi le compteur de la limite par compte.
+- ❌ Oublier le `Caddyfile` en mettant l'assistant en production → il doit autoriser `microphone=(self)` et `media-src 'self' blob:` ; sinon le micro est refusé et la voix de Mistral bloquée, alors que tout marche en local.
 - ❌ Borner une période ou regrouper par mois en UTC → `BusinessTime` (jours de `Europe/Paris`). Une vente saisie le 1er à 0 h 30 appartient au 1er, pas au dernier jour du mois précédent.
 
 ---
