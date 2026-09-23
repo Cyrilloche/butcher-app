@@ -289,3 +289,10 @@ Reste à mesurer : le délai de bout en bout chronométré, et surtout l'essai p
 3. Dans la spec : restreindre `/api/assistant/speech` aux phrases de l'assistant, journaliser les demandes vocales (sans l'audio), décider du « + » à deux choix (un appui de plus pour l'action habituelle), mesurer le délai.
 
 La décision revient au porteur du projet.
+
+### Décision du porteur du projet (2026-09-23)
+
+- **Go vers la spec `specs/006-assistant-vocal`**, **sans essai préalable par l'utilisateur visé** :
+  hypothèse assumée que l'assistant, avec la voix de Mistral, sera adopté. Le risque d'adoption (R-01)
+  reste donc ouvert ; la spec devra prévoir comment le mesurer après livraison.
+- Compte Mistral en paiement à l'usage : exclusion de l'entraînement d'office.

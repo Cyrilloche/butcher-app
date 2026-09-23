@@ -467,9 +467,9 @@ dictées contiennent des noms de clients, donc des données personnelles.
 - **Pseudonymisation locale avant le LLM.** Les noms de clients sont reconnus à l'oreille, en C#, et
   remplacés par des jetons ; un nom inconnu est retiré ; deux clients qui se ressemblent ne sont pas
   départagés au hasard. Le LLM ne voit jamais un nom ni la liste des clients.
-- **Conditions sur le compte Mistral**, avant tout usage réel : exclusion de l'entraînement vérifiée
-  (acquise d'office en paiement à l'usage, à désactiver à la main sur l'offre gratuite) ; choix de
-  l'offre (le compte gratuit ferme Mistral Small et Medium et limite le débit).
+- **Compte Mistral en paiement à l'usage** (confirmé le 2026-09-23) : les données sont exclues de
+  l'entraînement d'office, à vérifier une fois dans la console. Mistral Small et Medium restaient
+  fermés sur le compte pendant le spike (zéro requête par minute) ; Ministral 14B suffit aux seuils.
 
 ### Conséquences
 
