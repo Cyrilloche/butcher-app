@@ -477,3 +477,34 @@ export interface AssistantReplyDto {
   stock: ProductStockDto[] | null
   draft: SaleDraftDto | null
 }
+
+// --- Usage de l'assistant vocal (RF-36, FR-025), réservé à l'administrateur ----------------
+
+export type VoiceRequestOutcome = 'stock_answer' | 'sale_draft' | 'not_understood' | 'error' | 'rate_limited'
+export type VoiceInputMode = 'voice' | 'text'
+
+export interface AssistantUsageDto {
+  accountId: string
+  accountName: string
+  /** Lundi de la semaine, jour de Paris (`YYYY-MM-DD`). */
+  weekStart: string
+  requests: number
+  stockAnswers: number
+  saleDrafts: number
+  notUnderstood: number
+  errors: number
+  rateLimited: number
+  /** Durée médiane de traitement par le serveur ; null si aucune demande n'a été traitée. */
+  medianDurationMs: number | null
+}
+
+export interface AssistantRequestDto {
+  id: number
+  occurredAt: string
+  accountName: string
+  inputMode: VoiceInputMode
+  heardText: string | null
+  outcome: VoiceRequestOutcome
+  replySpeech: string | null
+  durationMs: number
+}

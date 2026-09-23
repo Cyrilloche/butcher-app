@@ -2,18 +2,26 @@
 import { ref } from 'vue'
 import { useRouter, type RouteLocationRaw } from 'vue-router'
 import { useAssistant } from '@/composables/useAssistant'
+import { useAuthStore } from '@/stores/auth'
 
 /**
- * Le bouton « + » des listes, qui porte aussi l'assistant vocal (spike R&D) : un appui déplie deux
- * choix étiquetés, l'action de l'écran (« Nouvelle vente »…) et « Dicter ». Même place et même
- * aspect qu'`AppFab`, qu'il remplace sur les écrans de liste.
+ * Le bouton « + » des listes, qui porte aussi l'assistant vocal (FR-001) : pour un compte où
+ * l'administrateur l'a activé, un appui déplie deux choix étiquetés, l'action de l'écran
+ * (« Nouvelle vente »…) et « Dicter ». Pour les autres comptes, un appui déclenche l'action, comme
+ * `AppFab`, dont il reprend la place et l'aspect.
  */
 const props = withDefaults(defineProps<{ icon?: string; label: string; to?: RouteLocationRaw }>(), { icon: 'plus' })
 const emit = defineEmits<{ click: [] }>()
 
 const router = useRouter()
+const auth = useAuthStore()
 const { start } = useAssistant()
 const expanded = ref(false)
+
+function onMainClick() {
+  if (!auth.assistantEnabled) return runAction()
+  expanded.value = !expanded.value
+}
 
 function runAction() {
   expanded.value = false
@@ -44,9 +52,9 @@ function dictate() {
       type="button"
       class="action-fab__main"
       :class="{ 'action-fab__main--expanded': expanded }"
-      :aria-label="expanded ? 'Fermer' : `${label} ou dicter`"
-      :aria-expanded="expanded"
-      @click="expanded = !expanded"
+      :aria-label="!auth.assistantEnabled ? label : expanded ? 'Fermer' : `${label} ou dicter`"
+      :aria-expanded="auth.assistantEnabled ? expanded : undefined"
+      @click="onMainClick"
     >
       <v-icon size="28">phosphor:{{ icon }}</v-icon>
     </button>

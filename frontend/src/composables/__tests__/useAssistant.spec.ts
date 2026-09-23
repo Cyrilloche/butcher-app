@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as AssistantApi from '@/api/assistant'
+import { ApiError } from '@/api/http'
 import type { AssistantReplyDto } from '@/api/types'
 import { createVoiceActivity, pickFrenchVoice, useAssistant } from '../useAssistant'
 
@@ -141,5 +142,24 @@ describe('voix de la réponse (FR-008, FR-020)', () => {
 
     await vi.waitFor(() => expect(phoneSpeak).toHaveBeenCalledOnce())
     expect(phoneSpeak.mock.calls[0]![0].text).toBe(reply.speech)
+  })
+})
+
+describe('refus du serveur (FR-022, FR-023)', () => {
+  afterEach(() => useAssistant().close())
+
+  it.each([
+    [403, "L'assistant vocal n'est pas activé pour ton compte."],
+    [429, 'Tu as fait beaucoup de demandes : réessaie dans quelques minutes.'],
+  ])('affiche le message du serveur pour un refus %i', async (status, message) => {
+    vi.resetAllMocks()
+    assistantApi.askAssistantByText.mockRejectedValue(new ApiError(status, message))
+    const assistant = useAssistant()
+
+    assistant.askByText('il reste du jambon ?')
+
+    await vi.waitFor(() => expect(assistant.phase.value).toBe('error'))
+    expect(assistant.error.value).toBe(message)
+    expect(assistant.open.value).toBe(true)
   })
 })

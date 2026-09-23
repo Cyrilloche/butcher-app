@@ -1,5 +1,12 @@
 import { apiFetch } from './http'
-import type { CustomerSalesDto, ProductSalesDto, ReceivablesDto, SalesSummaryDto } from './types'
+import type {
+  AssistantRequestDto,
+  AssistantUsageDto,
+  CustomerSalesDto,
+  ProductSalesDto,
+  ReceivablesDto,
+  SalesSummaryDto,
+} from './types'
 
 // Rapports de ventes, réservés à l'administrateur (FR-027 à FR-029) : le serveur répond 403 à un
 // utilisateur. `from` et `to` sont des jours `YYYY-MM-DD` inclus, lus en heure de Paris.
@@ -23,4 +30,15 @@ export function getSalesByProduct(from: string, to: string): Promise<ProductSale
 /** Toutes les ventes non payées, sans période. */
 export function getReceivables(): Promise<ReceivablesDto> {
   return apiFetch<ReceivablesDto>('/api/reports/receivables')
+}
+
+/** Usage de l'assistant vocal par compte et par semaine (RF-36, FR-025). */
+export function getAssistantUsage(from: string, to: string): Promise<AssistantUsageDto[]> {
+  return apiFetch<AssistantUsageDto[]>(`/api/reports/assistant?${period(from, to)}`)
+}
+
+/** Dernières demandes à l'assistant, avec la phrase entendue, pour comprendre un raté. */
+export function getAssistantRequests(from: string, to: string, limit = 30): Promise<AssistantRequestDto[]> {
+  const query = new URLSearchParams({ from, to, limit: String(limit) }).toString()
+  return apiFetch<AssistantRequestDto[]>(`/api/reports/assistant/requests?${query}`)
 }
