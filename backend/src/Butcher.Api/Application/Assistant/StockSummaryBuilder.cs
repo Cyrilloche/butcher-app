@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text.RegularExpressions;
 using Butcher.Api.Domain.Enums;
 
 namespace Butcher.Api.Application.Assistant;
@@ -48,8 +47,8 @@ public static class StockSummaryBuilder
             .ToList();
 
     /// <summary>
-    /// Phrase construite par le backend, sans LLM : repli quand la phrase du LLM contient un chiffre
-    /// absent des données, et référence de ce qu'on attend (l'essentiel en une ou deux phrases).
+    /// La phrase dite, construite par le backend et jamais par le LLM (FR-011) : l'essentiel en une ou
+    /// deux phrases, le détail restant à l'écran.
     /// </summary>
     public static string Speech(IReadOnlyList<ProductStock> products, string? askedProductName = null)
     {
@@ -77,70 +76,6 @@ public static class StockSummaryBuilder
         (0, var opened) => $"{opened} entamé{(opened > 1 ? "s" : "")}",
         var (whole, opened) => $"{whole} entier{(whole > 1 ? "s" : "")} et {opened} entamé{(opened > 1 ? "s" : "")}",
     };
-
-    /// <summary>
-    /// Nombres présents dans une phrase et absents des données : vide si la phrase est fidèle.
-    /// Arrondis admis : poids au kilo, au dixième, au centième ou en grammes ; dates en jour, mois, année.
-    /// </summary>
-    public static IReadOnlyList<string> InventedNumbers(string speech, IReadOnlyList<ProductStock> products)
-    {
-        var allowed = new HashSet<decimal>();
-        foreach (var p in products)
-        {
-            allowed.UnionWith([p.WholeCount, p.OpenedCount, p.WholeCount + p.OpenedCount, p.Batches.Count]);
-            AddWeight(allowed, p.RemainingKg);
-            AddDate(allowed, p.OldestDate);
-            foreach (var b in p.Batches)
-            {
-                allowed.UnionWith([b.Count, b.SalePrice, Math.Round(b.SalePrice)]);
-                AddWeight(allowed, b.RemainingKg);
-                AddDate(allowed, b.ProductionDate);
-            }
-            foreach (var o in p.Opened)
-            {
-                AddWeight(allowed, o.RemainingKg);
-                AddDate(allowed, o.ProductionDate);
-            }
-        }
-        allowed.Add(products.Count);
-
-        return SpokenNumbers(speech).Where(n => !allowed.Contains(n.Value)).Select(n => n.Text).ToList();
-    }
-
-    private static readonly Dictionary<string, int> NumberWords = new()
-    {
-        ["deux"] = 2, ["trois"] = 3, ["quatre"] = 4, ["cinq"] = 5, ["six"] = 6, ["sept"] = 7, ["huit"] = 8,
-        ["neuf"] = 9, ["dix"] = 10, ["onze"] = 11, ["douze"] = 12, ["treize"] = 13, ["quatorze"] = 14,
-        ["quinze"] = 15, ["seize"] = 16, ["vingt"] = 20, ["trente"] = 30, ["quarante"] = 40, ["cinquante"] = 50,
-    };
-
-    private static IEnumerable<(string Text, decimal Value)> SpokenNumbers(string speech)
-    {
-        // Les numéros d'étiquette (« SC-250831-1 ») identifient une unité : ce ne sont pas des quantités.
-        var text = Regex.Replace(speech, @"\b[A-Z]{1,4}-\d{6}-\d+\b", " ");
-        foreach (Match m in Regex.Matches(text, @"\d+(?:[.,]\d+)?"))
-            yield return (m.Value, decimal.Parse(m.Value.Replace(',', '.'), CultureInfo.InvariantCulture));
-        foreach (Match m in Regex.Matches(text.ToLowerInvariant(), @"\p{L}+"))
-            if (NumberWords.TryGetValue(m.Value, out var value))
-                yield return (m.Value, value);
-    }
-
-    private static void AddWeight(HashSet<decimal> allowed, decimal? kilograms)
-    {
-        if (kilograms is not { } kg)
-            return;
-        // « 3 kilos et 660 » : les grammes au-delà du kilo, exacts ou arrondis à la dizaine.
-        var grams = (kg - Math.Floor(kg)) * 1000m;
-        allowed.UnionWith([Math.Round(kg), Math.Round(kg, 1), Math.Round(kg, 2), Math.Round(kg, 3),
-            Math.Round(kg * 1000m), Math.Round(kg * 100m) * 10m, Math.Floor(kg), Math.Floor(kg * 10m) / 10m,
-            Math.Round(grams), Math.Round(grams / 10m) * 10m]);
-    }
-
-    private static void AddDate(HashSet<decimal> allowed, DateOnly? date)
-    {
-        if (date is { } d)
-            allowed.UnionWith([d.Day, d.Month, d.Year]);
-    }
 
     private static string Kilos(decimal kilograms) =>
         kilograms < 1m ? $"{Math.Round(kilograms * 1000m / 10m) * 10m:0} grammes" : $"{Math.Round(kilograms, 1).ToString("0.#", French)} kilos";

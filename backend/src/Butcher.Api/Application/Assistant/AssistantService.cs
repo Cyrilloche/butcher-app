@@ -1,4 +1,7 @@
+using System.Diagnostics;
+using Butcher.Api.Common.Authorization;
 using Butcher.Api.Common.Exceptions;
+using Butcher.Api.Domain.Entities;
 using Butcher.Api.Domain.Enums;
 using Butcher.Api.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -15,37 +18,38 @@ public interface IAssistantService
 }
 
 /// <summary>
-/// Charge ce dont l'assistant a besoin (clients, catalogue, unités en stock) et confie la demande à
-/// <see cref="AssistantEngine"/>. Lecture seule : un brouillon de vente s'enregistre par le formulaire.
+/// Reçoit une demande à l'assistant vocal (RF-34, RF-35), charge ce dont il a besoin (clients, catalogue,
+/// unités en stock), la confie à <see cref="AssistantEngine"/> et la journalise (RF-36). Lecture seule :
+/// un brouillon de vente s'enregistre par le formulaire (FR-009).
 /// </summary>
-public sealed class AssistantService(AppDbContext dbContext, IMistralClient mistral, IConfiguration configuration) : IAssistantService
+/// <remarks>
+/// Seul écrivain de <see cref="VoiceRequest"/> : une ligne par demande, quelle qu'en soit l'issue, jamais
+/// l'audio (FR-024, specs/006-assistant-vocal research R-02).
+/// </remarks>
+public sealed class AssistantService(
+    AppDbContext dbContext,
+    IMistralClient mistral,
+    ICurrentAccount currentAccount,
+    IConfiguration configuration,
+    ILogger<AssistantService> logger) : IAssistantService
 {
+    public const string NothingHeardSpeech = "Je n'ai rien entendu. Réessaie en parlant près du téléphone.";
+
     private string ChatModel => configuration["Assistant:ChatModel"] ?? "ministral-14b-2512";
 
-    /// <summary>Mise en phrase par le LLM : désactivée par défaut (voir <see cref="AssistantEngine"/>).</summary>
-    private bool LlmSpeech => string.Equals(configuration["Assistant:LlmSpeech"], "true", StringComparison.OrdinalIgnoreCase);
-
-    public async Task<AssistantReply> AskTextAsync(string text, CancellationToken cancellationToken = default)
+    public Task<AssistantReply> AskTextAsync(string text, CancellationToken cancellationToken = default)
     {
+        // Une demande écrite vide n'est pas une demande : refusée sans être journalisée.
         if (string.IsNullOrWhiteSpace(text))
-            throw new BadRequestException("Je n'ai rien entendu.");
+            throw new BadRequestException("Écris ta demande.");
 
-        var customers = await dbContext.Customers.AsNoTracking()
-            .Select(c => new CustomerRef(c.Id, c.LastName, c.FirstName)).ToListAsync(cancellationToken);
-        var catalog = await dbContext.Products.AsNoTracking().Where(p => p.IsActive).OrderBy(p => p.Name)
-            .Select(p => new CatalogProduct(p.Code, p.Name, p.SaleMode, p.AllowPartialSale)).ToListAsync(cancellationToken);
-        var stock = await LoadStockAsync(cancellationToken);
-
-        var (reply, _) = await new AssistantEngine(mistral, ChatModel, LlmSpeech).AskAsync(text.Trim(), customers, catalog, stock, cancellationToken);
-        return reply;
+        return HandleAsync(VoiceInputMode.Text, _ => Task.FromResult(text), cancellationToken);
     }
 
-    public async Task<AssistantReply> AskVoiceAsync(Stream audio, string fileName, string contentType,
-        CancellationToken cancellationToken = default)
-    {
-        var text = await mistral.TranscribeAsync(audio, fileName, contentType, cancellationToken);
-        return await AskTextAsync(text, cancellationToken);
-    }
+    public Task<AssistantReply> AskVoiceAsync(Stream audio, string fileName, string contentType,
+        CancellationToken cancellationToken = default) =>
+        HandleAsync(VoiceInputMode.Voice,
+            token => mistral.TranscribeAsync(audio, fileName, contentType, token), cancellationToken);
 
     /// <summary>Lit une phrase de l'assistant avec la voix de Mistral. Une phrase courte : celles de l'assistant le sont.</summary>
     public Task<byte[]> SpeakAsync(string text, CancellationToken cancellationToken = default)
@@ -56,7 +60,99 @@ public sealed class AssistantService(AppDbContext dbContext, IMistralClient mist
     }
 
     /// <summary>
-    /// Unités <c>available</c> et <c>opened</c> des produits actifs, avec leur poids restant.
+    /// Entend la demande (transcription ou texte tel quel), la comprend, et journalise le résultat. Une
+    /// erreur est journalisée avec l'issue <c>error</c> puis repart vers l'appelant (FR-027).
+    /// </summary>
+    private async Task<AssistantReply> HandleAsync(VoiceInputMode inputMode,
+        Func<CancellationToken, Task<string>> hear, CancellationToken cancellationToken)
+    {
+        var accountId = currentAccount.AccountId ?? throw new UnauthorizedException("Compte non identifié.");
+        var occurredAt = DateTimeOffset.UtcNow;
+        var started = Stopwatch.GetTimestamp();
+        string? heard = null;
+
+        try
+        {
+            heard = (await hear(cancellationToken)).Trim();
+            var reply = heard.Length == 0
+                ? new AssistantReply(AssistantReplyKind.NotUnderstood, NothingHeardSpeech, "", null, null)
+                : await UnderstandAsync(heard, cancellationToken);
+
+            var request = await RecordAsync(new VoiceRequest
+            {
+                AccountId = accountId,
+                OccurredAt = occurredAt,
+                InputMode = inputMode,
+                HeardText = heard.Length == 0 ? null : heard,
+                Outcome = OutcomeOf(reply.Kind),
+                ReplySpeech = reply.Speech,
+                DurationMs = ElapsedMs(started),
+            }, cancellationToken);
+            return reply with { RequestId = request.Id };
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            await RecordErrorAsync(new VoiceRequest
+            {
+                AccountId = accountId,
+                OccurredAt = occurredAt,
+                InputMode = inputMode,
+                HeardText = string.IsNullOrEmpty(heard) ? null : heard,
+                Outcome = VoiceRequestOutcome.Error,
+                DurationMs = ElapsedMs(started),
+            });
+            throw;
+        }
+    }
+
+    private async Task<AssistantReply> UnderstandAsync(string heard, CancellationToken cancellationToken)
+    {
+        var customers = await dbContext.Customers.AsNoTracking()
+            .Select(c => new CustomerRef(c.Id, c.LastName, c.FirstName)).ToListAsync(cancellationToken);
+        var catalog = await dbContext.Products.AsNoTracking().Where(p => p.IsActive).OrderBy(p => p.Name)
+            .Select(p => new CatalogProduct(p.Code, p.Name, p.SaleMode, p.AllowPartialSale)).ToListAsync(cancellationToken);
+        var stock = await LoadStockAsync(cancellationToken);
+
+        var (reply, _) = await new AssistantEngine(mistral, ChatModel).AskAsync(heard, customers, catalog, stock, cancellationToken);
+        return reply;
+    }
+
+    private async Task<VoiceRequest> RecordAsync(VoiceRequest request, CancellationToken cancellationToken)
+    {
+        dbContext.VoiceRequests.Add(request);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return request;
+    }
+
+    /// <summary>
+    /// Journalise une demande en erreur sans masquer l'erreur d'origine : si l'écriture échoue à son tour,
+    /// elle est seulement tracée dans les logs.
+    /// </summary>
+    private async Task RecordErrorAsync(VoiceRequest request)
+    {
+        try
+        {
+            // Une écriture précédente a pu échouer et laisser des entités suivies : on repart propre.
+            dbContext.ChangeTracker.Clear();
+            await RecordAsync(request, CancellationToken.None);
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning(exception, "Demande à l'assistant en erreur non journalisée.");
+        }
+    }
+
+    private static VoiceRequestOutcome OutcomeOf(AssistantReplyKind kind) => kind switch
+    {
+        AssistantReplyKind.StockAnswer => VoiceRequestOutcome.StockAnswer,
+        AssistantReplyKind.SaleDraft => VoiceRequestOutcome.SaleDraft,
+        _ => VoiceRequestOutcome.NotUnderstood,
+    };
+
+    private static int ElapsedMs(long started) => (int)Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+
+    /// <summary>
+    /// Unités <c>available</c> et <c>opened</c> des produits actifs, avec leur poids restant (FR-010).
     /// Même agrégat que <c>StockUnitService.GetAllAsync</c> : la somme des ventes, écrite en ligne pour
     /// qu'EF Core la traduise en SQL.
     /// </summary>

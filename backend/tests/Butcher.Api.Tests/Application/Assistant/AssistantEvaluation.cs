@@ -10,8 +10,8 @@ using Xunit.Abstractions;
 namespace Butcher.Api.Tests.Application.Assistant;
 
 /// <summary>
-/// Banc de l'étape 3 du spike (docs/spike-assistant-vocal.md) : le LLM comprend-il l'intention et
-/// remplit-il les bons champs, et les chiffres qu'il dit sont-ils ceux du serveur ?
+/// Banc du LLM (SC-004, SC-001 ; docs/spike-assistant-vocal.md §7) : comprend-il l'intention, remplit-il
+/// les bons champs, et le client pré-rempli est-il toujours celui cité ?
 /// </summary>
 /// <remarks>
 /// Appelle vraiment Mistral : ne tourne que si <c>ASSISTANT_EVAL=1</c>, sinon le test passe sans rien
@@ -118,9 +118,8 @@ public class AssistantEvaluation(ITestOutputHelper output)
 
         foreach (var model in models)
         {
-            // La mise en phrase par le LLM est mesurée, même si l'application ne l'utilise plus par défaut.
-            var engine = new AssistantEngine(client, model, llmSpeech: Environment.GetEnvironmentVariable("ASSISTANT_EVAL_LLM_SPEECH") != "0");
-            var csv = new StringBuilder("source;phrase;texte;attendu;intention;champs;client;chiffres_inventes;outils;phrase_llm;phrase_dite;ms;jetons\n");
+            var engine = new AssistantEngine(client, model);
+            var csv = new StringBuilder("source;phrase;texte;attendu;intention;champs;client;outils;phrase_dite;ms;jetons\n");
             var scores = new Dictionary<string, Score>();
             var errors = 0;
             foreach (var (source, phraseId, text, _, _) in rows)
@@ -149,13 +148,12 @@ public class AssistantEvaluation(ITestOutputHelper output)
                 var s = scores.TryGetValue(source, out var existing) ? existing : scores[source] = new Score();
                 s.Add(intentOk, fieldsOk, stockOk, customer, trace);
                 csv.Append(string.Join(';', source, phraseId, Csv(text), expected.Intent, intentOk, fieldsOk?.ToString() ?? "",
-                    customer, string.Join(' ', trace.InventedNumbers), Csv(string.Join(" | ", trace.ToolCalls.Select(c => $"{c.Name} {c.Arguments}"))),
-                    Csv(trace.LlmSpeech ?? ""), Csv(reply.Speech), (int)trace.Elapsed.TotalMilliseconds,
+                    customer, Csv(string.Join(" | ", trace.ToolCalls.Select(c => $"{c.Name} {c.Arguments}"))),
+                    Csv(reply.Speech), (int)trace.Elapsed.TotalMilliseconds,
                     trace.PromptTokens + trace.CompletionTokens)).Append('\n');
 
-                if (!intentOk || fieldsOk == false || stockOk == false || customer == "faux" || trace.InventedNumbers.Count > 0)
-                    output.WriteLine($"  {model} {source} {phraseId} « {text} » → {string.Join(" | ", trace.ToolCalls.Select(c => $"{c.Name} {c.Arguments}"))}"
-                        + (trace.InventedNumbers.Count > 0 ? $" — chiffres inventés {string.Join(',', trace.InventedNumbers)} dans « {trace.LlmSpeech} »" : ""));
+                if (!intentOk || fieldsOk == false || stockOk == false || customer == "faux")
+                    output.WriteLine($"  {model} {source} {phraseId} « {text} » → {string.Join(" | ", trace.ToolCalls.Select(c => $"{c.Name} {c.Arguments}"))}");
             }
 
             foreach (var (source, s) in scores)
@@ -169,7 +167,7 @@ public class AssistantEvaluation(ITestOutputHelper output)
 
     private sealed class Score
     {
-        private int _phrases, _intent, _fieldsTotal, _fields, _stockTotal, _stock, _customerTotal, _customer, _wrongCustomer, _invented, _spoken, _tokens;
+        private int _phrases, _intent, _fieldsTotal, _fields, _stockTotal, _stock, _customerTotal, _customer, _wrongCustomer, _tokens;
         private readonly List<double> _ms = [];
 
         public void Add(bool intentOk, bool? fieldsOk, bool? stockOk, string customer, AssistantTrace trace)
@@ -179,7 +177,6 @@ public class AssistantEvaluation(ITestOutputHelper output)
             if (fieldsOk is { } f) { _fieldsTotal++; _fields += f ? 1 : 0; }
             if (stockOk is { } k) { _stockTotal++; _stock += k ? 1 : 0; }
             if (customer != "") { _customerTotal++; _customer += customer == "juste" ? 1 : 0; _wrongCustomer += customer == "faux" ? 1 : 0; }
-            if (trace.LlmSpeech is not null) { _spoken++; _invented += trace.InventedNumbers.Count > 0 ? 1 : 0; }
             _tokens += trace.PromptTokens + trace.CompletionTokens;
             _ms.Add(trace.Elapsed.TotalMilliseconds);
         }
@@ -188,7 +185,7 @@ public class AssistantEvaluation(ITestOutputHelper output)
         {
             _ms.Sort();
             return $"| {model} | {source} | {Pct(_intent, _phrases)} | {Pct(_fields, _fieldsTotal)} | {Pct(_stock, _stockTotal)} "
-                + $"| {Pct(_customer, _customerTotal)} | {_wrongCustomer} | {_invented}/{_spoken} "
+                + $"| {Pct(_customer, _customerTotal)} | {_wrongCustomer} "
                 + $"| {_ms[_ms.Count / 2] / 1000:0.00} s | {_ms[^1] / 1000:0.00} s | {_tokens / _phrases} |";
         }
 

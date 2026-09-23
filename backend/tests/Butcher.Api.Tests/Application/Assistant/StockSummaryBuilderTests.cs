@@ -3,7 +3,7 @@ using Butcher.Api.Domain.Enums;
 
 namespace Butcher.Api.Tests.Application.Assistant;
 
-/// <summary>Réponse à une question de stock et garde-fou sur les chiffres (cadrage §7).</summary>
+/// <summary>Réponse à une question de stock : chiffres et phrase écrits par le serveur (RF-34, FR-010, FR-011).</summary>
 public class StockSummaryBuilderTests
 {
     private static readonly DateOnly Sep2 = new(2026, 9, 2), Sep15 = new(2026, 9, 15);
@@ -64,18 +64,4 @@ public class StockSummaryBuilderTests
     {
         Assert.Equal("Il ne te reste plus de chorizo.", StockSummaryBuilder.Speech([], "Chorizo"));
     }
-
-    [Theory]
-    [InlineData("Il te reste 3 saucissons, environ 0,9 kilo. Les plus anciens datent du 2 septembre.")]
-    [InlineData("Il te reste trois saucissons, à peu près 900 grammes.")]
-    [InlineData("Il te reste 3 saucissons : 2 du 2 septembre et 1 du 15 septembre.")]
-    public void InventedNumbers_FaithfulSpeech_None(string speech) =>
-        Assert.Empty(StockSummaryBuilder.InventedNumbers(speech, StockSummaryBuilder.Build(Stock, "SC")));
-
-    [Theory]
-    [InlineData("Il te reste 4 saucissons.", "4")]
-    [InlineData("Il te reste 3 saucissons, environ 1,5 kilo.", "1,5")]
-    [InlineData("Il te reste douze saucissons.", "douze")]
-    public void InventedNumbers_NumberNotInTheData_Caught(string speech, string invented) =>
-        Assert.Equal([invented], StockSummaryBuilder.InventedNumbers(speech, StockSummaryBuilder.Build(Stock, "SC")));
 }

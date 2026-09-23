@@ -2,53 +2,52 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
 using Butcher.Api.Domain.Enums;
 
 namespace Butcher.Api.Application.Assistant;
 
 public sealed record CatalogProduct(string Code, string Name, SaleMode SaleMode, bool AllowPartialSale);
 
+/// <summary>Les trois issues d'une demande comprise ou non (FR-006) ; une erreur, elle, est une exception.</summary>
 public enum AssistantReplyKind
 {
-    Answer,
+    StockAnswer,
     SaleDraft,
     NotUnderstood,
 }
 
 /// <summary>Réponse de l'assistant au téléphone : une phrase à dire, et de quoi afficher le détail ou le formulaire.</summary>
-/// <param name="Heard">Ce que l'assistant a compris de la voix, pour que l'utilisateur voie une erreur de transcription.</param>
-/// <param name="Stock">Détail d'une réponse de stock, à afficher sous la phrase dite (cadrage §7).</param>
-/// <param name="Draft">Brouillon de vente, à ouvrir dans le formulaire existant (D-02).</param>
+/// <param name="Heard">Ce que l'assistant a entendu, affiché avec chaque réponse (FR-007).</param>
+/// <param name="Stock">Détail d'une réponse de stock, affiché sous la phrase dite (FR-010).</param>
+/// <param name="Draft">Brouillon de vente, à ouvrir dans le formulaire « Nouvelle vente » (FR-016).</param>
 public sealed record AssistantReply(AssistantReplyKind Kind, string Speech, string Heard,
-    IReadOnlyList<ProductStock>? Stock, SaleDraft? Draft);
+    IReadOnlyList<ProductStock>? Stock, SaleDraft? Draft)
+{
+    /// <summary>Identifiant de la demande journalisée : sert à demander la voix de la réponse (FR-020).</summary>
+    public long RequestId { get; init; }
+}
 
 /// <summary>Ce qui s'est passé, pour le banc d'évaluation ; n'est jamais renvoyé au téléphone.</summary>
-/// <param name="LlmSpeech">Phrase de stock proposée par le LLM, avant le garde-fou sur les chiffres.</param>
-public sealed record AssistantTrace(string Pseudonymized, IReadOnlyList<ToolCall> ToolCalls, string? LlmSpeech,
-    IReadOnlyList<string> InventedNumbers, int LlmCalls, int PromptTokens, int CompletionTokens, TimeSpan Elapsed);
+/// <param name="Pseudonymized">Le texte tel que le LLM l'a reçu, sans nom de client (FR-019).</param>
+public sealed record AssistantTrace(string Pseudonymized, IReadOnlyList<ToolCall> ToolCalls,
+    int PromptTokens, int CompletionTokens, TimeSpan Elapsed);
 
 /// <summary>
-/// La chaîne de l'assistant sur du texte (spike, étape 3) : pseudonymisation des clients, appel au LLM
-/// avec trois outils, exécution par le backend. Le LLM choisit l'intention et remplit des champs ;
-/// les unités, les chiffres et le client viennent du backend. Rien n'est écrit en base.
+/// La chaîne de l'assistant (RF-34, RF-35 ; ADR-012) : pseudonymisation des clients, un appel au LLM avec
+/// trois outils, exécution par le backend. Le LLM choisit l'intention et remplit des champs ; les unités,
+/// le client, les chiffres et la phrase dite viennent du backend (FR-011). Rien n'est écrit en base.
 /// </summary>
-/// <param name="llmSpeech">
-/// Faire dire la réponse de stock par le LLM. Désactivé par défaut depuis l'étape 3 : le LLM a dit
-/// « 1 jambon entier » pour 2, avec un chiffre qui existait ailleurs dans les données, ce que le garde-fou
-/// ne voit pas. La phrase du backend est juste par construction.
-/// </param>
-public sealed class AssistantEngine(IMistralClient mistral, string model, bool llmSpeech = false)
+/// <remarks>
+/// La phrase dite n'est jamais écrite par le LLM : au banc du spike, il a annoncé « 1 jambon entier » pour 2,
+/// avec un chiffre qui existait ailleurs dans les données, erreur qu'aucun contrôle des chiffres ne voyait
+/// (specs/006-assistant-vocal, research R-06).
+/// </remarks>
+public sealed class AssistantEngine(IMistralClient mistral, string model)
 {
     public const string NotUnderstoodSpeech =
         "Je n'ai pas compris. Tu peux me demander ce qu'il reste en stock, ou me dicter une vente.";
     public const string SaleDraftSpeech = "Voilà la vente, vérifie-la avant d'enregistrer.";
-
-    private static readonly JsonSerializerOptions ToolJson = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower) },
-    };
+    public const string UnknownProductSpeech = "Je ne connais pas ce produit.";
 
     public async Task<(AssistantReply Reply, AssistantTrace Trace)> AskAsync(string text,
         IReadOnlyList<CustomerRef> customers, IReadOnlyList<CatalogProduct> catalog, IReadOnlyList<SellableUnit> stock,
@@ -62,65 +61,44 @@ public sealed class AssistantEngine(IMistralClient mistral, string model, bool l
             new JsonObject { ["role"] = "user", ["content"] = pseudonymized.Text },
         };
 
-        var calls = 1;
-        var first = await mistral.ChatAsync(model, messages, Tools(catalog), "any", cancellationToken);
-        var promptTokens = first.PromptTokens;
-        var completionTokens = first.CompletionTokens;
+        var result = await mistral.ChatAsync(model, messages, Tools(catalog), "any", cancellationToken);
 
         IReadOnlyList<ProductStock>? stockAnswer = null;
-        string? speech = null, spokenByLlm = null;
-        IReadOnlyList<string> invented = [];
+        string? speech = null;
         SaleDraft? draft = null;
 
-        var stockCall = first.ToolCalls.FirstOrDefault(c => c.Name == "get_stock");
+        var stockCall = result.ToolCalls.FirstOrDefault(c => c.Name == "get_stock");
         if (stockCall is not null)
         {
             var code = ReadString(Parse(stockCall.Arguments), "product_code");
             var product = catalog.FirstOrDefault(p => string.Equals(p.Code, code, StringComparison.OrdinalIgnoreCase));
-            stockAnswer = StockSummaryBuilder.Build(stock, product?.Code);
-            speech = code is not null && product is null
-                ? "Je ne connais pas ce produit."
-                : StockSummaryBuilder.Speech(stockAnswer, product?.Name);
-
-            if (llmSpeech && (code is null || product is not null))
+            if (code is not null && product is null)
             {
-                // Seconde demande : mettre en phrase le résultat de l'outil, sans rien calculer. Mistral
-                // attend une réponse pour chaque outil appelé, même celui qu'on ne met pas en phrase.
-                messages.Add(first.Message.DeepClone());
-                foreach (var call in first.ToolCalls)
-                    messages.Add(new JsonObject
-                    {
-                        ["role"] = "tool", ["name"] = call.Name, ["tool_call_id"] = call.Id,
-                        ["content"] = call == stockCall ? JsonSerializer.Serialize(stockAnswer, ToolJson) : "{\"ok\": true}",
-                    });
-                messages.Add(new JsonObject { ["role"] = "user", ["content"] = PhrasingInstruction });
-                calls++;
-                var phrased = await mistral.ChatAsync(model, messages, null, "none", cancellationToken);
-                promptTokens += phrased.PromptTokens;
-                completionTokens += phrased.CompletionTokens;
-
-                spokenByLlm = phrased.Content?.Trim();
-                invented = string.IsNullOrWhiteSpace(spokenByLlm) ? [] : StockSummaryBuilder.InventedNumbers(spokenByLlm, stockAnswer);
-                if (!string.IsNullOrWhiteSpace(spokenByLlm) && invented.Count == 0)
-                    speech = spokenByLlm;
+                // Un code hors catalogue n'est jamais remplacé par un autre produit (FR-012).
+                speech = UnknownProductSpeech;
+            }
+            else
+            {
+                stockAnswer = StockSummaryBuilder.Build(stock, product?.Code);
+                speech = StockSummaryBuilder.Speech(stockAnswer, product?.Name);
             }
         }
 
-        var saleCall = first.ToolCalls.FirstOrDefault(c => c.Name == "draft_sale");
+        var saleCall = result.ToolCalls.FirstOrDefault(c => c.Name == "draft_sale");
         if (saleCall is not null)
         {
             draft = BuildDraft(Parse(saleCall.Arguments), pseudonymized, stock);
-            if (first.ToolCalls.Count(c => c.Name == "draft_sale") > 1)
+            if (result.ToolCalls.Count(c => c.Name == "draft_sale") > 1)
                 draft = draft with { Warnings = [.. draft.Warnings, "Une seule vente à la fois : seule la première a été préparée."] };
             speech = speech is null ? SaleDraftSpeech : $"{speech} {SaleDraftSpeech}";
         }
 
         var kind = draft is not null ? AssistantReplyKind.SaleDraft
-            : stockAnswer is not null ? AssistantReplyKind.Answer
+            : stockAnswer is not null ? AssistantReplyKind.StockAnswer
             : AssistantReplyKind.NotUnderstood;
         var reply = new AssistantReply(kind, speech ?? NotUnderstoodSpeech, text, stockAnswer, draft);
-        var trace = new AssistantTrace(pseudonymized.Text, first.ToolCalls, spokenByLlm, invented, calls,
-            promptTokens, completionTokens, watch.Elapsed);
+        var trace = new AssistantTrace(pseudonymized.Text, result.ToolCalls,
+            result.PromptTokens, result.CompletionTokens, watch.Elapsed);
         return (reply, trace);
     }
 
@@ -151,13 +129,6 @@ public sealed class AssistantEngine(IMistralClient mistral, string model, bool l
             warnings.Add("Produit à choisir.");
         return draft with { Warnings = warnings };
     }
-
-    private const string PhrasingInstruction =
-        "Réponds maintenant à voix haute, en une ou deux phrases courtes, en tutoyant. Dis l'essentiel : "
-        + "le nombre d'unités, le poids arrondi, et la date la plus ancienne s'il y a plusieurs fournées. "
-        + "Pour le jambon, sépare les entiers des entamés. Les dates sont des dates de fabrication, jamais des dates limites. "
-        + "N'utilise que les chiffres du résultat de l'outil, "
-        + "sans rien calculer d'autre, écrits en chiffres. Pas de liste, pas de mise en forme.";
 
     private static string SystemPrompt(IReadOnlyList<CatalogProduct> catalog)
     {
