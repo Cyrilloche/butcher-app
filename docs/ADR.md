@@ -30,7 +30,7 @@ Chaque décision porte un **statut** : `Proposé` (en débat), `Accepté` (valid
 | ADR-009 | Authentification par jetons JWT, adossée à ASP.NET Core Identity | Accepté — remplacé en partie par ADR-011 |
 | ADR-010 | Déploiement conteneurisé (Docker Compose + reverse proxy HTTPS) | Accepté |
 | ADR-011 | Comptes nominatifs avec deux rôles (administrateur, utilisateur) | Accepté |
-| ADR-012 | Assistant vocal : Mistral hébergé en UE, le LLM comprend et le backend décide | Proposé (branche `feat/assistant-vocal`) |
+| ADR-012 | Assistant vocal : Mistral hébergé en UE, le LLM comprend et le backend décide | Accepté |
 
 ---
 
@@ -442,8 +442,8 @@ désormais sur trois besoins exprimés pour le backoffice (`specs/005-backoffice
 
 ## ADR-012 — Assistant vocal : Mistral hébergé en UE, le LLM comprend et le backend décide
 
-**Statut :** Proposé (2026-09-23), à l'issue du spike `docs/spike-assistant-vocal.md`. Non fusionné :
-le code vit sur la branche `feat/assistant-vocal`.
+**Statut :** Accepté (2026-09-23), à l'issue du spike `docs/spike-assistant-vocal.md`. Mise en œuvre
+cadrée par la spec `specs/006-assistant-vocal`.
 
 ### Contexte
 
