@@ -59,7 +59,10 @@ public sealed class MistralClient(HttpClient http, IConfiguration configuration,
         var json = await SendAsync(() =>
         {
             var file = new ByteArrayContent(bytes);
-            file.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+            // Chrome envoie « audio/webm;codecs=opus » : le constructeur refuse les paramètres, Parse les garde.
+            file.Headers.ContentType = MediaTypeHeaderValue.TryParse(contentType, out var type)
+                ? type
+                : new MediaTypeHeaderValue("audio/webm");
             return new HttpRequestMessage(HttpMethod.Post, "audio/transcriptions")
             {
                 Content = new MultipartFormDataContent
