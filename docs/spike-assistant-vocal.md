@@ -1,6 +1,6 @@
 # Spike — Assistant vocal
 
-> Plan du spike de R&D, branche `feat/assistant-vocal`. Les décisions de fond sont dans `docs/cadrage-assistant-vocal.md` (références `D-xx`, `Q-xx`) ; ce document dit **comment on les éprouve**, dans quel ordre, et à quoi on reconnaît un succès. Issue attendue : un **go / no-go** argumenté et le brouillon de l'**ADR-012**.
+> Plan du spike de R&D, branche `feat/assistant-vocal`. Les décisions de fond sont dans `docs/cadrage-assistant-vocal.md` (références `D-xx`, `Q-xx`) ; ce document dit **comment on les éprouve**, dans quel ordre, et à quoi on reconnaît un succès. Issue attendue : un **go / no-go** argumenté et le brouillon de l'**ADR-012**. Le fonctionnement de ce qui a été construit est expliqué dans `docs/assistant-vocal-fonctionnement.md`.
 
 | Version | Date | Objet |
 |---|---|---|
