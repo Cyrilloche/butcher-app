@@ -439,6 +439,76 @@ désormais sur trois besoins exprimés pour le backoffice (`specs/005-backoffice
 
 ---
 
+## ADR-012 — Assistant vocal : Mistral hébergé en UE, le LLM comprend et le backend décide
+
+**Statut :** Proposé (2026-09-23), à l'issue du spike `docs/spike-assistant-vocal.md`. Non fusionné :
+le code vit sur la branche `feat/assistant-vocal`.
+
+### Contexte
+
+Un des deux utilisateurs parle beaucoup à son téléphone. Le spike a éprouvé un assistant vocal qui
+répond à une question de stock et prépare une vente (`docs/cadrage-assistant-vocal.md`). Il faut
+reconnaître la parole, comprendre une phrase libre et parler, trois choses que l'application ne sait
+pas faire seule. Deux contraintes pèsent : l'application est auto-hébergée (ADR-010), et les phrases
+dictées contiennent des noms de clients, donc des données personnelles.
+
+### Décision
+
+- **Fournisseur : Mistral (La Plateforme), hébergé en UE**, sous contrat de sous-traitance (DPA).
+  Trois modèles : Voxtral Mini Transcribe 2 (transcription), Ministral 14B (compréhension, appel
+  d'outils), Voxtral TTS, voix française « Marie » (réponse lue).
+- **Seul le backend appelle Mistral.** Le téléphone envoie l'audio au backend (ADR-003) ; la clé
+  d'API ne quitte pas le serveur ; les droits sont relus en base (ADR-011).
+- **Le LLM comprend, le backend décide.** Le LLM choisit un outil (`get_stock`, `draft_sale`,
+  `not_understood`) et en remplit les champs. Le backend choisit les unités, résout le client, calcule
+  les chiffres et écrit la phrase dite. Aucun chiffre, aucune unité, aucun client ne vient du LLM.
+- **L'assistant n'écrit rien.** Une vente dictée ouvre le formulaire existant pré-rempli ;
+  l'utilisateur la relit et l'enregistre. Le montant est calculé par le formulaire, comme à la main.
+- **Pseudonymisation locale avant le LLM.** Les noms de clients sont reconnus à l'oreille, en C#, et
+  remplacés par des jetons ; un nom inconnu est retiré ; deux clients qui se ressemblent ne sont pas
+  départagés au hasard. Le LLM ne voit jamais un nom ni la liste des clients.
+- **Conditions sur le compte Mistral**, avant tout usage réel : exclusion de l'entraînement vérifiée
+  (acquise d'office en paiement à l'usage, à désactiver à la main sur l'offre gratuite) ; choix de
+  l'offre (le compte gratuit ferme Mistral Small et Medium et limite le débit).
+
+### Conséquences
+
+**Positives**
+- Une réponse de stock sans chiffre inventé et une vente sans mauvais client, par construction plutôt
+  que par confiance dans un modèle (0 sur tout le banc du spike).
+- Aucune nouvelle dépendance : appels HTTP sans SDK, pas de service Python, pas de GPU.
+- Coût de l'ordre du dixième de centime par demande, hors voix.
+
+**Négatives / à surveiller**
+- **Nouveau sous-traitant de données personnelles.** L'audio, noms compris, part chez Mistral pour la
+  transcription et y est conservé 30 jours (détection d'abus) ; la conservation zéro n'existe que sur
+  l'offre Scale. La pseudonymisation ne protège que l'étape de compréhension.
+- **Dépendance à un service extérieur** : sans Mistral, l'assistant est indisponible (`503`) ; le
+  reste de l'application fonctionne.
+- La transcription reste le maillon faible (homophones, noms propres) ; le formulaire pré-rempli
+  absorbe ses erreurs, la réponse orale non.
+- Les clients ne sont pas informés individuellement (choix assumé, `cadrage-assistant-vocal.md` §5).
+
+### Alternatives écartées
+
+- **Reconnaissance vocale du navigateur (Web Speech API)** : l'audio part chez Google sans contrat, et
+  elle est souvent inopérante hors de Chrome.
+- **Transcription locale (Whisper sur la Quadro P600)** : tient en mémoire, mais un client sur trois
+  mal transcrit et un délai trop long. À rouvrir avec un meilleur modèle local.
+- **Voxtral Small (audio directement compris)** : un seul appel, mais le modèle entendrait les noms,
+  ce qui annule la pseudonymisation.
+- **Service Python (Presidio, spaCy, espeak-ng)** pour la pseudonymisation : jeu égal sur les clients,
+  meilleur seulement sur des noms inconnus écrits en minuscules, ce que Voxtral ne fait pas ; un
+  conteneur et un langage de plus.
+- **Phrase de réponse écrite par le LLM** : il a dit « 1 jambon entier » pour 2 au banc, erreur
+  qu'aucun contrôle des chiffres ne voyait.
+- **Analyseur à règles sans LLM** : aucune donnée envoyée pour la compréhension, mais à réécrire à
+  chaque nouvelle demande, alors que le périmètre est appelé à grandir.
+- **Fournisseurs hors UE** (OpenAI, Google Cloud) : transfert hors UE à justifier, pour un gain non
+  démontré sur ce besoin.
+
+---
+
 ## Synthèse de la pile technique retenue
 
 | Couche | Technologie |

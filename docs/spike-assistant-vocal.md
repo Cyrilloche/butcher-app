@@ -248,3 +248,44 @@ Porteur du projet, Samsung A55, Chrome, base de dev.
 - Défaut trouvé à l'essai et corrigé : l'audio de Chrome (`audio/webm;codecs=opus`) était refusé par le backend (erreur 500) ; aucun test ne passait par un vrai enregistrement.
 
 Reste à mesurer : le délai de bout en bout chronométré, et surtout l'essai par **l'utilisateur visé**.
+
+## 8. Bilan (2026-09-23)
+
+### Face aux critères (§5)
+
+| Critère | Seuil | Résultat | Verdict |
+|---|---|---|---|
+| Nom du client juste, au calme | ≥ 90 % | 90 % à la transcription (Voxtral), 93 % après reconnaissance phonétique | ✅ |
+| Nom du client juste, en cuisine | ≥ 75 % | **non mesuré** (une seule voix, au calme) | ⏳ |
+| **Mauvais client choisi** | **0** | **0** sur les 216 phrases de l'étape 2 et les 80 de l'étape 3 | ✅ |
+| Intention juste (texte bien transcrit) | ≥ 95 % | 100 % (Ministral 14B) | ✅ |
+| Champs justes d'un brouillon de vente | ≥ 90 % | 100 % sur texte bien transcrit, 88 % sur transcription Voxtral | ✅ |
+| **Chiffre inventé** dans une réponse | **0** | 0 dit à l'utilisateur, **par construction** : la phrase est écrite par le backend. Le LLM, lui, a commis une erreur de chiffre au banc | ✅ (par conception) |
+| Délai fin de parole → réponse | ≤ 4 s médiane | **non chronométré**. Somme des mesures : ≈ 0,5 s (transcription) + ≈ 0,8 s (LLM) + réseau pour le texte, ≈ 1,2 s de plus pour la voix. Ressenti jugé bon à l'essai | ⏳ probable |
+| Coût par demande | ≤ 0,01 $ | ≈ 0,001 $ hors voix ; prix de Voxtral TTS non relevé | ✅ probable |
+
+### Ce que le spike a appris
+
+1. **La chaîne tient.** De la voix au formulaire pré-rempli, sur un vrai téléphone, avec des temps de réponse compatibles avec l'usage.
+2. **Le LLM comprend, il ne doit pas décider.** Il a dit « 1 jambon entier » pour 2 et remplacé « corisaux » par du saucisson. D'où la règle retenue : le LLM rend une intention et des champs, le backend choisit les unités, résout le client, écrit la phrase ; l'utilisateur valide.
+3. **La transcription est le maillon faible**, pas le LLM : « de » pour « deux », « terrain » pour « terrine ». Le formulaire pré-rempli absorbe ces erreurs ; la réponse orale, non.
+4. **La voix compte.** La voix de Mistral a été jugée « ça change absolument tout » face à celle du téléphone.
+5. **Le local n'est pas prêt** : Whisper tient dans la P600 mais rate un client sur trois ; la pseudonymisation en C#, sans dépendance, vaut le prototype Python.
+6. **Les tests sur texte ne suffisent pas** : le premier essai réel a révélé un format audio refusé que 266 tests n'avaient pas vu.
+
+### Ce qui n'a pas été éprouvé
+
+- **L'utilisateur visé.** Tout a été dit par le porteur du projet, qui connaissait les phrases. C'est le risque principal du projet (adoption, R-01) et le premier test à faire.
+- Le bruit de cuisine, le téléphone posé, d'autres voix.
+- Mistral Small et Medium (fermés sur le compte gratuit).
+- Le délai chronométré de bout en bout.
+
+### Recommandation
+
+**Go conditionnel** vers une spec `specs/006-assistant-vocal`, aux conditions suivantes, dans l'ordre :
+
+1. **Un essai par l'utilisateur visé**, sur la branche en local, avant d'écrire la spec : s'il ne s'en sert pas, la spec n'a pas d'objet.
+2. **ADR-012 accepté**, avec la question du compte Mistral tranchée (voir l'ADR).
+3. Dans la spec : restreindre `/api/assistant/speech` aux phrases de l'assistant, journaliser les demandes vocales (sans l'audio), décider du « + » à deux choix (un appui de plus pour l'action habituelle), mesurer le délai.
+
+La décision revient au porteur du projet.
