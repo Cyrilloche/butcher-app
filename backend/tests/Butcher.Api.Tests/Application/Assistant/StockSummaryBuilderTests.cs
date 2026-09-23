@@ -40,7 +40,7 @@ public class StockSummaryBuilderTests
     {
         var speech = StockSummaryBuilder.Speech(StockSummaryBuilder.Build(Stock, "SC"));
 
-        Assert.Equal("Il te reste 3 saucissons, environ 900 grammes. Les plus anciens datent du 2 septembre.", speech);
+        Assert.Equal("Saucisson : il t'en reste 3, environ 900 grammes. Les plus anciens datent du 2 septembre.", speech);
     }
 
     [Fact]
@@ -48,7 +48,15 @@ public class StockSummaryBuilderTests
     {
         var speech = StockSummaryBuilder.Speech(StockSummaryBuilder.Build(Stock, "JB"));
 
-        Assert.StartsWith("Il te reste 1 jambon entier, et 1 entamé dont il reste environ 4,1 kilos", speech);
+        Assert.StartsWith("Jambon : il t'en reste 1 entier et 1 entamé, l'entamé fait encore environ 4,1 kilos", speech);
+    }
+
+    [Fact]
+    public void Speech_WholeStock_NeverPluralizesTheProductName()
+    {
+        var speech = StockSummaryBuilder.Speech(StockSummaryBuilder.Build(Stock, null));
+
+        Assert.Equal("Il te reste : jambon, 1 entier et 1 entamé ; saucisson, 3 ; terrine, 1.", speech);
     }
 
     [Fact]

@@ -202,3 +202,36 @@ Deux versions, mêmes règles de prudence, même jeu : les 200 transcriptions de
 **Conclusion provisoire** : **garder la version C#**, dans le backend. Un service Python ajouterait un conteneur, un langage et un modèle de 40 Mo pour un gain qui ne concerne pas le moteur retenu. À rouvrir si les voix suivantes montrent Voxtral écrivant des noms en minuscules ; la parade C# la plus simple serait alors de retirer tout mot inconnu après « à » ou « pour », au prix de quelques mots retirés à tort.
 
 **Limite** : un seul nom inconnu dans le corpus réel. Les phrases écrites mesurent la mécanique, pas la façon dont un vrai moteur transcrit un nom qu'il n'a jamais entendu.
+
+### Étape 3 — Compréhension et outils (nuit du 2026-09-22 au 23)
+
+**Écart au plan** : Mistral Small 4 et Medium 3.5 sont **fermés sur le compte** (limite à zéro requête par minute, offre sans facturation) ; Large est refusé. Ministral 3B, 8B et 14B sont ouverts. Le banc a donc comparé **Ministral 14B et 8B**. Aucune facturation n'a été activée : c'est une décision du titulaire du compte. Le banc relance Small et Medium sans changement (`ASSISTANT_EVAL_MODELS`).
+
+Banc : `AssistantEvaluation` (`ASSISTANT_EVAL=1`), 40 phrases écrites et leurs 40 transcriptions Voxtral, stock et clients fictifs. Résultats après la correction des consignes :
+
+| Modèle | Source | Intention | Champs | Produit (stock) | Client juste | **Mauvais client** | Délai LLM médian |
+|---|---|---|---|---|---|---|---|
+| **Ministral 14B** | phrases écrites | **100 %** | **100 %** | 100 % | 96 % | **0** | 0,87 s |
+| **Ministral 14B** | Voxtral | 90 % | 88 % | 88 % | 92 % | **0** | 0,66 s |
+| Ministral 8B | phrases écrites | 85 % | 88 % | 100 % | 95 % | 0 | 0,85 s |
+| Ministral 8B | Voxtral | 75 % | 74 % | 100 % | 95 % | 0 | 0,87 s |
+
+Environ 1 150 jetons par demande : de l'ordre du dixième de centime.
+
+**Lecture** :
+- **Ministral 14B atteint tous les seuils** sur un texte bien transcrit ; 8B ajoute des questions de stock que personne n'a posées et tombe sous les seuils. **14B retenu** (`Assistant:ChatModel`).
+- **Les erreurs restantes de 14B viennent de la transcription** (« terrain », « Vent de saucisson », « de » pour « deux »), sauf une : « corisaux » (chorizo mal transcrit) devient du saucisson, malgré la consigne. Visible dans le formulaire, à surveiller.
+- **Un résultat qui change la conception** : au premier passage, 14B a dit « 1 jambon entier » pour 2. Le chiffre 1 existait ailleurs dans les données (1 entamé), et le garde-fou, qui vérifie qu'un chiffre existe et non qu'il est à sa place, ne l'a pas vu. **La phrase dite est désormais construite par le backend** ; le LLM ne sert plus qu'à comprendre la demande. La mise en phrase par le LLM reste mesurable (`Assistant:LlmSpeech`), mais n'est plus utilisée.
+- Corrections faites en cours de nuit : une réponse pour chaque outil appelé (Mistral l'exige), garde-fou admettant « 3 kilos et 660 », consignes sur les corrections (« trois, non deux »), les produits inconnus et les ventes seules.
+
+Vérifié ensuite sur la base de dev (point d'entrée réel) : question de stock, vente entière avec paiement, tranche de jambon cru. Le catalogue réel a révélé un défaut de rédaction (« 11 saucisse currys ») : le nom d'un produit n'est plus accordé (« Saucisse curry : il t'en reste 11 »).
+
+### Étape 4 — Bouton micro
+
+Livré, à essayer sur téléphone :
+- bouton micro rond en bas à gauche, sur tous les écrans (le coin droit est au bouton « + ») ; un appui pour parler, un second pour envoyer, arrêt à 15 s ;
+- la réponse s'affiche dans un panneau : ce qui a été entendu, la phrase (lue à voix haute), le détail par fournée ou les avertissements d'une vente ;
+- « Ouvrir la vente » ouvre « Nouvelle vente » pré-remplie ; les montants sont calculés par le formulaire, comme pour un choix à la main ; rien n'est enregistré sans le bouton habituel ;
+- « Écrire plutôt » : la même chose au clavier, utile sur PC.
+
+Le résultat de l'essai reste à mesurer : délai réel sur le téléphone, et ressenti.

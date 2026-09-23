@@ -55,24 +55,28 @@ public static class StockSummaryBuilder
     {
         if (products.Count == 0)
             return askedProductName is null ? "Il ne te reste rien en stock." : $"Il ne te reste plus de {askedProductName.ToLowerInvariant()}.";
+        // Le nom du produit n'est jamais accordé : « saucisse curry » ne se met pas au pluriel mot à mot.
         if (products.Count > 1)
-            return "Il te reste " + string.Join(", ", products.Select(p => Count(p.WholeCount + p.OpenedCount, p.Name))) + ".";
+            return "Il te reste : " + string.Join(" ; ", products.Select(p => $"{p.Name.ToLowerInvariant()}, {Units(p)}")) + ".";
 
         var product = products[0];
         var openedLeft = product.Opened.Sum(o => o.RemainingKg ?? 0m);
-        var openedPart = $"{product.OpenedCount} entamé{(product.OpenedCount > 1 ? "s" : "")}"
-            + (openedLeft > 0 ? $" dont il reste environ {Kilos(openedLeft)}" : "");
-        var sentence = product.OpenedCount == 0
-            ? $"Il te reste {Count(product.WholeCount, product.Name)}"
-              + (product.RemainingKg is { } kg and > 0 ? $", environ {Kilos(kg)}" : "")
-            : product.WholeCount == 0
-                ? $"Il te reste seulement {Count(product.OpenedCount, product.Name)} entamé{(product.OpenedCount > 1 ? "s" : "")}"
-                  + (openedLeft > 0 ? $", environ {Kilos(openedLeft)}" : "")
-                : $"Il te reste {Count(product.WholeCount, product.Name)} entier{(product.WholeCount > 1 ? "s" : "")}, et {openedPart}";
+        var weight = product.OpenedCount > 0 && product.WholeCount == 0 ? openedLeft : product.RemainingKg ?? 0m;
+        var sentence = $"{product.Name} : il t'en reste {Units(product)}"
+            + (product.OpenedCount > 0 && product.WholeCount > 0 && openedLeft > 0
+                ? $", l'entamé fait encore environ {Kilos(openedLeft)}"
+                : weight > 0 ? $", environ {Kilos(weight)}" : "");
         if (product.OldestDate is { } oldest && product.Batches.Count > 1)
             sentence += $". Les plus anciens datent du {oldest.ToString("d MMMM", French)}";
         return sentence + ".";
     }
+
+    private static string Units(ProductStock p) => (p.WholeCount, p.OpenedCount) switch
+    {
+        (_, 0) => $"{p.WholeCount}",
+        (0, var opened) => $"{opened} entamé{(opened > 1 ? "s" : "")}",
+        var (whole, opened) => $"{whole} entier{(whole > 1 ? "s" : "")} et {opened} entamé{(opened > 1 ? "s" : "")}",
+    };
 
     /// <summary>
     /// Nombres présents dans une phrase et absents des données : vide si la phrase est fidèle.
@@ -137,9 +141,6 @@ public static class StockSummaryBuilder
         if (date is { } d)
             allowed.UnionWith([d.Day, d.Month, d.Year]);
     }
-
-    private static string Count(int count, string name) =>
-        $"{count} {(count > 1 && !name.EndsWith('s') && !name.EndsWith('x') ? name.ToLowerInvariant() + "s" : name.ToLowerInvariant())}";
 
     private static string Kilos(decimal kilograms) =>
         kilograms < 1m ? $"{Math.Round(kilograms * 1000m / 10m) * 10m:0} grammes" : $"{Math.Round(kilograms, 1).ToString("0.#", French)} kilos";
