@@ -44,6 +44,27 @@ public class MistralClientTests
         Assert.Contains("Saucisse curry", handler.SentBody);
     }
 
+    [Fact]
+    public async Task Speak_BlankVoiceSetting_FallsBackToTheFrenchVoice()
+    {
+        // Docker Compose passe une variable non renseignée comme une chaîne vide, pas comme une absence.
+        var handler = new RecordingHandler("""{"audio_data":"SUQz"}""");
+        var client = new MistralClient(
+            new HttpClient(handler) { BaseAddress = new Uri(MistralClient.BaseAddress) },
+            new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["MISTRAL_API_KEY"] = "test",
+                ["Assistant:SpeechVoice"] = "",
+                ["Assistant:SpeechModel"] = "  ",
+            }).Build(),
+            NullLogger<MistralClient>.Instance);
+
+        await client.SpeakAsync("Terrine : il t'en reste 1.");
+
+        Assert.Contains("\"voice\":\"fr_marie_neutral\"", handler.SentBody);
+        Assert.Contains("\"model\":\"voxtral-mini-tts-2603\"", handler.SentBody);
+    }
+
     [Theory]
     [InlineData("audio/webm;codecs=opus")]
     [InlineData("audio/webm")]

@@ -2,16 +2,20 @@
 	# En-têtes de sécurité, posés sur toutes les réponses (frontend comme API).
 	# Le TLS est terminé par Cloudflare : le navigateur reçoit ces en-têtes en HTTPS,
 	# ce qui rend HSTS effectif même si Caddy, lui, parle HTTP au tunnel.
+	# Aucun workflow ne copie ce fichier : sur le VPS (/opt/butcher-app), il se met à jour à la
+	# main, puis Caddy se redémarre (CLAUDE.md §9).
 	header {
 		Strict-Transport-Security "max-age=31536000"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
 		Referrer-Policy "strict-origin-when-cross-origin"
-		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		# Le micro est ouvert au site lui-même, pour l'assistant vocal (RF-34, RF-35) ; à personne d'autre.
+		Permissions-Policy "camera=(), microphone=(self), geolocation=(), payment=(), usb=()"
 		# Tout vient de l'application elle-même, sauf les polices Google (@import dans main.css).
 		# 'unsafe-inline' sur les styles seulement : Vuetify injecte son thème dans une balise
-		# <style>. Aucun script inline n'est autorisé.
-		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; manifest-src 'self'; worker-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+		# <style>. Aucun script inline n'est autorisé. media-src 'blob:' : la voix de l'assistant
+		# (Voxtral TTS) est jouée depuis un blob créé par la page.
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; manifest-src 'self'; worker-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
 		-Server
 	}
 

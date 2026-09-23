@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Butcher.Api.Common;
 using Butcher.Api.Common.Authorization;
 using Butcher.Api.Common.Exceptions;
 using Butcher.Api.Domain.Entities;
@@ -41,7 +42,7 @@ public sealed class AssistantService(
 
     public const string RateLimitedMessage = "Tu as fait beaucoup de demandes : réessaie dans quelques minutes.";
 
-    private string ChatModel => configuration["Assistant:ChatModel"] ?? "ministral-14b-2512";
+    private string ChatModel => configuration.ValueOr("Assistant:ChatModel", "ministral-14b-2512");
 
     /// <summary>Demandes admises par compte sur l'heure glissante (FR-023) ; 30 par défaut.</summary>
     private int MaxRequestsPerHour => int.TryParse(configuration["Assistant:MaxRequestsPerHour"], out var max) && max > 0 ? max : 30;

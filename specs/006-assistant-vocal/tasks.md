@@ -138,8 +138,8 @@ la limite refuse la demande de trop ; l'écran Rapports montre les demandes (qui
 
 ## Phase 8: Polish & production
 
-- [ ] T027 [P] `Caddyfile` (research R-07) : `Permissions-Policy` passe de `microphone=()` à `microphone=(self)` ; la CSP ajoute `media-src 'self' blob:` ; commentaire rappelant que ce fichier se copie à la main sur le VPS (`CLAUDE.md` §9)
-- [ ] T028 [P] `docker-compose.prod.yml` : variables `MISTRAL_API_KEY`, `Assistant__ChatModel`, `Assistant__SpeechVoice`, `Assistant__MaxRequestsPerHour` passées au backend (valeurs par défaut du code si absentes) ; documenter dans `.env.example` et `development/.env.example`
+- [X] T027 [P] `Caddyfile` (research R-07) : `Permissions-Policy` passe de `microphone=()` à `microphone=(self)` ; la CSP ajoute `media-src 'self' blob:` ; commentaire rappelant que ce fichier se copie à la main sur le VPS (`CLAUDE.md` §9)
+- [X] T028 [P] `docker-compose.prod.yml` : variables `MISTRAL_API_KEY`, `Assistant__ChatModel`, `Assistant__SpeechVoice`, `Assistant__MaxRequestsPerHour` passées au backend (valeurs par défaut du code si absentes) ; documenter dans `.env.example` et `development/.env.example`
 - [ ] T029 [P] Remplacer les commentaires « spike R&D » du code de l'assistant par les références de la spec (`FR-xx`) et de l'ADR-012 : `AssistantEngine.cs`, `AssistantService.cs`, `AssistantController.cs`, `MistralClient.cs`, `ActionFab.vue`, `AssistantPanel.vue`, `useAssistant.ts`, `useAssistantDraft.ts`, `SaleAddView.vue`, `AppLayout.vue`, `vite.config.ts`
 - [ ] T030 [P] Mettre à jour `docs/assistant-vocal-fonctionnement.md` (activation par compte, journal, limite, voix par demande, route `/speech` retirée) et `CLAUDE.md` (état d'avancement, ligne du tableau, pièges : jamais de texte libre vers le service de voix, jamais de nom de client vers le LLM, `Caddyfile` à copier pour le micro, `voice_request` écrite par `AssistantService` seul)
 - [ ] T031 Vérifications complètes : `dotnet test backend` ; `npm run test:unit`, `npm run type-check`, `npm run lint`, build du frontend ; banc `ASSISTANT_EVAL=1` une fois (SC-004, SC-001)

@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json.Nodes;
 using Butcher.Api.Application.Assistant;
+using Butcher.Api.Common;
 using Butcher.Api.Common.Exceptions;
 
 namespace Butcher.Api.Infrastructure.Mistral;
@@ -17,12 +18,12 @@ public sealed class MistralClient(HttpClient http, IConfiguration configuration,
     public const string BaseAddress = "https://api.mistral.ai/v1/";
     private const int MaxAttempts = 4;
 
-    private string TranscriptionModel => configuration["Assistant:TranscriptionModel"] ?? "voxtral-mini-2602";
+    private string TranscriptionModel => configuration.ValueOr("Assistant:TranscriptionModel", "voxtral-mini-2602");
 
-    private string SpeechModel => configuration["Assistant:SpeechModel"] ?? "voxtral-mini-tts-2603";
+    private string SpeechModel => configuration.ValueOr("Assistant:SpeechModel", "voxtral-mini-tts-2603");
 
     /// <summary>Voix préréglée de Mistral ; les voix françaises sont « fr_marie_* » (neutral, happy, curious…).</summary>
-    private string SpeechVoice => configuration["Assistant:SpeechVoice"] ?? "fr_marie_neutral";
+    private string SpeechVoice => configuration.ValueOr("Assistant:SpeechVoice", "fr_marie_neutral");
 
     public async Task<ChatResult> ChatAsync(string model, JsonArray messages, JsonArray? tools, string toolChoice,
         CancellationToken cancellationToken = default)
