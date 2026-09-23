@@ -30,6 +30,7 @@ Chaque décision porte un **statut** : `Proposé` (en débat), `Accepté` (valid
 | ADR-009 | Authentification par jetons JWT, adossée à ASP.NET Core Identity | Accepté — remplacé en partie par ADR-011 |
 | ADR-010 | Déploiement conteneurisé (Docker Compose + reverse proxy HTTPS) | Accepté |
 | ADR-011 | Comptes nominatifs avec deux rôles (administrateur, utilisateur) | Accepté |
+| ADR-012 | Assistant vocal : Mistral hébergé en UE, le LLM comprend et le backend décide | Proposé (branche `feat/assistant-vocal`) |
 
 ---
 
