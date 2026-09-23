@@ -12,4 +12,10 @@ public interface IReportService
     Task<List<ProductSalesDto>> GetSalesByProductAsync(DateOnly from, DateOnly to);
 
     Task<ReceivablesDto> GetReceivablesAsync();
+
+    /// <summary>Usage de l'assistant vocal par compte et par semaine de Paris (RF-36, FR-025).</summary>
+    Task<List<AssistantUsageDto>> GetAssistantUsageAsync(DateOnly from, DateOnly to);
+
+    /// <summary>Demandes à l'assistant, les plus récentes d'abord, avec la phrase entendue (FR-025).</summary>
+    Task<List<AssistantRequestDto>> GetAssistantRequestsAsync(DateOnly from, DateOnly to, Guid? accountId, int limit);
 }
