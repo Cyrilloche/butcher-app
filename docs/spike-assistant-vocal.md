@@ -235,3 +235,16 @@ Livré, à essayer sur téléphone :
 - « Écrire plutôt » : la même chose au clavier, utile sur PC.
 
 Le résultat de l'essai reste à mesurer : délai réel sur le téléphone, et ressenti.
+
+### Essais sur téléphone (2026-09-23)
+
+Porteur du projet, Samsung A55, Chrome, base de dev.
+
+- **Verdict** : « pas mal franchement pour un POC ». La chaîne complète fonctionne sur téléphone.
+- **Bouton micro** jugé trop encombrant → intégré au « + » des listes (« Dicter » à côté de l'action de l'écran). Coût : un appui de plus pour l'action habituelle, à confirmer à l'usage.
+- **Coupure du micro** (arrêt fixe à 15 s) → remplacée par la détection du silence (2 s après la parole, 30 s au plus).
+- **Compteur irrégulier** (un second minuteur lancé par « Reparler ») → remplacé par une jauge du volume.
+- **Voix du téléphone** jugée médiocre → **voix « Marie » de Voxtral TTS : « ça change absolument tout »**. Environ 1 s de plus avant d'entendre la réponse, le texte restant immédiat. Seule voix française préréglée chez Mistral ; le clonage de voix est possible (2 à 3 s d'enregistrement, avec l'accord de la personne).
+- Défaut trouvé à l'essai et corrigé : l'audio de Chrome (`audio/webm;codecs=opus`) était refusé par le backend (erreur 500) ; aucun test ne passait par un vrai enregistrement.
+
+Reste à mesurer : le délai de bout en bout chronométré, et surtout l'essai par **l'utilisateur visé**.
