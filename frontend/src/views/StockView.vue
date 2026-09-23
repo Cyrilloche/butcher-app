@@ -2,7 +2,7 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import AppFab from '@/components/base/AppFab.vue'
+import ActionFab from '@/components/domain/ActionFab.vue'
 import AppBadge from '@/components/base/AppBadge.vue'
 import AppBrandHeader from '@/components/base/AppBrandHeader.vue'
 import AppSortableTable from '@/components/base/AppSortableTable.vue'
@@ -105,7 +105,7 @@ const tableProducts = computed(() =>
       <StockProductRow v-for="product in dashboard.products" :key="product.code" :product="product" />
     </div>
 
-    <AppFab icon="plus" ariaLabel="Ajouter des produits au stock" :to="mdAndUp ? undefined : '/stock/add'" @click="addOpen = true" />
+    <ActionFab label="Ajouter des produits au stock" :to="mdAndUp ? undefined : '/stock/add'" @click="addOpen = true" />
 
     <v-dialog v-model="addOpen">
       <StockAddView v-if="addOpen" dialog @saved="addOpen = false; reload()" @cancel="addOpen = false" />
