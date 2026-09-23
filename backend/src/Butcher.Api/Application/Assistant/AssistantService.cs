@@ -39,7 +39,12 @@ public sealed class AssistantService(
     /// <summary>Au-delà, la voix d'une réponse ne se demande plus : la réponse a été lue ou abandonnée.</summary>
     public static readonly TimeSpan SpeechWindow = TimeSpan.FromMinutes(10);
 
+    public const string RateLimitedMessage = "Tu as fait beaucoup de demandes : réessaie dans quelques minutes.";
+
     private string ChatModel => configuration["Assistant:ChatModel"] ?? "ministral-14b-2512";
+
+    /// <summary>Demandes admises par compte sur l'heure glissante (FR-023) ; 30 par défaut.</summary>
+    private int MaxRequestsPerHour => int.TryParse(configuration["Assistant:MaxRequestsPerHour"], out var max) && max > 0 ? max : 30;
 
     public Task<AssistantReply> AskTextAsync(string text, CancellationToken cancellationToken = default)
     {
@@ -82,6 +87,7 @@ public sealed class AssistantService(
         var accountId = currentAccount.AccountId ?? throw new UnauthorizedException("Compte non identifié.");
         var occurredAt = DateTimeOffset.UtcNow;
         var started = Stopwatch.GetTimestamp();
+        await EnsureWithinLimitAsync(accountId, inputMode, occurredAt, cancellationToken);
         string? heard = null;
 
         try
@@ -116,6 +122,31 @@ public sealed class AssistantService(
             });
             throw;
         }
+    }
+
+    /// <summary>
+    /// Refuse la demande de trop avant tout appel extérieur, transcription comprise, et la journalise
+    /// (FR-023 ; research R-04). Les refus ne comptent pas : la limite se relâche d'elle-même.
+    /// </summary>
+    private async Task EnsureWithinLimitAsync(Guid accountId, VoiceInputMode inputMode, DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        var since = now - TimeSpan.FromHours(1);
+        var count = await dbContext.VoiceRequests.CountAsync(r =>
+            r.AccountId == accountId && r.OccurredAt > since && r.Outcome != VoiceRequestOutcome.RateLimited,
+            cancellationToken);
+        if (count < MaxRequestsPerHour)
+            return;
+
+        await RecordAsync(new VoiceRequest
+        {
+            AccountId = accountId,
+            OccurredAt = now,
+            InputMode = inputMode,
+            Outcome = VoiceRequestOutcome.RateLimited,
+            DurationMs = 0,
+        }, cancellationToken);
+        throw new TooManyRequestsException(RateLimitedMessage);
     }
 
     private async Task<AssistantReply> UnderstandAsync(string heard, CancellationToken cancellationToken)

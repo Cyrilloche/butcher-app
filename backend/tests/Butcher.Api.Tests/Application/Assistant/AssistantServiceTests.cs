@@ -80,10 +80,13 @@ public class AssistantServiceTests(PostgresDatabaseFixture fixture) : IAsyncLife
         });
     }
 
-    private (AppDbContext DbContext, AssistantService Service) CreateSut(Guid accountId, FakeMistralClient mistral)
+    private (AppDbContext DbContext, AssistantService Service) CreateSut(Guid accountId, FakeMistralClient mistral,
+        int? maxRequestsPerHour = null)
     {
         var dbContext = fixture.CreateDbContext(new FixedCurrentAccount(accountId));
-        var configuration = new ConfigurationBuilder().AddInMemoryCollection([]).Build();
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Assistant:MaxRequestsPerHour"] = maxRequestsPerHour?.ToString() })
+            .Build();
         return (dbContext, new AssistantService(dbContext, mistral, new FixedCurrentAccount(accountId), configuration,
             NullLogger<AssistantService>.Instance));
     }
@@ -292,5 +295,48 @@ public class AssistantServiceTests(PostgresDatabaseFixture fixture) : IAsyncLife
 
         await Assert.ThrowsAsync<NotFoundException>(() => service.SpeakReplyAsync(failed.Id));
         Assert.Empty(mistral.SpokenTexts);
+    }
+
+    // --- Limite par compte (FR-023) --------------------------------------------------------------
+
+    [Fact]
+    public async Task OverTheLimit_IsRefused_Journaled_AndNeverReachesMistral()
+    {
+        var accountId = await SeedAccountAsync();
+        var mistral = new FakeMistralClient { Transcript = "Il reste du jambon ?" }.Answers("get_stock", "{}");
+        var (dbContext, service) = CreateSut(accountId, mistral, maxRequestsPerHour: 2);
+        await using var _ = dbContext;
+        await service.AskTextAsync("Il reste du jambon ?");
+        await service.AskTextAsync("Et des terrines ?");
+
+        var refused = await Assert.ThrowsAsync<TooManyRequestsException>(
+            () => service.AskVoiceAsync(new MemoryStream([1]), "demande.webm", "audio/webm"));
+
+        Assert.Equal(AssistantService.RateLimitedMessage, refused.Message);
+        Assert.Equal(2, mistral.ChatCalls);
+        var last = (await VoiceRequestsAsync())[^1];
+        Assert.Equal((VoiceRequestOutcome.RateLimited, VoiceInputMode.Voice), (last.Outcome, last.InputMode));
+        Assert.Null(last.HeardText);
+    }
+
+    [Fact]
+    public async Task TheLimit_CountsOnlyTheAccountsOwnRequests_OfTheLastHour()
+    {
+        var accountId = await SeedAccountAsync();
+        var otherId = await SeedAccountAsync();
+        await using (var writer = fixture.CreateDbContext())
+        {
+            writer.VoiceRequests.AddRange(
+                new VoiceRequest { AccountId = otherId, OccurredAt = DateTimeOffset.UtcNow, InputMode = VoiceInputMode.Text, Outcome = VoiceRequestOutcome.StockAnswer },
+                new VoiceRequest { AccountId = accountId, OccurredAt = DateTimeOffset.UtcNow.AddHours(-2), InputMode = VoiceInputMode.Text, Outcome = VoiceRequestOutcome.StockAnswer },
+                new VoiceRequest { AccountId = accountId, OccurredAt = DateTimeOffset.UtcNow, InputMode = VoiceInputMode.Text, Outcome = VoiceRequestOutcome.RateLimited });
+            await writer.SaveChangesAsync();
+        }
+        var (dbContext, service) = CreateSut(accountId, new FakeMistralClient().Answers("get_stock", "{}"), maxRequestsPerHour: 1);
+        await using var _ = dbContext;
+
+        var reply = await service.AskTextAsync("Qu'est-ce qu'il me reste ?");
+
+        Assert.Equal(AssistantReplyKind.StockAnswer, reply.Kind);
     }
 }
