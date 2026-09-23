@@ -12,13 +12,13 @@ public sealed record DraftLineRequest(string ProductCode, int? Quantity, decimal
 public sealed record DraftLine(int StockUnitId, bool IsFullSale, decimal? SoldWeight);
 
 /// <summary>
-/// Brouillon d'une vente, à ouvrir dans le formulaire existant (cadrage D-02) : il ne porte
+/// Brouillon d'une vente, à ouvrir dans le formulaire existant (FR-016) : il ne porte
 /// aucun montant, que le formulaire calcule comme pour une saisie à la main.
 /// </summary>
 public sealed record SaleDraft(int? CustomerId, bool Paid, IReadOnlyList<DraftLine> Lines, IReadOnlyList<string> Warnings);
 
 /// <summary>
-/// Choisit les unités d'une vente dictée (cadrage §6) : les plus anciennes d'abord ; si un poids est
+/// Choisit les unités d'une vente dictée (RF-35, FR-014) : les plus anciennes d'abord ; si un poids est
 /// dit, la plus proche de ce poids ; si un prix est dit, la plus proche de ce prix ; pour une tranche,
 /// l'unité entamée la plus ancienne. N'écrit rien : c'est l'utilisateur qui enregistre.
 /// </summary>

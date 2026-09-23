@@ -14,7 +14,7 @@ public sealed record ProductStock(string Code, string Name, SaleMode SaleMode, i
     decimal? RemainingKg, DateOnly? OldestDate, IReadOnlyList<BatchStock> Batches, IReadOnlyList<OpenedUnitStock> Opened);
 
 /// <summary>
-/// Réponse à une question de stock (outil <c>get_stock</c>, cadrage §7) : les chiffres viennent
+/// Réponse à une question de stock (outil <c>get_stock</c>, RF-34, FR-010) : les chiffres viennent
 /// d'ici, jamais d'un calcul du LLM. Mêmes règles que les écrans de stock : on compte les unités
 /// <c>available</c> et <c>opened</c>, et le poids restant plutôt que le poids d'origine.
 /// </summary>

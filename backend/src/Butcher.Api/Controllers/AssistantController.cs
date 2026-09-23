@@ -9,7 +9,7 @@ namespace Butcher.Api.Controllers;
 public sealed record AssistantTextRequest(string Text);
 
 /// <summary>
-/// Assistant vocal (spike R&amp;D, docs/spike-assistant-vocal.md). Lecture seule : il répond à une
+/// Assistant vocal (RF-34 à RF-36, ADR-012). Lecture seule : il répond à une
 /// question de stock ou prépare un brouillon de vente, que l'utilisateur enregistre par le formulaire.
 /// </summary>
 [ApiController]

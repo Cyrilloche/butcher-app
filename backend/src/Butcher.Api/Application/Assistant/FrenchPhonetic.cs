@@ -5,7 +5,7 @@ namespace Butcher.Api.Application.Assistant;
 
 /// <summary>
 /// Code phonétique d'un mot français, pour comparer des noms à l'oreille plutôt qu'à l'orthographe
-/// (spike assistant vocal, étape 2). « Moreau », « moraux » et « moro » partagent un code ;
+/// (FR-018). « Moreau », « moraux » et « moro » partagent un code ;
 /// « Lefèvre » et « Lefebvre » aussi. « Martin » (son « in ») et « Martine » (son « ine ») non :
 /// ce ne sont pas les mêmes personnes.
 /// </summary>

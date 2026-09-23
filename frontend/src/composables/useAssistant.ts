@@ -4,7 +4,7 @@ import { ApiError } from '@/api/http'
 import type { AssistantReplyDto } from '@/api/types'
 
 /**
- * Assistant vocal (spike R&D, docs/assistant-vocal-fonctionnement.md). Un seul assistant pour toute
+ * Assistant vocal (RF-34, RF-35 ; docs/assistant-vocal-fonctionnement.md). Un seul assistant pour toute
  * l'application : on le lance depuis le bouton « + » (`ActionFab`), et `AssistantPanel`, posé une fois
  * dans la mise en page, affiche l'écoute puis la réponse.
  */

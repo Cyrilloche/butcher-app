@@ -118,7 +118,7 @@ builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<ISaleService, SaleService>();
 builder.Services.AddScoped<IAuditEntryService, AuditEntryService>();
 builder.Services.AddScoped<IReportService, ReportService>();
-// Assistant vocal (spike R&D) : seul le backend appelle Mistral (docs/cadrage-assistant-vocal.md, D-07).
+// Assistant vocal (RF-34 à RF-36, ADR-012) : seul le backend appelle Mistral.
 builder.Services.AddHttpClient<IMistralClient, MistralClient>(client =>
 {
     client.BaseAddress = new Uri(MistralClient.BaseAddress);

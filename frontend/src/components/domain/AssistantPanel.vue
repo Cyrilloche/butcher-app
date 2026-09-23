@@ -9,7 +9,7 @@ import { setAssistantDraft } from '@/composables/useAssistantDraft'
 import { formatWeight } from '@/composables/useStock'
 
 /**
- * Affichage de l'assistant vocal (spike R&D), posé une fois dans la mise en page : la carte d'écoute
+ * Affichage de l'assistant vocal (RF-34, RF-35), posé une fois dans la mise en page : la carte d'écoute
  * avec sa jauge, puis la réponse. On le lance depuis le bouton « + » (`ActionFab`).
  */
 const router = useRouter()

@@ -13,7 +13,7 @@ public enum MentionStatus
     /// <summary>Plusieurs clients possibles : aucun n'est choisi, il se choisit à l'écran.</summary>
     Ambiguous,
 
-    /// <summary>Un nom a été cité mais ne correspond à aucun client : il est retiré (D-08).</summary>
+    /// <summary>Un nom a été cité mais ne correspond à aucun client : il est retiré (FR-019).</summary>
     Unknown,
 }
 
@@ -25,7 +25,7 @@ public sealed record PseudonymizedText(string Text, IReadOnlyList<CustomerMentio
 
 /// <summary>
 /// Retrouve les clients cités dans une phrase transcrite et les remplace par des jetons avant
-/// l'appel au LLM (spike assistant vocal, étape 2 ; cadrage D-05, D-08).
+/// l'appel au LLM (RF-35, FR-018, FR-019).
 /// </summary>
 /// <remarks>
 /// La comparaison se fait à l'oreille (<see cref="FrenchPhonetic"/>). Deux garde-fous tiennent

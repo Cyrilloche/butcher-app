@@ -34,8 +34,8 @@ const state = reactive({
   paid: false,
 })
 
-// Vente dictée à l'assistant vocal (spike R&D) : le brouillon remplit le formulaire, qui se relit et
-// se corrige comme une saisie à la main avant d'être enregistré (cadrage D-02).
+// Vente dictée à l'assistant vocal (RF-35) : le brouillon remplit le formulaire, qui se relit et
+// se corrige comme une saisie à la main avant d'être enregistré (FR-016).
 const assistantDraft = takeAssistantDraft()
 const assistantWarnings = ref<string[]>([])
 if (assistantDraft) {

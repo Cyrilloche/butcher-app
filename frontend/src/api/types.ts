@@ -421,7 +421,7 @@ export interface ValidationProblemDetailsDto {
   errors: Record<string, string[]>
 }
 
-// --- Assistant vocal (spike R&D, docs/spike-assistant-vocal.md) --------
+// --- Assistant vocal (RF-34, RF-35 ; specs/006-assistant-vocal) --------
 
 export type AssistantReplyKind = 'stock_answer' | 'sale_draft' | 'not_understood'
 

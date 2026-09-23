@@ -18,7 +18,7 @@ import pkg from './package.json' with { type: 'json' }
 const appVersion = process.env.APP_VERSION || `${pkg.version}-dev`
 
 /**
- * Essais de l'assistant vocal sur téléphone (spike R&D, docs/spike-assistant-vocal.md) : le micro
+ * Essais de l'assistant vocal sur téléphone (specs/006-assistant-vocal/quickstart.md) : le micro
  * n'est accessible qu'en HTTPS, et l'API doit être jointe par la même adresse que la page.
  * `SALOIR_DEV_HTTPS=1 npm run dev -- --host` sert en HTTPS avec le certificat auto-signé de
  * l'enregistreur du corpus, et relaie /api vers le backend local. Sans la variable, rien ne change.

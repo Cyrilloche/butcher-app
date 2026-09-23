@@ -8,7 +8,7 @@ public sealed record ToolCall(string Id, string Name, string Arguments);
 public sealed record ChatResult(string? Content, IReadOnlyList<ToolCall> ToolCalls, int PromptTokens, int CompletionTokens, JsonObject Message);
 
 /// <summary>
-/// Accès à La Plateforme de Mistral (spike assistant vocal, cadrage D-04, D-07) : seul le backend
+/// Accès à La Plateforme de Mistral (ADR-012) : seul le backend
 /// l'appelle, jamais le frontend. Ne reçoit que du texte pseudonymisé et le catalogue.
 /// </summary>
 public interface IMistralClient

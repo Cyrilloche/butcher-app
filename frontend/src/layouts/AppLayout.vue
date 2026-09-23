@@ -106,7 +106,7 @@ const initial = computed(() => (auth.account?.displayName.trim().charAt(0) ?? '?
     <RouterView />
   </v-main>
 
-  <!-- Assistant vocal : spike R&D en local, pour tous les comptes (cadrage D-09), lancé depuis le « + ». -->
+  <!-- Assistant vocal (RF-34 à RF-36) : lancé depuis le « + » d'un compte qui l'a (FR-001). -->
   <AssistantPanel v-if="showNavigation" />
 
   <v-bottom-navigation v-if="showNavigation && !mdAndUp" grow color="primary">

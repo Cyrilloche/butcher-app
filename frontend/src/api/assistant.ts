@@ -1,7 +1,7 @@
 import { apiFetch } from './http'
 import type { AssistantReplyDto } from './types'
 
-/** Assistant vocal (spike R&D) : l'audio part au backend, qui seul appelle Mistral (cadrage D-07). */
+/** Assistant vocal (ADR-012) : l'audio part au backend, qui seul appelle Mistral. */
 export function askAssistantByVoice(audio: Blob): Promise<AssistantReplyDto> {
   const form = new FormData()
   const extension = audio.type.includes('mp4') ? 'm4a' : audio.type.includes('ogg') ? 'ogg' : 'webm'

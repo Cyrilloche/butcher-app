@@ -38,7 +38,7 @@ public sealed record AssistantTrace(string Pseudonymized, IReadOnlyList<ToolCall
 /// le client, les chiffres et la phrase dite viennent du backend (FR-011). Rien n'est écrit en base.
 /// </summary>
 /// <remarks>
-/// La phrase dite n'est jamais écrite par le LLM : au banc du spike, il a annoncé « 1 jambon entier » pour 2,
+/// La phrase dite n'est jamais écrite par le LLM : au banc d'évaluation, il a annoncé « 1 jambon entier » pour 2,
 /// avec un chiffre qui existait ailleurs dans les données, erreur qu'aucun contrôle des chiffres ne voyait
 /// (specs/006-assistant-vocal, research R-06).
 /// </remarks>

@@ -3,7 +3,7 @@ import type { SaleDraftDto } from '@/api/types'
 import type { SaleLineDraft, SellableLot } from '@/composables/useSales'
 
 /**
- * Brouillon de vente préparé par l'assistant vocal (spike R&D), en attente d'être ouvert dans le
+ * Brouillon de vente préparé par l'assistant vocal (RF-35, FR-016), en attente d'être ouvert dans le
  * formulaire « Nouvelle vente ». Il ne passe pas par l'URL : il est lu une seule fois, à l'ouverture.
  */
 const pendingDraft = ref<SaleDraftDto | null>(null)
