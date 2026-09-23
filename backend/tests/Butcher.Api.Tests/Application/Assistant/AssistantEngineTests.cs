@@ -100,4 +100,133 @@ public class AssistantEngineTests
         Assert.Equal(1, mistral.ChatCalls);
         Assert.StartsWith("Jambon : il t'en reste 1 entier et 1 entamé", reply.Speech);
     }
+
+    // --- Vente dictée (US2) --------------------------------------------------------------------
+
+    [Fact]
+    public async Task DraftSale_PaymentNotSaid_IsToBePaid()
+    {
+        var mistral = new FakeMistralClient()
+            .Answers("draft_sale", """{"customer_token": "[CLIENT_1]", "lines": [{"product_code": "SC", "quantity": 2}]}""");
+
+        var (reply, _) = await AskAsync(mistral, "Vends deux saucissons à madame Martin.");
+
+        Assert.Equal(AssistantReplyKind.SaleDraft, reply.Kind);
+        Assert.Equal(AssistantEngine.SaleDraftSpeech, reply.Speech);
+        Assert.False(reply.Draft!.Paid);
+        Assert.Equal([1, 2], reply.Draft.Lines.Select(l => l.StockUnitId));
+    }
+
+    [Fact]
+    public async Task DraftSale_PaymentSaid_IsPaid()
+    {
+        var mistral = new FakeMistralClient()
+            .Answers("draft_sale", """{"customer_token": "[CLIENT_1]", "paid": true, "lines": [{"product_code": "TR"}]}""");
+
+        var (reply, _) = await AskAsync(mistral, "Une terrine pour madame Martin, elle a payé.");
+
+        Assert.True(reply.Draft!.Paid);
+    }
+
+    [Fact]
+    public async Task DraftSale_TwoSalesInOneSentence_PreparesTheFirstAndSaysSo()
+    {
+        var mistral = new FakeMistralClient()
+            .Answers("draft_sale", """{"customer_token": "[CLIENT_1]", "lines": [{"product_code": "SC", "quantity": 2}]}""")
+            .Answers("draft_sale", """{"customer_token": "[CLIENT_2]", "lines": [{"product_code": "TR"}]}""");
+
+        var (reply, _) = await AskAsync(mistral, "Deux saucissons à madame Martin et une terrine à Gérard.");
+
+        Assert.Equal(Martin, reply.Draft!.CustomerId);
+        Assert.All(reply.Draft.Lines, l => Assert.NotEqual(20, l.StockUnitId));
+        Assert.Contains(reply.Draft.Warnings, w => w.StartsWith("Une seule vente à la fois"));
+    }
+
+    [Fact]
+    public async Task StockQuestionAndSale_InOneSentence_AnswersBoth()
+    {
+        var mistral = new FakeMistralClient()
+            .Answers("get_stock", """{"product_code": "SC"}""")
+            .Answers("draft_sale", """{"customer_token": "[CLIENT_1]", "lines": [{"product_code": "SC", "quantity": 1}]}""");
+
+        var (reply, _) = await AskAsync(mistral, "Combien de saucissons, et mets-en un pour Gérard.");
+
+        Assert.Equal(AssistantReplyKind.SaleDraft, reply.Kind);
+        Assert.NotNull(reply.Stock);
+        Assert.NotNull(reply.Draft);
+        Assert.EndsWith(AssistantEngine.SaleDraftSpeech, reply.Speech);
+        Assert.StartsWith("Saucisson : il t'en reste 2", reply.Speech);
+    }
+
+    [Fact]
+    public void DraftLine_CarriesNoAmount_TheFormComputesIt()
+    {
+        Assert.Null(typeof(DraftLine).GetProperty("Amount"));
+        Assert.Null(typeof(SaleDraft).GetProperty("Amount"));
+    }
+
+    // --- Jamais un mauvais client (US3) ---------------------------------------------------------
+
+    [Fact]
+    public async Task TheLanguageModel_NeverReceivesACustomerName_NorTheCustomerList()
+    {
+        var mistral = new FakeMistralClient()
+            .Answers("draft_sale", """{"customer_token": "[CLIENT_1]", "lines": [{"product_code": "SC"}]}""");
+
+        await AskAsync(mistral, "Vends un saucisson à madame Martin, et pas à Martine Roux ni à Gérard.");
+
+        var sent = string.Join("\n", mistral.SentMessages);
+        Assert.DoesNotContain("Martin", sent);
+        Assert.DoesNotContain("Roux", sent);
+        Assert.DoesNotContain("Gérard", sent);
+        Assert.Contains("[CLIENT_1]", sent);
+    }
+
+    [Fact]
+    public async Task ACustomerToken_IsResolvedLocally()
+    {
+        var mistral = new FakeMistralClient()
+            .Answers("draft_sale", """{"customer_token": "CLIENT_1", "lines": [{"product_code": "TR"}]}""");
+
+        var (reply, _) = await AskAsync(mistral, "Une terrine pour Gérard.");
+
+        Assert.Equal(Gerard, reply.Draft!.CustomerId);
+    }
+
+    [Fact]
+    public async Task ATokenInventedByTheLanguageModel_GivesNoCustomer()
+    {
+        var mistral = new FakeMistralClient()
+            .Answers("draft_sale", """{"customer_token": "[CLIENT_9]", "lines": [{"product_code": "TR"}]}""");
+
+        var (reply, _) = await AskAsync(mistral, "Une terrine pour Gérard.");
+
+        Assert.Null(reply.Draft!.CustomerId);
+        Assert.Contains("Client à choisir.", reply.Draft.Warnings);
+    }
+
+    [Fact]
+    public async Task AnUnknownName_LeavesTheCustomerToChoose_AndShowsWhatWasHeard()
+    {
+        var mistral = new FakeMistralClient()
+            .Answers("draft_sale", """{"customer_token": "[CLIENT_INCONNU]", "lines": [{"product_code": "SC", "quantity": 2}]}""");
+
+        var (reply, _) = await AskAsync(mistral, "Vends deux saucissons à madame Petitjean.");
+
+        Assert.Null(reply.Draft!.CustomerId);
+        Assert.Equal("Client à choisir : « madame Petitjean » n'a pas été reconnu.", reply.Draft.Warnings[0]);
+        Assert.DoesNotContain("Petitjean", string.Join("\n", mistral.SentMessages));
+    }
+
+    [Fact]
+    public async Task TwoCustomersThatSoundAlike_WithoutConfirmation_NobodyIsChosen()
+    {
+        var mistral = new FakeMistralClient()
+            .Answers("draft_sale", """{"customer_token": "[CLIENT_1]", "lines": [{"product_code": "SC"}]}""");
+
+        // « Martin » sans civilité : peut-être « Martine » mal transcrit ; aucun jeton n'est émis.
+        var (reply, _) = await AskAsync(mistral, "Mets un saucisson pour Martin.");
+
+        Assert.Null(reply.Draft!.CustomerId);
+    }
 }

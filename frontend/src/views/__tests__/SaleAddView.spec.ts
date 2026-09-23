@@ -273,6 +273,22 @@ describe('SaleAddView', () => {
     })
   })
 
+  it('garde « Payée » quand la phrase dictée le disait', async () => {
+    createSale.mockResolvedValue({} as never)
+    setAssistantDraft({
+      customerId: 3,
+      paid: true,
+      lines: [{ stockUnitId: 1, isFullSale: true, soldWeight: null }],
+      warnings: [],
+    })
+    await mountView()
+
+    await saveButton().trigger('click')
+    await settle()
+
+    expect(createSale).toHaveBeenCalledWith(expect.objectContaining({ customerId: 3, paid: true }))
+  })
+
   it('ne réapplique pas une vente de l’assistant déjà ouverte', async () => {
     setAssistantDraft({ customerId: 3, paid: true, lines: [{ stockUnitId: 1, isFullSale: true, soldWeight: null }], warnings: [] })
     ;(await mountView()).unmount()

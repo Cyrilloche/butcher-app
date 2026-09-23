@@ -77,9 +77,9 @@ sans montant venu du serveur, enregistrée seulement par l'utilisateur.
 **Independent Test**: dicter une vente pour un client connu ; le formulaire s'ouvre pré-rempli ; rien
 n'existe tant que « Enregistrer » n'est pas touché (quickstart, scénario 4).
 
-- [ ] T013 [US2] Compléter `backend/tests/Butcher.Api.Tests/Application/Assistant/SaleDraftBuilderTests.cs` pour FR-014 : tranche sur l'unité intacte la plus ancienne quand aucun entamé n'existe ; entamé jamais proposé en vente entière ; même unité jamais deux fois sur plusieurs lignes du même produit
-- [ ] T014 [US2] Dans `AssistantEngineTests.cs` : `draft_sale` rend l'issue `sale_draft`, « À payer » sans mention du paiement et « Payée » quand l'outil le dit (FR-015) ; deux appels `draft_sale` ne préparent que le premier, avec l'avertissement ; une question de stock et une vente dans la même phrase rendent les deux (FR-006) ; aucune ligne ne porte de montant (FR-016)
-- [ ] T015 [P] [US2] Vérifier que `frontend/src/composables/__tests__/useAssistantDraft.spec.ts` et `frontend/src/views/__tests__/SaleAddView.spec.ts` couvrent les scénarios 1, 4, 5 et 6 de US2 et l'unité disparue (FR-017) ; compléter s'il en manque un
+- [X] T013 [US2] Compléter `backend/tests/Butcher.Api.Tests/Application/Assistant/SaleDraftBuilderTests.cs` pour FR-014 : tranche sur l'unité intacte la plus ancienne quand aucun entamé n'existe ; entamé jamais proposé en vente entière ; même unité jamais deux fois sur plusieurs lignes du même produit
+- [X] T014 [US2] Dans `AssistantEngineTests.cs` : `draft_sale` rend l'issue `sale_draft`, « À payer » sans mention du paiement et « Payée » quand l'outil le dit (FR-015) ; deux appels `draft_sale` ne préparent que le premier, avec l'avertissement ; une question de stock et une vente dans la même phrase rendent les deux (FR-006) ; aucune ligne ne porte de montant (FR-016)
+- [X] T015 [P] [US2] Vérifier que `frontend/src/composables/__tests__/useAssistantDraft.spec.ts` et `frontend/src/views/__tests__/SaleAddView.spec.ts` couvrent les scénarios 1, 4, 5 et 6 de US2 et l'unité disparue (FR-017) ; compléter s'il en manque un
 
 **Checkpoint**: US1 et US2 livrables ensemble.
 
@@ -93,8 +93,8 @@ laisse le client à choisir, avec le nom entendu affiché.
 **Independent Test**: dicter des ventes pour des clients aux noms proches ou absents ; aucun n'est
 pré-rempli à tort (quickstart, scénario 5).
 
-- [ ] T016 [US3] Dans `AssistantEngineTests.cs` : le texte transmis au faux LLM ne contient ni nom de client ni liste de clients (FR-019) ; un jeton rendu par le LLM est résolu en client ; un jeton inventé par le LLM (`[CLIENT_9]`) ne donne aucun client ; un nom inconnu ou ambigu produit l'avertissement « Client à choisir : « … » n'a pas été reconnu » (FR-017, FR-018)
-- [ ] T017 [P] [US3] Relancer `CustomerNameMatcherTests` sur le jeu d'évaluation complet (`backend/tests/Butcher.Api.Tests/Application/Assistant/CorpusTranscripts.cs`) et vérifier zéro mauvais client (SC-001) ; aucun changement de code attendu
+- [X] T016 [US3] Dans `AssistantEngineTests.cs` : le texte transmis au faux LLM ne contient ni nom de client ni liste de clients (FR-019) ; un jeton rendu par le LLM est résolu en client ; un jeton inventé par le LLM (`[CLIENT_9]`) ne donne aucun client ; un nom inconnu ou ambigu produit l'avertissement « Client à choisir : « … » n'a pas été reconnu » (FR-017, FR-018)
+- [X] T017 [P] [US3] Relancer `CustomerNameMatcherTests` sur le jeu d'évaluation complet (`backend/tests/Butcher.Api.Tests/Application/Assistant/CorpusTranscripts.cs`) et vérifier zéro mauvais client (SC-001) ; aucun changement de code attendu
 
 **Checkpoint**: les trois récits P1 sont livrables.
 

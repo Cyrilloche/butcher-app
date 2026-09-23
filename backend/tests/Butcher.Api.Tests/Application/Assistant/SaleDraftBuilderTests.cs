@@ -3,7 +3,7 @@ using Butcher.Api.Domain.Enums;
 
 namespace Butcher.Api.Tests.Application.Assistant;
 
-/// <summary>Choix des unités d'une vente dictée (cadrage §6).</summary>
+/// <summary>Choix des unités d'une vente dictée (RF-35, FR-014, FR-015).</summary>
 public class SaleDraftBuilderTests
 {
     private static readonly DateOnly Old = new(2026, 9, 1), Recent = new(2026, 9, 15);
@@ -124,6 +124,30 @@ public class SaleDraftBuilderTests
         var draft = Build(new DraftLineRequest("SC", 1, null, null, false), new DraftLineRequest("SC", 1, null, null, false));
 
         Assert.Equal([2, 3], draft.Lines.Select(l => l.StockUnitId));
+    }
+
+    [Fact]
+    public void Slice_WithoutAnyOpenedHam_CutsTheOldestIntactOne()
+    {
+        SellableUnit[] intactHamsOnly =
+        [
+            Jambon(30, Recent, 7m, 7m, StockUnitStatus.Available),
+            Jambon(31, Old, 8m, 8m, StockUnitStatus.Available),
+        ];
+
+        var draft = SaleDraftBuilder.Build(7, false, [new DraftLineRequest("JB", null, 250m, null, true)], intactHamsOnly);
+
+        var line = Assert.Single(draft.Lines);
+        Assert.Equal((31, false, 0.25m), (line.StockUnitId, line.IsFullSale, line.SoldWeight!.Value));
+    }
+
+    [Fact]
+    public void SliceAndWholeOfTheSameProduct_NeverTheSameUnit()
+    {
+        var draft = Build(new DraftLineRequest("JB", null, 200m, null, true), new DraftLineRequest("JB", 1, null, null, false));
+
+        Assert.Equal([11, 10], draft.Lines.Select(l => l.StockUnitId));
+        Assert.Equal([false, true], draft.Lines.Select(l => l.IsFullSale));
     }
 
     [Fact]
