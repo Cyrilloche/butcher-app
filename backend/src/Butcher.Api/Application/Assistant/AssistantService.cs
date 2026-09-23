@@ -10,6 +10,8 @@ public interface IAssistantService
     Task<AssistantReply> AskTextAsync(string text, CancellationToken cancellationToken = default);
 
     Task<AssistantReply> AskVoiceAsync(Stream audio, string fileName, string contentType, CancellationToken cancellationToken = default);
+
+    Task<byte[]> SpeakAsync(string text, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -43,6 +45,14 @@ public sealed class AssistantService(AppDbContext dbContext, IMistralClient mist
     {
         var text = await mistral.TranscribeAsync(audio, fileName, contentType, cancellationToken);
         return await AskTextAsync(text, cancellationToken);
+    }
+
+    /// <summary>Lit une phrase de l'assistant avec la voix de Mistral. Une phrase courte : celles de l'assistant le sont.</summary>
+    public Task<byte[]> SpeakAsync(string text, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(text) || text.Length > 500)
+            throw new BadRequestException("Phrase vide ou trop longue.");
+        return mistral.SpeakAsync(text.Trim(), cancellationToken);
     }
 
     /// <summary>

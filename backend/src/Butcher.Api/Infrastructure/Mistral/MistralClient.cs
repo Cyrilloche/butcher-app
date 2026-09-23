@@ -19,6 +19,11 @@ public sealed class MistralClient(HttpClient http, IConfiguration configuration,
 
     private string TranscriptionModel => configuration["Assistant:TranscriptionModel"] ?? "voxtral-mini-2602";
 
+    private string SpeechModel => configuration["Assistant:SpeechModel"] ?? "voxtral-mini-tts-2603";
+
+    /// <summary>Voix préréglée de Mistral ; les voix françaises sont « fr_marie_* » (neutral, happy, curious…).</summary>
+    private string SpeechVoice => configuration["Assistant:SpeechVoice"] ?? "fr_marie_neutral";
+
     public async Task<ChatResult> ChatAsync(string model, JsonArray messages, JsonArray? tools, string toolChoice,
         CancellationToken cancellationToken = default)
     {
@@ -74,6 +79,22 @@ public sealed class MistralClient(HttpClient http, IConfiguration configuration,
             };
         }, cancellationToken);
         return (string?)json["text"] ?? "";
+    }
+
+    public async Task<byte[]> SpeakAsync(string text, CancellationToken cancellationToken = default)
+    {
+        var body = new JsonObject
+        {
+            ["model"] = SpeechModel,
+            ["input"] = text,
+            ["voice"] = SpeechVoice,
+            ["response_format"] = "mp3",
+        };
+        var json = await SendAsync(() => new HttpRequestMessage(HttpMethod.Post, "audio/speech")
+        {
+            Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json"),
+        }, cancellationToken);
+        return Convert.FromBase64String((string?)json["audio_data"] ?? "");
     }
 
     private async Task<JsonNode> SendAsync(Func<HttpRequestMessage> request, CancellationToken cancellationToken)

@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { askAssistantByText, askAssistantByVoice } from '@/api/assistant'
+import { askAssistantByText, askAssistantByVoice, speakWithAssistantVoice } from '@/api/assistant'
 import { ApiError } from '@/api/http'
 import type { AssistantReplyDto } from '@/api/types'
 
@@ -99,7 +99,7 @@ function fail(message: string) {
 
 async function start() {
   if (phase.value === 'listening' || phase.value === 'thinking') return
-  window.speechSynthesis?.cancel()
+  stopSpeaking()
   releaseMicrophone()
   error.value = null
   reply.value = null
@@ -211,7 +211,33 @@ function loadVoices(synthesis: SpeechSynthesis): Promise<SpeechSynthesisVoice[]>
   })
 }
 
+let playing: HTMLAudioElement | null = null
+
+/** Coupe la voix en cours, celle de Mistral comme celle du téléphone. */
+function stopSpeaking() {
+  playing?.pause()
+  playing = null
+  window.speechSynthesis?.cancel()
+}
+
+/**
+ * Lit la réponse avec la voix de Mistral (Voxtral TTS, environ 1 s de plus), et se rabat sur la voix
+ * du téléphone si elle ne vient pas. Le texte, lui, s'affiche tout de suite.
+ */
 async function speak(text: string) {
+  stopSpeaking()
+  try {
+    const audio = new Audio(URL.createObjectURL(await speakWithAssistantVoice(text)))
+    playing = audio
+    audio.onended = () => URL.revokeObjectURL(audio.src)
+    await audio.play()
+  } catch {
+    // Voix de Mistral indisponible : celle du téléphone, sauf si le panneau a été fermé entre-temps.
+    if (open.value) void speakWithPhone(text)
+  }
+}
+
+async function speakWithPhone(text: string) {
   const synthesis = window.speechSynthesis
   if (!synthesis || typeof SpeechSynthesisUtterance === 'undefined') return
   synthesis.cancel()
@@ -224,7 +250,7 @@ async function speak(text: string) {
 }
 
 function close() {
-  window.speechSynthesis?.cancel()
+  stopSpeaking()
   if (phase.value === 'listening') cancelListening()
   open.value = false
   if (phase.value !== 'thinking') phase.value = 'idle'
@@ -232,7 +258,7 @@ function close() {
 
 /** Ouvre le panneau sur la saisie au clavier, sans passer par le micro. */
 function write() {
-  window.speechSynthesis?.cancel()
+  stopSpeaking()
   reply.value = null
   error.value = null
   phase.value = 'idle'

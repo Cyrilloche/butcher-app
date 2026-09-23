@@ -5,6 +5,7 @@
 | Version | Date | Objet |
 |---|---|---|
 | 0.1 | 2026-09-23 | État après le premier essai sur téléphone |
+| 0.2 | 2026-09-23 | Voix de Mistral (Voxtral TTS) |
 
 ---
 
@@ -44,7 +45,9 @@ TÉLÉPHONE                           BACKEND                                   
                                      │   - phrase à dire
                                      ▼
 [7] réponse ◀────────────────────── { kind, speech, heard, stock | draft }
- │ panneau + lecture à voix haute
+ │ panneau (texte tout de suite)
+ │ voix ─────────────────────────▶ POST /api/assistant/speech ── phrase ──────▶ Voxtral TTS (voix « Marie »)
+ │      ◀──────────────────────── MP3 (≈ 1 s)  ◀─────────────────────────────
  │ « Ouvrir la vente »
  ▼
 [8] « Nouvelle vente » pré-remplie : client, unités, montants calculés ici
@@ -63,7 +66,7 @@ TÉLÉPHONE                           BACKEND                                   
 | 4 | Backend | Les noms de clients sont retrouvés **à l'oreille** (« les moraux » = Moreau) et remplacés par des jetons. Deux clients trop proches (Martin / Martine) : aucun n'est choisi. Un nom inconnu est retiré. | `CustomerNameMatcher.cs`, `FrenchPhonetic.cs` |
 | 5 | Backend → Mistral | Le LLM reçoit la phrase pseudonymisée, le catalogue et trois outils. Il en appelle un (ou deux) : `get_stock`, `draft_sale`, `not_understood`. | `AssistantEngine.cs` |
 | 6 | Backend | **Le backend exécute** : `get_stock` → comptes et poids calculés, phrase construite ; `draft_sale` → unités choisies selon les règles du cadrage §6, jeton → client. Rien n'est écrit en base. | `StockSummaryBuilder.cs`, `SaleDraftBuilder.cs` |
-| 7 | Téléphone | Le panneau affiche ce qui a été entendu, la phrase (lue à voix haute), le détail par fournée ou les avertissements d'une vente. | `components/domain/AssistantPanel.vue` |
+| 7 | Téléphone | Le panneau affiche ce qui a été entendu, la phrase, le détail par fournée ou les avertissements d'une vente. La phrase est lue par la voix de Mistral (Voxtral TTS, environ 1 s de plus) ; à défaut, par celle du téléphone. | `components/domain/AssistantPanel.vue`, `composables/useAssistant.ts` |
 | 8 | Téléphone | « Ouvrir la vente » passe le brouillon au formulaire, qui calcule les montants **exactement comme pour un choix à la main**. | `composables/useAssistantDraft.ts`, `views/SaleAddView.vue` |
 | 9 | Téléphone → Backend | Enregistrement par le bouton habituel : même route, mêmes contrôles, même journal, même auteur. | inchangé |
 
@@ -83,13 +86,15 @@ Pourquoi la phrase dite ne vient plus du LLM : au banc, il a annoncé « 1 jambo
 
 ## 4. Ce qui part chez Mistral
 
-| Donnée | Voxtral (transcription) | LLM (compréhension) |
-|---|---|---|
-| La voix | ✅ | ❌ |
-| Les noms de clients | ✅ (dans l'audio) | ❌ (jetons seulement) |
-| La liste des clients | ❌ | ❌ |
-| Le catalogue (codes, noms de produits) | ❌ | ✅ |
-| Le stock, les prix, les ventes | ❌ | ❌ (les chiffres restent au backend) |
+| Donnée | Voxtral (transcription) | LLM (compréhension) | Voxtral TTS (voix lue) |
+|---|---|---|---|
+| La voix de l'utilisateur | ✅ | ❌ | ❌ |
+| Les noms de clients | ✅ (dans l'audio) | ❌ (jetons seulement) | ❌ |
+| La liste des clients | ❌ | ❌ | ❌ |
+| Le catalogue (codes, noms de produits) | ❌ | ✅ | noms cités dans la phrase |
+| Le stock, les prix, les ventes | ❌ | ❌ (les chiffres restent au backend) | nombres et poids de la phrase de stock |
+
+La phrase lue ne contient jamais de nom de client : les phrases de stock n'en ont pas, celles d'une vente sont fixes. La route `/api/assistant/speech` accepte en revanche n'importe quel texte d'un compte connecté (500 caractères au plus) : à restreindre avant tout usage réel.
 
 Mistral conserve les entrées 30 jours (détection d'abus) ; pas d'entraînement en paiement à l'usage. Hébergement UE. Détail : `cadrage-assistant-vocal.md` §5 et §9.
 
@@ -99,13 +104,13 @@ Mistral conserve les entrées 30 jours (détection d'abus) ; pas d'entraînement
 
 | Fichier | Rôle |
 |---|---|
-| `Controllers/AssistantController.cs` | `POST /api/assistant/voice` (audio) et `/text` (texte) ; compte connecté exigé |
+| `Controllers/AssistantController.cs` | `POST /api/assistant/voice` (audio), `/text` (texte), `/speech` (voix lue, MP3) ; compte connecté exigé |
 | `Application/Assistant/AssistantService.cs` | Charge clients, catalogue et stock ; transcrit ; confie à l'engine |
 | `Application/Assistant/AssistantEngine.cs` | La chaîne : pseudonymisation, consignes et outils du LLM, exécution, réponse |
 | `Application/Assistant/CustomerNameMatcher.cs`, `FrenchPhonetic.cs` | Retrouver les clients à l'oreille, pseudonymiser |
 | `Application/Assistant/SaleDraftBuilder.cs` | Choisir les unités d'une vente dictée |
 | `Application/Assistant/StockSummaryBuilder.cs` | Résumé de stock, phrase à dire, contrôle des chiffres |
-| `Infrastructure/Mistral/MistralClient.cs` | Appels HTTP à Mistral (sans SDK), nouvel essai sur limite de débit |
+| `Infrastructure/Mistral/MistralClient.cs` | Appels HTTP à Mistral (sans SDK) : transcription, compréhension, voix lue ; nouvel essai sur limite de débit |
 
 **Frontend** (`frontend/src/`)
 
@@ -127,12 +132,14 @@ Mistral conserve les entrées 30 jours (détection d'abus) ; pas d'entraînement
 | `Assistant__ChatModel` | idem | `ministral-14b-2512` |
 | `Assistant__TranscriptionModel` | idem | `voxtral-mini-2602` |
 | `Assistant__LlmSpeech` | idem | `false` (phrase dite par le backend) |
+| `Assistant__SpeechModel` | idem | `voxtral-mini-tts-2603` |
+| `Assistant__SpeechVoice` | idem | `fr_marie_neutral` (aussi : `fr_marie_happy`, `_curious`, `_excited`, `_sad`, `_angry`) |
 | `SALOIR_DEV_HTTPS=1` | au lancement de `npm run dev` | absent : rien ne change. Présent : HTTPS et relais `/api`, pour l'essai sur téléphone |
 
 ## 7. Vérifier
 
 ```bash
-dotnet test backend                                               # tout le backend (266 tests)
+dotnet test backend                                               # tout le backend (267 tests)
 ASSISTANT_EVAL=1 dotnet test backend --filter "FullyQualifiedName~AssistantEvaluation" \
   --logger "console;verbosity=detailed"                          # banc LLM : appelle Mistral
 ```
@@ -145,5 +152,5 @@ Frontend : `npm run test:unit`, `npm run type-check`, `npm run lint` (depuis Win
 - Un produit mal transcrit peut être remplacé par un produit proche (« corisaux » → saucisson), malgré la consigne.
 - Un nom de client inconnu écrit en minuscules par la transcription passerait au LLM ; Voxtral met des majuscules aux noms propres (étape 2).
 - La détection de fin de phrase se règle sur le volume : 2 s de silence peuvent couper une personne qui hésite longtemps. Le bouton « J'ai fini » reste là.
-- La voix lue est celle du téléphone (Android : Paramètres → Accessibilité → Synthèse vocale). Voxtral TTS serait plus naturel, au prix d'un appel de plus chez Mistral.
+- La voix de Mistral ajoute environ 1 s avant d'entendre la réponse (le texte, lui, est immédiat). Sans elle, c'est la voix du téléphone (Android : Paramètres → Accessibilité → Synthèse vocale).
 - Spike seulement : pas de journal des demandes vocales, pas de conversation à plusieurs tours, en local uniquement.

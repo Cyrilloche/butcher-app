@@ -17,4 +17,7 @@ public interface IMistralClient
     Task<ChatResult> ChatAsync(string model, JsonArray messages, JsonArray? tools, string toolChoice, CancellationToken cancellationToken = default);
 
     Task<string> TranscribeAsync(Stream audio, string fileName, string contentType, CancellationToken cancellationToken = default);
+
+    /// <summary>Voix lue (Voxtral TTS) : ne reçoit que la phrase à dire, qui ne contient aucun nom de client.</summary>
+    Task<byte[]> SpeakAsync(string text, CancellationToken cancellationToken = default);
 }

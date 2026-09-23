@@ -57,6 +57,23 @@ describe('rawRequest', () => {
     expect(headers.has('Content-Type')).toBe(false)
   })
 
+  it('laisse le navigateur typer un envoi FormData (audio de l’assistant)', async () => {
+    fetchMock.mockResolvedValue(json({ ok: true }))
+
+    await rawRequest('/api/assistant/voice', { method: 'POST', body: new FormData() }, 'jeton')
+
+    expect(call(0).headers.has('Content-Type')).toBe(false)
+  })
+
+  it('rend un fichier binaire quand on le demande (voix de l’assistant)', async () => {
+    fetchMock.mockResolvedValue(new Response('ID3', { headers: { 'Content-Type': 'audio/mpeg' } }))
+
+    const result = await rawRequest<Blob>('/api/assistant/speech', { method: 'POST', body: '{}' }, 'jeton', true)
+
+    expect(result).toBeInstanceOf(Blob)
+    expect(result.size).toBe(3)
+  })
+
   it('rend undefined sur un 204', async () => {
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }))
 
