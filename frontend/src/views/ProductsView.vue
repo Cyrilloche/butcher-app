@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import AppFab from '@/components/base/AppFab.vue'
+import ActionFab from '@/components/domain/ActionFab.vue'
 import AppBrandHeader from '@/components/base/AppBrandHeader.vue'
 import AppSortableTable from '@/components/base/AppSortableTable.vue'
 import ProductRow from '@/components/domain/ProductRow.vue'
@@ -104,7 +104,7 @@ const tableProducts = computed(() =>
       <ProductRow v-for="product in products" :key="product.id" :product="product" />
     </div>
 
-    <AppFab icon="plus" ariaLabel="Créer un produit" :to="mdAndUp ? undefined : '/products/add'" @click="addOpen = true" />
+    <ActionFab label="Créer un produit" :to="mdAndUp ? undefined : '/products/add'" @click="addOpen = true" />
 
     <v-dialog v-model="addOpen">
       <ProductAddView v-if="addOpen" dialog @saved="addOpen = false; reload()" @cancel="addOpen = false" />

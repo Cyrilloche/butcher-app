@@ -33,6 +33,12 @@ namespace Butcher.Api.Infrastructure.Data.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("access_failed_count");
 
+                    b.Property<bool>("AssistantEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("assistant_enabled");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("text")
@@ -577,6 +583,59 @@ namespace Butcher.Api.Infrastructure.Data.Migrations
                     b.ToTable("unit_number_sequence", (string)null);
                 });
 
+            modelBuilder.Entity("Butcher.Api.Domain.Entities.VoiceRequest", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("account_id");
+
+                    b.Property<int>("DurationMs")
+                        .HasColumnType("integer")
+                        .HasColumnName("duration_ms");
+
+                    b.Property<string>("HeardText")
+                        .HasColumnType("text")
+                        .HasColumnName("heard_text");
+
+                    b.Property<string>("InputMode")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("input_mode");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("outcome");
+
+                    b.Property<string>("ReplySpeech")
+                        .HasColumnType("text")
+                        .HasColumnName("reply_speech");
+
+                    b.HasKey("Id")
+                        .HasName("pk_voice_request");
+
+                    b.HasIndex("AccountId", "OccurredAt")
+                        .HasDatabaseName("ix_voice_request_account_id_occurred_at");
+
+                    b.ToTable("voice_request", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_voice_request_duration_ms", "duration_ms >= 0");
+                        });
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
                 {
                     b.Property<int>("Id")
@@ -771,6 +830,18 @@ namespace Butcher.Api.Infrastructure.Data.Migrations
                         .HasConstraintName("fk_unit_number_sequence_product_product_id");
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("Butcher.Api.Domain.Entities.VoiceRequest", b =>
+                {
+                    b.HasOne("Butcher.Api.Domain.Entities.AppUser", "Account")
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_voice_request_app_user_account_id");
+
+                    b.Navigation("Account");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>

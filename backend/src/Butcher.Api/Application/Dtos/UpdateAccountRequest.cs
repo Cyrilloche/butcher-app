@@ -18,4 +18,7 @@ public class UpdateAccountRequest
     /// (FR-035). Ignoré sinon : le mot de passe se réinitialise par sa propre route.
     /// </summary>
     public string? NewPassword { get; set; }
+
+    /// <summary>Active ou désactive l'assistant vocal (RF-36, FR-026) ; absent, la valeur ne change pas.</summary>
+    public bool? AssistantEnabled { get; set; }
 }

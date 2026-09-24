@@ -1,2 +1,6 @@
 development/.env
+# Voix enregistrées pour le spike de l'assistant vocal : personnes réelles, jamais commitées
+development/assistant-corpus/
+spikes/**/.venv/
+spikes/**/__pycache__/
 .env

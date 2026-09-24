@@ -21,8 +21,8 @@ vi.mock('@/api/auth', () => ({
 const authApi = vi.mocked(await import('@/api/auth'))
 
 const session = { accessToken: 'jeton', expiresAtUtc: '2026-09-14T12:00:00Z' }
-const admin: MeDto = { id: 'a', email: 'a@saloir.local', displayName: 'Admin', role: 'admin' }
-const user: MeDto = { id: 'u', email: 'u@saloir.local', displayName: 'Mamie', role: 'user' }
+const admin: MeDto = { id: 'a', email: 'a@saloir.local', displayName: 'Admin', role: 'admin', assistantEnabled: false }
+const user: MeDto = { id: 'u', email: 'u@saloir.local', displayName: 'Mamie', role: 'user', assistantEnabled: false }
 
 /** Routeur neuf à chaque test : il garde sinon la position et la session du test précédent. */
 async function freshRouter(account: MeDto | null) {

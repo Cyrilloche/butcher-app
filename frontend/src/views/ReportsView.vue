@@ -3,6 +3,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AppBadge from '@/components/base/AppBadge.vue'
 import AppSortableTable from '@/components/base/AppSortableTable.vue'
+import AssistantUsageReport from '@/components/domain/AssistantUsageReport.vue'
 import { getReceivables, getSalesByCustomer, getSalesByProduct, getSalesSummary } from '@/api/reports'
 import { useAsyncData } from '@/composables/useAsyncData'
 import {
@@ -287,6 +288,9 @@ const pendingSaleCount = computed(() => receivables.value.customers.reduce((coun
         </template>
       </AppSortableTable>
     </section>
+
+    <!-- Assistant vocal (RF-36) -->
+    <AssistantUsageReport v-if="validPeriod" :from="period.from" :to="period.to" class="reports-view__section" />
 
     <!-- À encaisser -->
     <section class="reports-view__section">

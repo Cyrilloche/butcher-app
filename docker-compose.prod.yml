@@ -28,6 +28,12 @@ services:
       Auth__RefreshCookieSameSite: Lax
       Seed__AdminEmail: ${SEED_ADMIN_EMAIL}
       Seed__AdminPassword: ${SEED_ADMIN_PASSWORD}
+      # Assistant vocal (ADR-012, specs/006-assistant-vocal). Sans clé, l'assistant répond 503 et le
+      # reste de l'application fonctionne ; un réglage vide prend la valeur par défaut du code.
+      MISTRAL_API_KEY: ${MISTRAL_API_KEY:-}
+      Assistant__ChatModel: ${ASSISTANT_CHAT_MODEL:-}
+      Assistant__SpeechVoice: ${ASSISTANT_SPEECH_VOICE:-}
+      Assistant__MaxRequestsPerHour: ${ASSISTANT_MAX_REQUESTS_PER_HOUR:-}
       ASPNETCORE_ENVIRONMENT: Production
     depends_on:
       postgres:

@@ -19,6 +19,9 @@ public class AppUser : IdentityUser<Guid>
 
     public DateTimeOffset? LastLoginAt { get; set; }
 
+    /// <summary>L'assistant vocal est proposé à ce compte (RF-36) ; décidé par l'administrateur, relu en base à chaque demande.</summary>
+    public bool AssistantEnabled { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; }
 
     public DateTimeOffset? UpdatedAt { get; set; }

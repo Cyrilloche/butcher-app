@@ -5,6 +5,7 @@ import { ApiError } from '@/api/http'
 import type { SellableLot } from '@/composables/useSales'
 import type * as SalesApi from '@/api/sales'
 import type * as UseSales from '@/composables/useSales'
+import { setAssistantDraft } from '@/composables/useAssistantDraft'
 import SaleAddView from '../SaleAddView.vue'
 
 const push = vi.fn<(to: string) => void>()
@@ -237,5 +238,64 @@ describe('SaleAddView', () => {
 
     expect(inDocument('.app-form-shell__error')[0]!.text()).toBe("L'unité SC-260910-1 n'est plus en stock.")
     expect(wrapper.emitted('saved')).toBeUndefined()
+  })
+  it('se remplit avec la vente préparée par l’assistant, montants calculés ici, et reste à valider', async () => {
+    createSale.mockResolvedValue({} as never)
+    setAssistantDraft({
+      customerId: 3,
+      paid: false,
+      lines: [
+        { stockUnitId: 1, isFullSale: true, soldWeight: null },
+        { stockUnitId: 3, isFullSale: false, soldWeight: 0.4 },
+      ],
+      warnings: ['Il reste moins de 500 g sur ce jambon : poids à saisir.'],
+    })
+    const wrapper = await mountView()
+
+    expect(wrapper.text()).toContain('Vente préparée par l')
+    expect(wrapper.text()).toContain('poids à saisir')
+    const cart = wrapper.find('.sale-add-view__cart').text()
+    expect(cart).toContain('22,88 €')
+    expect(cart).toContain('tranche, 400 g')
+    expect(cart).toContain('10,00 €')
+    expect(createSale).not.toHaveBeenCalled()
+
+    await saveButton().trigger('click')
+    await settle()
+
+    expect(createSale).toHaveBeenCalledWith({
+      customerId: 3,
+      paid: false,
+      lines: [
+        { stockUnitId: 1, isFullSale: true, soldWeight: 1.237, amount: 22.88 },
+        { stockUnitId: 3, isFullSale: false, soldWeight: 0.4, amount: 10 },
+      ],
+    })
+  })
+
+  it('garde « Payée » quand la phrase dictée le disait', async () => {
+    createSale.mockResolvedValue({} as never)
+    setAssistantDraft({
+      customerId: 3,
+      paid: true,
+      lines: [{ stockUnitId: 1, isFullSale: true, soldWeight: null }],
+      warnings: [],
+    })
+    await mountView()
+
+    await saveButton().trigger('click')
+    await settle()
+
+    expect(createSale).toHaveBeenCalledWith(expect.objectContaining({ customerId: 3, paid: true }))
+  })
+
+  it('ne réapplique pas une vente de l’assistant déjà ouverte', async () => {
+    setAssistantDraft({ customerId: 3, paid: true, lines: [{ stockUnitId: 1, isFullSale: true, soldWeight: null }], warnings: [] })
+    ;(await mountView()).unmount()
+
+    const wrapper = await mountView()
+
+    expect(wrapper.find('.sale-add-view__cart').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('Vente préparée par l')
   })
 })

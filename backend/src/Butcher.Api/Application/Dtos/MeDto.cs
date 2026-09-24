@@ -15,4 +15,7 @@ public class MeDto
     public required string DisplayName { get; set; }
 
     public required AccountRole Role { get; set; }
+
+    /// <summary>L'interface ne propose « Dicter » que si l'assistant est activé (FR-001) ; le serveur refuse sinon.</summary>
+    public required bool AssistantEnabled { get; set; }
 }

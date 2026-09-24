@@ -18,7 +18,7 @@ public class AccountAuthorizationHandlerTests(PostgresDatabaseFixture fixture) :
 
     public Task DisposeAsync() => Task.CompletedTask;
 
-    private async Task<Guid> SeedAccountAsync(AccountRole role, bool isActive = true)
+    private async Task<Guid> SeedAccountAsync(AccountRole role, bool isActive = true, bool assistantEnabled = false)
     {
         await using var dbContext = fixture.CreateDbContext();
         var email = $"{Guid.NewGuid():N}@saloir.local";
@@ -31,6 +31,7 @@ public class AccountAuthorizationHandlerTests(PostgresDatabaseFixture fixture) :
             DisplayName = "Compte de test",
             Role = role,
             IsActive = isActive,
+            AssistantEnabled = assistantEnabled,
         };
         dbContext.AppUsers.Add(account);
         await dbContext.SaveChangesAsync();
@@ -120,6 +121,59 @@ public class AccountAuthorizationHandlerTests(PostgresDatabaseFixture fixture) :
 
         // Même jeton, rôle changé en base : le refus est immédiat.
         var context = await AuthorizeAsync(principal, AccountRequirement.Administrator);
+        Assert.False(context.HasSucceeded);
+    }
+
+    [Fact]
+    public async Task AssistantRequirement_AssistantEnabled_Succeeds()
+    {
+        var accountId = await SeedAccountAsync(AccountRole.User, assistantEnabled: true);
+
+        var context = await AuthorizeAsync(PrincipalFor(accountId), AccountRequirement.AssistantUser);
+
+        Assert.True(context.HasSucceeded);
+    }
+
+    [Theory]
+    [InlineData(AccountRole.User)]
+    [InlineData(AccountRole.Admin)]
+    public async Task AssistantRequirement_AssistantNotEnabled_FailsAsAssistantDisabled(AccountRole role)
+    {
+        var accountId = await SeedAccountAsync(role);
+
+        var context = await AuthorizeAsync(PrincipalFor(accountId), AccountRequirement.AssistantUser);
+
+        Assert.False(context.HasSucceeded);
+        Assert.Contains(AccountAuthorizationHandler.AssistantDisabledReason, FailureReasons(context));
+    }
+
+    [Fact]
+    public async Task AssistantRequirement_DeactivatedAccount_FailsAsInactive_EvenWithTheAssistant()
+    {
+        var accountId = await SeedAccountAsync(AccountRole.User, isActive: false, assistantEnabled: true);
+
+        var context = await AuthorizeAsync(PrincipalFor(accountId), AccountRequirement.AssistantUser);
+
+        Assert.False(context.HasSucceeded);
+        Assert.Contains(AccountAuthorizationHandler.InactiveAccountReason, FailureReasons(context));
+    }
+
+    [Fact]
+    public async Task AssistantRequirement_AssistantTurnedOff_FailsOnNextRequest()
+    {
+        var accountId = await SeedAccountAsync(AccountRole.User, assistantEnabled: true);
+        var principal = PrincipalFor(accountId);
+        Assert.True((await AuthorizeAsync(principal, AccountRequirement.AssistantUser)).HasSucceeded);
+
+        await using (var dbContext = fixture.CreateDbContext())
+        {
+            var account = await dbContext.AppUsers.SingleAsync(u => u.Id == accountId);
+            account.AssistantEnabled = false;
+            await dbContext.SaveChangesAsync();
+        }
+
+        // Même jeton, assistant désactivé en base : le refus est immédiat (FR-026).
+        var context = await AuthorizeAsync(principal, AccountRequirement.AssistantUser);
         Assert.False(context.HasSucceeded);
     }
 

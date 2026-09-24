@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | **Nom de projet** | Mini-ERP Charcuterie (application : **Saloir**) |
-| **Version du document** | 0.11 |
-| **Date** | 14 septembre 2026 |
+| **Version du document** | 0.12 |
+| **Date** | 23 septembre 2026 |
 | **Statut** | Vague 1 complète côté périmètre, backend comme frontend ; connexion durcie. Restent, avant l'usage réel, des gestes d'exploitation : sauvegarde, dépôt du `Caddyfile`, rotation du mot de passe de prod (voir `docs/etat-des-lieux.md` §5) |
 | **Auteur** | Cyril, avec assistance à l'architecture |
 | **Destinataires** | Utilisateurs finaux (exploitants), équipe de développement |
@@ -22,6 +22,7 @@
 | 0.8 | 2026-09-12 | Cyril, avec assistance à l'implémentation | **RG-05 révisée** : le poids restant d'une unité entamée reste interdit au stockage, mais il est désormais calculé à la demande par le serveur et affiché comme poids encore vendable — sur la ligne de l'unité et dans les totaux des deux écrans de stock. Le garde-fou d'écriture est inchangé. Aucune exigence nouvelle : l'affichage servait déjà la question métier « puis-je encore vendre une tranche » (`specs/004-remaining-weight/`). |
 | 0.9 | 2026-09-12 | Cyril, avec assistance à l'implémentation | **Statut réaligné** : RG-10 est désormais atteignable depuis l'interface (correction du prix d'une fournée), et RNF-04 est renforcée dans le code — verrouillage du compte, limitation de débit sur la connexion, politique de mot de passe de 32 caractères, en-têtes de sécurité (ADR-009, complément du 2026-09-12). Aucune exigence modifiée. |
 | 0.10 | 2026-09-13 | Cyril, avec assistance à l'implémentation | **RF-26 révisée, Q-02 tranchée** (ADR-011, `specs/005-backoffice`) : le compte partagé cède la place à des comptes nominatifs, avec deux rôles — Administrateur et Utilisateur. **RF-27 devient effective** : l'auteur des fabrications, ventes et sorties est enregistré et affiché. Les exploitants gardent toutes les corrections de saisie ; désactiver ou solder un produit, gérer les comptes, le journal et les rapports sont réservés à l'administrateur. §5 et §4.2 réalignés. |
+| 0.12 | 2026-09-23 | Cyril, avec assistance à l'implémentation | **Assistant vocal** (`specs/006-assistant-vocal`, ADR-012, sur `feat/assistant-vocal`) : ajout de RF-34 — question de stock dictée, réponse dite et affichée, chiffres du serveur —, RF-35 — vente dictée ouverte pré-remplie dans « Nouvelle vente », jamais enregistrée par l'assistant, jamais attribuée à un autre client que celui cité — et RF-36 — activation compte par compte, journal des demandes sans l'audio, limite par compte, suivi de l'usage. Nouvelle section §6.9 ; assistant inscrit au périmètre (§4.1). |
 | 0.11 | 2026-09-14 | Cyril, avec assistance à l'implémentation | **Journal et rapports** (`specs/005-backoffice`, US4 et US5, sur `feat/backoffice`) : ajout de RF-32 — journal des gestes, une entrée par geste, contenu gardé pour les suppressions, connexions tracées — et de RF-33 — rapports de ventes par période, par mois, par client, par produit, et montants à encaisser, calculés sur les montants saisis. Tous deux réservés à l'administrateur. Le point « multi-comptes avec journalisation » de §4.2 est livré. |
 | 0.3 | 2026-09-04 | Cyril, avec assistance à l'implémentation | **Q-04 et Q-05 résolus et implémentés** : ajout de l'entité *vente* (numéro unique, statut de paiement, regroupement de plusieurs unités) — nouvelles exigences RF-28 à RF-31 et règles RG-13 à RG-15 ; RF-17/RG-07 (client obligatoire) désormais garantis par le modèle ; §9 mis en cohérence (le client n'est plus optionnel) |
 
@@ -92,6 +93,7 @@ Le projet suit une approche **agile par vagues**. Le périmètre ci-dessous dist
 - Gestion des **clients** et de l'historique associé.
 - **Authentification** obligatoire (compte simple).
 - Interface **PWA responsive** (mobile prioritaire, vue PC prévue).
+- **Assistant vocal** *(ajouté le 2026-09-23, ADR-012, RF-34 à RF-36)* : question de stock et préparation d'une vente à la voix, pour les comptes où l'administrateur l'active. Lecture seule : une vente dictée s'enregistre par le formulaire habituel.
 
 ### 4.2 Planifié — V2 et au-delà
 
@@ -220,6 +222,14 @@ Le stock n'est pas un compteur abstrait : il représente des **objets physiques 
 |---|---|
 | RF-32 | **(2026-09-14)** L'administrateur consulte un **journal** des opérations : pour chacune, la date et l'heure, l'auteur, la nature (création, modification, suppression, connexion réussie ou refusée, verrouillage, mot de passe changé) et l'objet concerné, du plus récent au plus ancien, filtrable par auteur, type d'objet et période. **Une entrée par geste** : une vente et ses lignes, une fournée et ses unités, un solde de stock ne font chacun qu'une entrée, et les conséquences automatiques d'un geste n'en font aucune. Une **suppression garde le contenu** de l'objet, suffisant pour le ressaisir ; une modification n'enregistre pas l'avant ni l'après. Le journal n'est ni modifiable ni supprimable. |
 | RF-33 | **(2026-09-14)** L'administrateur dispose de **rapports de ventes** sur une période qu'il choisit (l'année en cours par défaut) : nombre de ventes, montant total, encaissé et à encaisser, répartition par mois, par client et par produit — une unité vendue en tranches compte une unité et autant de lignes que de tranches. Il dispose aussi des **montants à encaisser** toutes périodes confondues, par client, avec l'ancienneté de la plus vieille vente impayée. Les montants sont ceux **saisis** sur les lignes (RG-15), jamais recalculés ; aucune notion de coût ni de marge, réservées à la V2. |
+
+### 6.9 Assistant vocal *(ADR-012, `specs/006-assistant-vocal`)*
+
+| Réf. | Exigence |
+|---|---|
+| RF-34 | **(2026-09-23)** Un utilisateur pour lequel l'assistant est activé **dicte une question de stock** (un produit, ou tout le stock) depuis le bouton « + » des listes. La réponse est **dite à voix haute et affichée** : nombre d'unités intactes et entamées, poids encore vendable, date de la fournée la plus ancienne, avec le détail par fournée. Tous les chiffres sont **calculés par le serveur**, selon les règles des écrans de stock ; aucun ne provient du service de compréhension. Un produit absent du catalogue n'est jamais remplacé par un autre. |
+| RF-35 | **(2026-09-23)** Il **dicte une vente** (produits, quantités, poids ou prix visé, tranche, client, paiement) : le formulaire « Nouvelle vente » s'ouvre **pré-rempli**, avec les unités les plus anciennes, ou les plus proches du poids ou du prix dit, et le jambon entamé le plus ancien pour une tranche ; « À payer » sauf si la phrase dit que c'est payé. Les montants sont calculés par le formulaire, et **l'assistant n'enregistre jamais rien** : la vente se valide par le bouton habituel. L'assistant **ne propose jamais un autre client que celui cité** : un nom inconnu ou ambigu laisse le client à choisir. Les noms de clients ne sont jamais transmis au service de compréhension. |
+| RF-36 | **(2026-09-23)** L'administrateur **active l'assistant compte par compte** ; un compte sans assistant garde le « + » à un appui. Chaque demande est **journalisée** (compte, date, phrase entendue, issue, durée), **jamais l'audio**. Le nombre de demandes est **limité par compte**. L'administrateur consulte l'**usage** par compte et par semaine (nombre, issues, durée médiane) et le détail des demandes, pour suivre l'adoption et les ratés. |
 
 ---
 

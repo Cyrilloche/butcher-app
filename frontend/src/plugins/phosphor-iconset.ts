@@ -32,6 +32,8 @@ import {
   PhCaretDown,
   PhClockCounterClockwise,
   PhChartBar,
+  PhMicrophone,
+  PhStop,
 } from '@phosphor-icons/vue'
 
 /**
@@ -71,6 +73,8 @@ const phosphorIcons: Record<string, unknown> = {
   'caret-down': PhCaretDown,
   'clock-counter-clockwise': PhClockCounterClockwise,
   'chart-bar': PhChartBar,
+  microphone: PhMicrophone,
+  stop: PhStop,
 }
 
 export const phosphor: IconSet = {

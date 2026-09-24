@@ -1,0 +1,5 @@
+spacy==3.8.16
+fr_core_news_md @ https://github.com/explosion/spacy-models/releases/download/fr_core_news_md-3.8.0/fr_core_news_md-3.8.0-py3-none-any.whl
+phonemizer==3.4.0
+espeakng-loader==0.2.4
+rapidfuzz==3.14.6

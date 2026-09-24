@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Butcher.Api.Controllers;
 
-/// <summary>Rapports de ventes, réservés à l'administrateur (FR-027 à FR-029, contracts §7).</summary>
+/// <summary>Rapports de ventes et usage de l'assistant vocal, réservés à l'administrateur (FR-027 à FR-029, contracts §7 ; RF-36).</summary>
 [ApiController]
 [Route("api/reports")]
 [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
@@ -38,6 +38,23 @@ public class ReportsController(IReportService reportService) : ControllerBase
     public async Task<ActionResult<ReceivablesDto>> Receivables()
     {
         return Ok(await reportService.GetReceivablesAsync());
+    }
+
+    /// <summary>Usage de l'assistant vocal par compte et par semaine (RF-36, FR-025).</summary>
+    [HttpGet("assistant")]
+    public async Task<ActionResult<List<AssistantUsageDto>>> AssistantUsage([FromQuery] DateOnly? from, [FromQuery] DateOnly? to)
+    {
+        var (start, end) = RequirePeriod(from, to);
+        return Ok(await reportService.GetAssistantUsageAsync(start, end));
+    }
+
+    /// <summary>Dernières demandes à l'assistant, avec la phrase entendue (FR-025).</summary>
+    [HttpGet("assistant/requests")]
+    public async Task<ActionResult<List<AssistantRequestDto>>> AssistantRequests(
+        [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, [FromQuery] Guid? accountId, [FromQuery] int limit = 50)
+    {
+        var (start, end) = RequirePeriod(from, to);
+        return Ok(await reportService.GetAssistantRequestsAsync(start, end, accountId, limit));
     }
 
     private static (DateOnly From, DateOnly To) RequirePeriod(DateOnly? from, DateOnly? to) =>

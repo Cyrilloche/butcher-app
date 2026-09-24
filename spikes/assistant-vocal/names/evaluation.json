@@ -1,0 +1,2210 @@
+{
+ "customers": [
+  {
+   "id": 1,
+   "last_name": "Martin",
+   "first_name": null
+  },
+  {
+   "id": 2,
+   "last_name": "Roux",
+   "first_name": "Martine"
+  },
+  {
+   "id": 3,
+   "last_name": "Dubois",
+   "first_name": "Josette"
+  },
+  {
+   "id": 4,
+   "last_name": "Lefèvre",
+   "first_name": "Paul"
+  },
+  {
+   "id": 5,
+   "last_name": "Moreau",
+   "first_name": null
+  },
+  {
+   "id": 6,
+   "last_name": "Gérard",
+   "first_name": null
+  }
+ ],
+ "rows": [
+  {
+   "source": "phrase",
+   "id": "A1",
+   "text": "Il me reste combien de saucissons ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "A2",
+   "text": "Combien j'ai de jambon ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "A3",
+   "text": "Est-ce qu'il reste des terrines ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "A4",
+   "text": "Qu'est-ce qu'il me reste en stock ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "A5",
+   "text": "Il en reste combien, du saucisson de la semaine dernière ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "A6",
+   "text": "Le jambon entamé, il en reste combien à peu près ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "A7",
+   "text": "J'ai encore du sauciss… du saucisson ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "A8",
+   "text": "Dis-moi voir combien il reste de terrines",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "B1",
+   "text": "Vends deux saucissons à madame Martin",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "B2",
+   "text": "Mets un saucisson pour Martine",
+   "truth": [
+    2
+   ],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "B3",
+   "text": "La Josette a pris trois terrines",
+   "truth": [
+    3
+   ],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "B4",
+   "text": "Une terrine pour Gérard",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "B5",
+   "text": "J'ai vendu un saucisson et une terrine aux Moreau",
+   "truth": [
+    5
+   ],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "B6",
+   "text": "Paul Lefèvre, deux saucissons",
+   "truth": [
+    4
+   ],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "B7",
+   "text": "Euh… vends… attends… deux saucissons à madame Martin",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "B8",
+   "text": "Vends trois saucissons, non deux, à madame Martin",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "C1",
+   "text": "Un saucisson d'environ 300 grammes pour madame Martin",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "C2",
+   "text": "Donne un gros saucisson à Gérard",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "C3",
+   "text": "Un saucisson à 8 euros pour la Josette",
+   "truth": [
+    3
+   ],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "C4",
+   "text": "Un saucisson de trois cent cinquante pour Paul",
+   "truth": [
+    4
+   ],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "C5",
+   "text": "Un demi-kilo de saucisson pour les Moreau",
+   "truth": [
+    5
+   ],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "D1",
+   "text": "200 grammes de jambon pour madame Martin",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "D2",
+   "text": "Coupe deux cent cinquante grammes de jambon à Gérard",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "D3",
+   "text": "Une livre de jambon pour les Moreau",
+   "truth": [
+    5
+   ],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "D4",
+   "text": "Quatre tranches de jambon pour la Josette",
+   "truth": [
+    3
+   ],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "D5",
+   "text": "Un jambon entier pour Paul Lefèvre",
+   "truth": [
+    4
+   ],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "E1",
+   "text": "Deux saucissons à madame Martin, elle a payé",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "E2",
+   "text": "Une terrine pour Gérard, il me paiera la semaine prochaine",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "E3",
+   "text": "Madame Martin a payé en liquide pour ses deux saucissons",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "E4",
+   "text": "Trois terrines aux Moreau",
+   "truth": [
+    5
+   ],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "F1",
+   "text": "Vends deux saucissons à madame Petitjean",
+   "truth": [],
+   "unknown": [
+    "Petitjean"
+   ]
+  },
+  {
+   "source": "phrase",
+   "id": "F2",
+   "text": "Vends deux saucissons",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "F3",
+   "text": "Vends quelque chose à madame Martin",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "F4",
+   "text": "Madame Martin",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "F5",
+   "text": "Vends dix saucissons à Gérard",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "F6",
+   "text": "Vends deux chorizos à madame Martin",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "F7",
+   "text": "Mets des chansons pour enfants",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "F8",
+   "text": "Annule la dernière vente",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "F9",
+   "text": "Vends deux saucissons à madame Martin et une terrine à Gérard",
+   "truth": [
+    1,
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "phrase",
+   "id": "F10",
+   "text": "Combien il reste de saucissons, et mets-en deux pour Gérard",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "A1",
+   "text": "Il me reste combien de saucissons ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "A2",
+   "text": "Combien j'ai de jambon ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "A3",
+   "text": "Qu'est-ce qu'il reste de terrine ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "A4",
+   "text": "Qu'est-ce qu'il me reste en stock ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "A5",
+   "text": "Il en reste combien du saucisson de la semaine dernière ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "A6",
+   "text": "Le jambon entamé, il en reste combien à peu près ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "A7",
+   "text": "J'ai encore du saucisson.",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "A8",
+   "text": "Dis-moi voir combien il reste de terrine.",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "B1",
+   "text": "Bon, deux saucissons à Madame Martin.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "B2",
+   "text": "Mais un saucisson pour Martine.",
+   "truth": [
+    2
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "B3",
+   "text": "La Josette a pris trois terrines.",
+   "truth": [
+    3
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "B4",
+   "text": "Une terrine pour Gérard.",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "B5",
+   "text": "J'ai vendu un saucisson et une terrine au moro.",
+   "truth": [
+    5
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "B6",
+   "text": "Paul Lefebvre, de saucisson.",
+   "truth": [
+    4
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "B7",
+   "text": "Attends, deux saucissons à Madame Martin.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "B8",
+   "text": "Vends trois saucissons, non deux, à Madame Martin.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "C1",
+   "text": "Un saucisson d'environ 300 grammes pour Mme Martin.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "C2",
+   "text": "Donne un gros saucisson à Gérard.",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "C3",
+   "text": "Un saucisson à 8 euros pour la Josette.",
+   "truth": [
+    3
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "C4",
+   "text": "Un saucisson de 350 pour Paul.",
+   "truth": [
+    4
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "C5",
+   "text": "un demi kilo de saucisson pour les moraux.",
+   "truth": [
+    5
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "D1",
+   "text": "deux cents grammes de jambon pour Mme Barthin.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "D2",
+   "text": "Coupe 250 grammes de jambon à Gérard.",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "D3",
+   "text": "Une livre de jambon pour les moraux.",
+   "truth": [
+    5
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "D4",
+   "text": "4 tranches de jambon pour la Josette.",
+   "truth": [
+    3
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "D5",
+   "text": "Un jambon entier pour Paul Lefebvre.",
+   "truth": [
+    4
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "E1",
+   "text": "Deux saucissons à Madame Martin, elle a payé.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "E2",
+   "text": "Une terrine pour Gérard, il payera la semaine prochaine.",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "E3",
+   "text": "Madame Martin a payé en liquide pour ses deux saucissons.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "E4",
+   "text": "Trois terrines au mot.",
+   "truth": [
+    5
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "F1",
+   "text": "Vends deux saucissons à Madame Petitjean.",
+   "truth": [],
+   "unknown": [
+    "Petitjean"
+   ]
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "F10",
+   "text": "Combien il reste de saucissons ? Aimez-en deux pour Gérard.",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "F2",
+   "text": "Vends de saucisson.",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "F3",
+   "text": "Vendons quelque chose à Madame Martin.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "F4",
+   "text": "Madame Martin.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "F5",
+   "text": "Un petit saucisson à Gérard.",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "F6",
+   "text": "Nous avons deux corisaux à Madame Martin.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "F7",
+   "text": "Il met des chansons pour enfants.",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "F8",
+   "text": "Annule la dernière vente.",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "voxtral-vocab",
+   "id": "F9",
+   "text": "Vends deux saucissons à Madame Martin et une terrine à Gérard.",
+   "truth": [
+    1,
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "A1",
+   "text": "Il me reste combien de saucissons ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "A2",
+   "text": "Combien j'ai de jambon ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "A3",
+   "text": "Est-ce qu'il reste du terrain ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "A4",
+   "text": "Qu'est-ce qu'il me reste en stock ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "A5",
+   "text": "Il en reste combien du saucisson de la semaine dernière ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "A6",
+   "text": "Le jambon entamé, il en reste combien à peu près ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "A7",
+   "text": "J'ai encore du saucisson.",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "A8",
+   "text": "Dis-moi voir combien il reste de terrine.",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "B1",
+   "text": "Bon, deux saucissons à Madame Martin.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "B2",
+   "text": "Mais un saucisson pour Martine.",
+   "truth": [
+    2
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "B3",
+   "text": "La Josette a pris trois terrines.",
+   "truth": [
+    3
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "B4",
+   "text": "Une terrine pour Gérard.",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "B5",
+   "text": "J'ai vendu un saucisson et une terrine au Moreau.",
+   "truth": [
+    5
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "B6",
+   "text": "Paul Lefebvre de Saucisson.",
+   "truth": [
+    4
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "B7",
+   "text": "Attends, deux saucissons à Madame Martin.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "B8",
+   "text": "Vends trois saucissons, non deux, à Madame Martin.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "C1",
+   "text": "Un saucisson d'environ trois cents grammes pour Mme Martin.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "C2",
+   "text": "Donne un gros saucisson à Gérard.",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "C3",
+   "text": "Un saucisson à 8 euros pour la Josette.",
+   "truth": [
+    3
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "C4",
+   "text": "Un saucisson de 350 pour Paul.",
+   "truth": [
+    4
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "C5",
+   "text": "Un demi-kilo de saucisson pour les moraux.",
+   "truth": [
+    5
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "D1",
+   "text": "deux cents grammes de jambon pour Mme Martin.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "D2",
+   "text": "Coupe deux cent cinquante grammes de jambon à Gérard.",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "D3",
+   "text": "Une livre de jambon pour les moraux.",
+   "truth": [
+    5
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "D4",
+   "text": "Quatre tranches de jambon pour la Josette.",
+   "truth": [
+    3
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "D5",
+   "text": "Un jambon entier pour Paul Lefebvre.",
+   "truth": [
+    4
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "E1",
+   "text": "Deux saucissons à Madame Martin, elle a payé.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "E2",
+   "text": "Une terrine pour Gérard, il payera la semaine prochaine.",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "E3",
+   "text": "Madame Martin a payé en liquide pour ses deux saucissons.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "E4",
+   "text": "Trois terrines au mot.",
+   "truth": [
+    5
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "F1",
+   "text": "Vends deux saucissons à Madame Petitjean.",
+   "truth": [],
+   "unknown": [
+    "Petitjean"
+   ]
+  },
+  {
+   "source": "voxtral",
+   "id": "F10",
+   "text": "Combien il reste de saucisson ? Aimez-en deux pour Gérard.",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "F2",
+   "text": "Vent de saucisson.",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "F3",
+   "text": "Vendons quelque chose à Madame Martin.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "F4",
+   "text": "Madame Martin.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "F5",
+   "text": "Peu anti-saucisson à Gérard.",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "F6",
+   "text": "Nous avons deux corisaux à Madame Martin.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "F7",
+   "text": "mais des chansons pour enfants.",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "F8",
+   "text": "Annule la dernière vente.",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "voxtral",
+   "id": "F9",
+   "text": "Vend deux saucissons à Madame Martin et une terrine à Gérard.",
+   "truth": [
+    1,
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "A1",
+   "text": "il me reste combien de saucissons ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "A2",
+   "text": "combien j'ai de jambon",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "A3",
+   "text": "est-ce qu'il reste de terrines ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "A4",
+   "text": "qu'est ce qu'il me reste en stock ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "A5",
+   "text": "il en reste combien du saucisson de la semaine dernière ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "A6",
+   "text": "le jambon entamé il en reste combien à peu près ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "A7",
+   "text": "j'ai encore du sauciss... du saucisson",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "A8",
+   "text": "dis-moi voir combien il reste de terrines",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "B1",
+   "text": "bon 2 saucissons à madame martin",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "B2",
+   "text": "meilleurs saucissons pour Martin",
+   "truth": [
+    2
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "B3",
+   "text": "la Josette a pris 3 terrines",
+   "truth": [
+    3
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "B4",
+   "text": "une terrine projérée",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "B5",
+   "text": "j'ai vendu un saucisson et une terrine au moro",
+   "truth": [
+    5
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "B6",
+   "text": "Paul Lefebvre de saucissons",
+   "truth": [
+    4
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "B7",
+   "text": "deux saucissons à madame martin",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "B8",
+   "text": "vend 3 saucissons, non 2, à Madame Martin",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "C1",
+   "text": "un saucisson d'environ 300 grammes pour madame martin",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "C2",
+   "text": "donne un gros saucisson à Gérard",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "C3",
+   "text": "saucissons à 8 euros pour la josette",
+   "truth": [
+    3
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "C4",
+   "text": "un saucisson de 350 pour l'huile",
+   "truth": [
+    4
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "C5",
+   "text": "un demi kilo de saucissons pour les moraux",
+   "truth": [
+    5
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "D1",
+   "text": "200 grammes de jambon pour madame Barton",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "D2",
+   "text": "250 grammes de jambon à gérard",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "D3",
+   "text": "une livre de jambon pour les moraux",
+   "truth": [
+    5
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "D4",
+   "text": "quatre tranches de jambon pour la josette",
+   "truth": [
+    3
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "D5",
+   "text": "un jambon entier pour Paul Lefebvre",
+   "truth": [
+    4
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "E1",
+   "text": "deux saucissons à madame martin elle a payé",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "E2",
+   "text": "une terrine pour Gérard, il payera la semaine prochaine",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "E3",
+   "text": "madame martin payé en liquide pour ses saucissons",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "E4",
+   "text": "trois terrines au moraux",
+   "truth": [
+    5
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "F1",
+   "text": "vendre de saucissons à madame Petitjot",
+   "truth": [],
+   "unknown": [
+    "Petitjean"
+   ]
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "F10",
+   "text": "combien il reste de saucissons émise en deux pour gérard",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "F2",
+   "text": "vendre saucissons",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "F3",
+   "text": "vendre quelque chose à madame martin",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "F4",
+   "text": "Madame Martin",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "F5",
+   "text": "vendu saucissons agérats",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "F6",
+   "text": "vends deux chorizo à madame martin",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "F7",
+   "text": "mets des chansons pour enfants",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "F8",
+   "text": "annule la dernière avance",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium-vocab",
+   "id": "F9",
+   "text": "vend 2 saucissons à madame martin et une terrine à gérard",
+   "truth": [
+    1,
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "A1",
+   "text": "Il me reste combien de saucissons ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "A2",
+   "text": "Bon, bien, j'ai deux jambons.",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "A3",
+   "text": "Est-ce qu'il reste de terrain ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "A4",
+   "text": "Qu'est-ce qu'il me reste en stock ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "A5",
+   "text": "Il en reste combien du saucisson de la semaine dernière ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "A6",
+   "text": "Le jambon entamé, il ne reste combien à peu près ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "A7",
+   "text": "J'ai encore du saucisson.",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "A8",
+   "text": "Dis-moi voir combien il reste d'Eutérine.",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "B1",
+   "text": "Bon 2 saucissons à Madame Martin.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "B2",
+   "text": "Meilleurs saucissons pour Martin.",
+   "truth": [
+    2
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "B3",
+   "text": "La Josette a pris 3 terrines.",
+   "truth": [
+    3
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "B4",
+   "text": "Une terrine progérée",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "B5",
+   "text": "J'ai vendu un saucisson et une terrine aux moraux.",
+   "truth": [
+    5
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "B6",
+   "text": "Paul Lefebvre de Saucisson.",
+   "truth": [
+    4
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "B7",
+   "text": "Attends, d'où ce qu'ils sont ? Madame Martin.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "B8",
+   "text": "Vont trois saucissons, non deux, à Madame Martin.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "C1",
+   "text": "Un saucisson d'environ 300 grammes pour Madame Martin.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "C2",
+   "text": "Donne un gros soucis-son à Gérard.",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "C3",
+   "text": "Un saucisson à 8 euros pour la Vosette.",
+   "truth": [
+    3
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "C4",
+   "text": "Un saucisson de 350, on call.",
+   "truth": [
+    4
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "C5",
+   "text": "Un demi kilo de saucisson pour les moraux.",
+   "truth": [
+    5
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "D1",
+   "text": "200 grammes de jambon pour Madame Barton.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "D2",
+   "text": "250 grammes de jambon à gérard",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "D3",
+   "text": "Une livre de jambon pour les moraux.",
+   "truth": [
+    5
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "D4",
+   "text": "Il y a 4 tranches de jambon pour la Josette.",
+   "truth": [
+    3
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "D5",
+   "text": "Un jambon entier pour Paul Lefebvre.",
+   "truth": [
+    4
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "E1",
+   "text": "Deux saucissons à Madame Martin, elle a payé.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "E2",
+   "text": "Une terrine pour Gérard, il payera la semaine prochaine.",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "E3",
+   "text": "Madame Martin a payé en liquide pour ces deux saucissons.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "E4",
+   "text": "Trois terrines au morau.",
+   "truth": [
+    5
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "F1",
+   "text": "Le vent de saucissons à Mme Petitjot.",
+   "truth": [],
+   "unknown": [
+    "Petitjean"
+   ]
+  },
+  {
+   "source": "whisper-medium",
+   "id": "F10",
+   "text": "J'écris bien les restes de saucissons et mets-en deux pour Gérard.",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "F2",
+   "text": "Bon, deux saucissons.",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "F3",
+   "text": "On verra quelque chose à Madame Martin.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "F4",
+   "text": "Madame Martin.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "F5",
+   "text": "On dit saucisson à Gérard.",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "F6",
+   "text": "Nous avons deux chorizos à Madame Martin.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "F7",
+   "text": "Je mets des chansons pour enfants.",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "F8",
+   "text": "annule la dernière avance.",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-medium",
+   "id": "F9",
+   "text": "On vend deux saucissons à Madame Martin et une terine à Gérard.",
+   "truth": [
+    1,
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "A1",
+   "text": "Il me reste combien de soucis sont ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "A2",
+   "text": "Combien ? J'ai deux jambons.",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "A3",
+   "text": "Jusqu'il reste du terrain.",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "A4",
+   "text": "Qu'est-ce qu'il me reste en stock ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "A5",
+   "text": "Il le reste combien du saucisson de la semaine dernière ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "A6",
+   "text": "Le jambon ont amé, il ne reste qu'on bien à peu près.",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "A7",
+   "text": "J'ai encore du saucisson.",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "A8",
+   "text": "Dis-moi voir combien il reste de terrain.",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "B1",
+   "text": "Bonne souci, sois-t-on à Mme Marpe.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "B2",
+   "text": "Mais un soucis sont pour Martin.",
+   "truth": [
+    2
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "B3",
+   "text": "La Josette a pris trois terrains.",
+   "truth": [
+    3
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "B4",
+   "text": "Une Terrine Prugérat",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "B5",
+   "text": "J'ai vendu un saucisson et une terrine au moro.",
+   "truth": [
+    5
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "B6",
+   "text": "Paul Lefèvre de Saussissons",
+   "truth": [
+    4
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "B7",
+   "text": "Euh... Bon... Attends, deux sous-sissons à Valème Barton.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "B8",
+   "text": "Vont 3 saucissons, langue 2, à Mme Martin.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "C1",
+   "text": "Un saucisson d'environ 300 g pour Mme Barton.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "C2",
+   "text": "Donne un gros souci son à Gérard.",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "C3",
+   "text": "Alors, soucis sont à 8€ pour la Vosette.",
+   "truth": [
+    3
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "C4",
+   "text": "un saucisson de 350 pour coller.",
+   "truth": [
+    4
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "C5",
+   "text": "Un demi kilo de saucisson pour les moraux.",
+   "truth": [
+    5
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "D1",
+   "text": "200 g de jambon pour madame Barton.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "D2",
+   "text": "Oubles de 150 g de jambon à Gérard",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "D3",
+   "text": "Une livre de jambons pour les moraux.",
+   "truth": [
+    5
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "D4",
+   "text": "4 tronches de jambon pour la josette.",
+   "truth": [
+    3
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "D5",
+   "text": "Un jambon hanté pour Paul Lefebvre.",
+   "truth": [
+    4
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "E1",
+   "text": "Deux soucis sont à Mme Martin, elle a payé.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "E2",
+   "text": "Une térine pour Gérard, il payera la semaine prochaine.",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "E3",
+   "text": "Mme Martin payant liquide pour ces deux saucissons.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "E4",
+   "text": "Trois terrains au mot.",
+   "truth": [
+    5
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "F1",
+   "text": "Nous avons deux soucis soins madame Petit Jure.",
+   "truth": [],
+   "unknown": [
+    "Petitjean"
+   ]
+  },
+  {
+   "source": "whisper-small",
+   "id": "F10",
+   "text": "Combiens les restes de saucisson et mets en deux pour GERA.",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "F2",
+   "text": "Bon, deux soucis sont.",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "F3",
+   "text": "On va voir quelque chose à madame Martin.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "F4",
+   "text": "Madame Martin.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "F5",
+   "text": "Vontis, Aussi, Soins, Agéras.",
+   "truth": [
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "F6",
+   "text": "Nous avons deux choriseaux, Mme Martin.",
+   "truth": [
+    1
+   ],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "F7",
+   "text": "Mets des chansons pour enfants.",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "F8",
+   "text": "annule la dernière avance",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "whisper-small",
+   "id": "F9",
+   "text": "Devant deux saucissons à Mme Martin et une Thérina Gérard.",
+   "truth": [
+    1,
+    6
+   ],
+   "unknown": []
+  },
+  {
+   "source": "ecrit",
+   "id": "X1",
+   "text": "Deux saucissons pour Madame Lambert.",
+   "truth": [],
+   "unknown": [
+    "Lambert"
+   ]
+  },
+  {
+   "source": "ecrit",
+   "id": "X2",
+   "text": "deux saucissons pour madame lambert",
+   "truth": [],
+   "unknown": [
+    "lambert"
+   ]
+  },
+  {
+   "source": "ecrit",
+   "id": "X3",
+   "text": "Une terrine pour Jean-Pierre.",
+   "truth": [],
+   "unknown": [
+    "Jean",
+    "Pierre"
+   ]
+  },
+  {
+   "source": "ecrit",
+   "id": "X4",
+   "text": "une terrine pour jean-pierre",
+   "truth": [],
+   "unknown": [
+    "jean",
+    "pierre"
+   ]
+  },
+  {
+   "source": "ecrit",
+   "id": "X5",
+   "text": "Mets un jambon pour les Dupont.",
+   "truth": [],
+   "unknown": [
+    "Dupont"
+   ]
+  },
+  {
+   "source": "ecrit",
+   "id": "X6",
+   "text": "mets un jambon pour les dupont",
+   "truth": [],
+   "unknown": [
+    "dupont"
+   ]
+  },
+  {
+   "source": "ecrit",
+   "id": "X7",
+   "text": "Vends trois saucissons à Bernadette.",
+   "truth": [],
+   "unknown": [
+    "Bernadette"
+   ]
+  },
+  {
+   "source": "ecrit",
+   "id": "X8",
+   "text": "vends trois saucissons à bernadette",
+   "truth": [],
+   "unknown": [
+    "bernadette"
+   ]
+  },
+  {
+   "source": "ecrit",
+   "id": "X9",
+   "text": "Un saucisson pour Monsieur Garcia, il a payé.",
+   "truth": [],
+   "unknown": [
+    "Garcia"
+   ]
+  },
+  {
+   "source": "ecrit",
+   "id": "X10",
+   "text": "Deux saucissons pour la Simone.",
+   "truth": [],
+   "unknown": [
+    "Simone"
+   ]
+  },
+  {
+   "source": "ecrit",
+   "id": "X11",
+   "text": "Mets deux saucissons pour Gérard et un pour Madame Lambert.",
+   "truth": [
+    6
+   ],
+   "unknown": [
+    "Lambert"
+   ]
+  },
+  {
+   "source": "ecrit",
+   "id": "X12",
+   "text": "Une livre de jambon pour Paul.",
+   "truth": [
+    4
+   ],
+   "unknown": []
+  },
+  {
+   "source": "ecrit",
+   "id": "X13",
+   "text": "Combien il reste de saucissons pour Noël ?",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "ecrit",
+   "id": "X14",
+   "text": "Un saucisson pour Pâques.",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "ecrit",
+   "id": "X15",
+   "text": "Deux terrines pour demain.",
+   "truth": [],
+   "unknown": []
+  },
+  {
+   "source": "ecrit",
+   "id": "X16",
+   "text": "Un jambon pour la fête du village.",
+   "truth": [],
+   "unknown": []
+  }
+ ]
+}

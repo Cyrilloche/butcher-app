@@ -164,6 +164,55 @@ public class AccountServiceTests(PostgresDatabaseFixture fixture) : IAsyncLifeti
         Assert.Equal("Maman", (await ReloadAsync(account.Id)).DisplayName);
     }
 
+    // --- Assistant vocal (RF-36, FR-026) ------------------------------------
+
+    [Fact]
+    public async Task CreateAsync_NewAccount_HasNoAssistant()
+    {
+        var (_, _, service) = CreateSut();
+
+        var created = await service.CreateAsync(new CreateAccountRequest
+        {
+            Email = "mireille@saloir.local",
+            DisplayName = "Mireille",
+            Role = AccountRole.User,
+            Password = UserPassword,
+        });
+
+        Assert.False(created.AssistantEnabled);
+        Assert.False((await ReloadAsync(created.Id)).AssistantEnabled);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_AssistantEnabled_TurnsTheAssistantOnThenOff()
+    {
+        var (_, userManager, service) = CreateSut();
+        var account = await SeedAccountAsync(userManager, "gerard@saloir.local", AccountRole.User);
+
+        var enabled = await service.UpdateAsync(account.Id,
+            new UpdateAccountRequest { DisplayName = "Gérard", Role = AccountRole.User, AssistantEnabled = true });
+        Assert.True(enabled.AssistantEnabled);
+        Assert.True((await ReloadAsync(account.Id)).AssistantEnabled);
+
+        await service.UpdateAsync(account.Id,
+            new UpdateAccountRequest { DisplayName = "Gérard", Role = AccountRole.User, AssistantEnabled = false });
+        Assert.False((await ReloadAsync(account.Id)).AssistantEnabled);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_AssistantEnabledAbsent_KeepsTheCurrentValue()
+    {
+        var (_, userManager, service) = CreateSut();
+        var account = await SeedAccountAsync(userManager, "gerard@saloir.local", AccountRole.User);
+        await service.UpdateAsync(account.Id,
+            new UpdateAccountRequest { DisplayName = "Gérard", Role = AccountRole.User, AssistantEnabled = true });
+
+        // Un renommage ne doit pas couper l'assistant du compte.
+        await service.UpdateAsync(account.Id, new UpdateAccountRequest { DisplayName = "Gégé", Role = AccountRole.User });
+
+        Assert.True((await ReloadAsync(account.Id)).AssistantEnabled);
+    }
+
     [Fact]
     public async Task UpdateAsync_PromotionWithoutNewPassword_IsRefused()
     {

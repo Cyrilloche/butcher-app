@@ -130,6 +130,80 @@ public class ReportService(AppDbContext dbContext) : IReportService
         return new ReceivablesDto { Total = customers.Sum(c => c.PendingTotal), Customers = customers };
     }
 
+    public async Task<List<AssistantUsageDto>> GetAssistantUsageAsync(DateOnly from, DateOnly to)
+    {
+        var (start, end) = Period(from, to);
+        var requests = await dbContext.VoiceRequests.AsNoTracking()
+            .Where(r => r.OccurredAt >= start && r.OccurredAt < end)
+            .Select(r => new { r.AccountId, r.Account!.DisplayName, r.OccurredAt, r.Outcome, r.DurationMs })
+            .ToListAsync();
+
+        return requests
+            .GroupBy(r => (r.AccountId, WeekStart: WeekStartOf(r.OccurredAt)))
+            .Select(g => new AssistantUsageDto
+            {
+                AccountId = g.Key.AccountId,
+                AccountName = g.First().DisplayName,
+                WeekStart = g.Key.WeekStart,
+                Requests = g.Count(),
+                StockAnswers = g.Count(r => r.Outcome == VoiceRequestOutcome.StockAnswer),
+                SaleDrafts = g.Count(r => r.Outcome == VoiceRequestOutcome.SaleDraft),
+                NotUnderstood = g.Count(r => r.Outcome == VoiceRequestOutcome.NotUnderstood),
+                Errors = g.Count(r => r.Outcome == VoiceRequestOutcome.Error),
+                RateLimited = g.Count(r => r.Outcome == VoiceRequestOutcome.RateLimited),
+                // Une demande refusée par la limite n'a pas été traitée : elle ne compte pas dans le délai.
+                MedianDurationMs = Median(g.Where(r => r.Outcome != VoiceRequestOutcome.RateLimited).Select(r => r.DurationMs)),
+            })
+            .OrderByDescending(u => u.WeekStart)
+            .ThenBy(u => u.AccountName, StringComparer.Create(CultureInfo.GetCultureInfo("fr-FR"), ignoreCase: true))
+            .ToList();
+    }
+
+    public async Task<List<AssistantRequestDto>> GetAssistantRequestsAsync(DateOnly from, DateOnly to, Guid? accountId, int limit)
+    {
+        var (start, end) = Period(from, to);
+        var query = dbContext.VoiceRequests.AsNoTracking().Where(r => r.OccurredAt >= start && r.OccurredAt < end);
+        if (accountId is { } id)
+        {
+            query = query.Where(r => r.AccountId == id);
+        }
+
+        return await query
+            .OrderByDescending(r => r.OccurredAt).ThenByDescending(r => r.Id)
+            .Take(Math.Clamp(limit, 1, 200))
+            .Select(r => new AssistantRequestDto
+            {
+                Id = r.Id,
+                OccurredAt = r.OccurredAt,
+                AccountName = r.Account!.DisplayName,
+                InputMode = r.InputMode,
+                HeardText = r.HeardText,
+                Outcome = r.Outcome,
+                ReplySpeech = r.ReplySpeech,
+                DurationMs = r.DurationMs,
+            })
+            .ToListAsync();
+    }
+
+    /// <summary>Lundi de la semaine, à Paris, de l'instant donné.</summary>
+    private static DateOnly WeekStartOf(DateTimeOffset instant)
+    {
+        var day = BusinessTime.DayOf(instant);
+        return day.AddDays(-(((int)day.DayOfWeek + 6) % 7));
+    }
+
+    private static int? Median(IEnumerable<int> values)
+    {
+        var sorted = values.Order().ToList();
+        if (sorted.Count == 0)
+        {
+            return null;
+        }
+
+        var middle = sorted.Count / 2;
+        return sorted.Count % 2 == 1 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+    }
+
     private sealed record SaleRow(int Id, string SaleNumber, DateTimeOffset Date, bool Paid, int CustomerId, string CustomerName, decimal Total);
 
     private async Task<List<SaleRow>> SalesInPeriodAsync(DateOnly from, DateOnly to)

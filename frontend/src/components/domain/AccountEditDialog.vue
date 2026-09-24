@@ -7,18 +7,25 @@ import { accountRoleLabels, passwordRuleText } from '@/composables/useAccounts'
 import type { AccountDto, AccountRole } from '@/api/types'
 
 /**
- * Création d'un compte, ou modification de son nom et de son rôle (FR-003).
+ * Création d'un compte, ou modification de son nom, de son rôle et de l'assistant vocal (FR-003 ; RF-36).
  *
  * L'email ne change pas après création : c'est l'identifiant de connexion. Promouvoir un utilisateur
  * demande, dans le même geste, un nouveau mot de passe conforme à la règle administrateur (FR-035).
- * Les règles sont appliquées par le serveur ; ses refus sont affichés tels quels.
+ * Les règles sont appliquées par le serveur ; ses refus sont affichés tels quels. Un compte créé n'a
+ * pas l'assistant : il s'active ensuite, compte par compte (FR-026).
  */
 const props = defineProps<{ modelValue: boolean; account: AccountDto | null }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean]; saved: [] }>()
 
 const roles: AccountRole[] = ['user', 'admin']
 
-const draft = reactive({ email: '', displayName: '', role: 'user' as AccountRole, password: '' })
+const draft = reactive({
+  email: '',
+  displayName: '',
+  role: 'user' as AccountRole,
+  password: '',
+  assistantEnabled: false,
+})
 const submitting = ref(false)
 const error = ref<string | null>(null)
 
@@ -41,6 +48,7 @@ watch(
     draft.displayName = props.account?.displayName ?? ''
     draft.role = props.account?.role ?? 'user'
     draft.password = ''
+    draft.assistantEnabled = props.account?.assistantEnabled ?? false
     error.value = null
   },
 )
@@ -66,6 +74,7 @@ async function save() {
         displayName: draft.displayName.trim(),
         role: draft.role,
         newPassword: isPromotion.value ? draft.password : undefined,
+        assistantEnabled: draft.assistantEnabled,
       })
     }
     close()
@@ -128,6 +137,19 @@ async function save() {
           {{ passwordRuleText(draft.role) }}
         </p>
       </template>
+
+      <v-switch
+        v-if="!isCreation"
+        v-model="draft.assistantEnabled"
+        class="account-edit__assistant mt-3"
+        color="primary"
+        density="comfortable"
+        hide-details
+        label="Assistant vocal"
+      />
+      <p v-if="!isCreation" class="text-secondary account-edit__hint">
+        Propose « Dicter » dans le bouton « + » de ce compte : questions de stock et ventes préparées à la voix.
+      </p>
 
       <p v-if="error" class="account-edit__error text-error">{{ error }}</p>
 

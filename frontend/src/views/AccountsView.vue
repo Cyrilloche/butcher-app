@@ -127,6 +127,9 @@ function isSelf(account: AccountDto) {
             <span v-if="!account.isActive" class="accounts-view__badge accounts-view__badge--inactive">
               Désactivé
             </span>
+            <span v-if="account.assistantEnabled" class="accounts-view__badge accounts-view__badge--assistant">
+              Assistant vocal
+            </span>
           </div>
           <div class="text-secondary accounts-view__last-login">{{ formatLastLogin(account.lastLoginAt) }}</div>
         </div>
@@ -245,6 +248,11 @@ function isSelf(account: AccountDto) {
   font-weight: 600;
   padding: 2px 10px;
   border-radius: 999px;
+}
+
+.accounts-view__badge--assistant {
+  background: rgb(var(--v-theme-success-container));
+  color: rgb(var(--v-theme-success));
 }
 
 .accounts-view__badge--admin {

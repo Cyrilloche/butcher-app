@@ -27,9 +27,10 @@ async function parseError(res: Response): Promise<ApiError> {
   return new ApiError(res.status, body?.detail ?? body?.title ?? res.statusText)
 }
 
-async function parseResponse<T>(res: Response): Promise<T> {
+async function parseResponse<T>(res: Response, asBlob = false): Promise<T> {
   if (!res.ok) throw await parseError(res)
   if (res.status === 204) return undefined as T
+  if (asBlob) return (await res.blob()) as T
   return (await res.json()) as T
 }
 
@@ -42,9 +43,12 @@ export async function rawRequest<T>(
   path: string,
   options: RequestInit = {},
   accessToken?: string | null,
+  asBlob = false,
 ): Promise<T> {
   const headers = new Headers(options.headers)
-  if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
+  // Un FormData (audio de l'assistant) porte sa propre frontière multipart : le navigateur pose l'en-tête.
+  if (options.body && !(options.body instanceof FormData) && !headers.has('Content-Type'))
+    headers.set('Content-Type', 'application/json')
   if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`)
 
   const res = await fetch(`${BASE_URL}${path}`, {
@@ -52,12 +56,14 @@ export async function rawRequest<T>(
     headers,
     credentials: 'include',
   })
-  return parseResponse<T>(res)
+  return parseResponse<T>(res, asBlob)
 }
 
 export interface ApiFetchOptions extends RequestInit {
   /** JSON sérialisé automatiquement si fourni. */
   json?: unknown
+  /** Réponse binaire (audio de l'assistant) plutôt que JSON. */
+  blob?: boolean
 }
 
 /**
@@ -70,11 +76,11 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   const { useAuthStore } = await import('@/stores/auth')
   const auth = useAuthStore()
 
-  const { json, ...rest } = options
+  const { json, blob = false, ...rest } = options
   const body = json !== undefined ? JSON.stringify(json) : rest.body
 
   try {
-    return await rawRequest<T>(path, { ...rest, body }, auth.accessToken)
+    return await rawRequest<T>(path, { ...rest, body }, auth.accessToken, blob)
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) {
       try {
@@ -83,7 +89,7 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
         auth.logout()
         throw err
       }
-      return await rawRequest<T>(path, { ...rest, body }, auth.accessToken)
+      return await rawRequest<T>(path, { ...rest, body }, auth.accessToken, blob)
     }
     throw err
   }

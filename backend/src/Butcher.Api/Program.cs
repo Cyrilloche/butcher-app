@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Butcher.Api.Application.Assistant;
 using Butcher.Api.Application.Services;
 using Butcher.Api.Common;
 using Butcher.Api.Common.Authorization;
@@ -8,6 +9,7 @@ using Butcher.Api.Domain.Entities;
 using Butcher.Api.Domain.Enums;
 using Butcher.Api.Infrastructure.Data;
 using Butcher.Api.Infrastructure.Identity;
+using Butcher.Api.Infrastructure.Mistral;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -92,6 +94,7 @@ builder.Services.AddAuthorization(options =>
     options.DefaultPolicy = AuthorizationPolicies.ActiveAccount;
     options.FallbackPolicy = AuthorizationPolicies.ActiveAccount;
     options.AddPolicy(AuthorizationPolicies.AdminOnly, AuthorizationPolicies.Admin);
+    options.AddPolicy(AuthorizationPolicies.AssistantEnabled, AuthorizationPolicies.Assistant);
 });
 builder.Services.AddScoped<IAuthorizationHandler, AccountAuthorizationHandler>();
 builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, AccountAuthorizationResultHandler>();
@@ -115,6 +118,13 @@ builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<ISaleService, SaleService>();
 builder.Services.AddScoped<IAuditEntryService, AuditEntryService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+// Assistant vocal (RF-34 à RF-36, ADR-012) : seul le backend appelle Mistral.
+builder.Services.AddHttpClient<IMistralClient, MistralClient>(client =>
+{
+    client.BaseAddress = new Uri(MistralClient.BaseAddress);
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+builder.Services.AddScoped<IAssistantService, AssistantService>();
 
 var app = builder.Build();
 

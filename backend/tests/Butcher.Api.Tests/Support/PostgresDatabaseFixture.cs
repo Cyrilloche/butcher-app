@@ -50,6 +50,7 @@ public class PostgresDatabaseFixture : IAsyncLifetime
             """
             TRUNCATE TABLE
                 audit_entry,
+                voice_request,
                 stock_movement,
                 sale,
                 stock_unit,

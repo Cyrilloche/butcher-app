@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import AppFab from '@/components/base/AppFab.vue'
+import ActionFab from '@/components/domain/ActionFab.vue'
 import AppBadge from '@/components/base/AppBadge.vue'
 import AppBrandHeader from '@/components/base/AppBrandHeader.vue'
 import AppSortableTable from '@/components/base/AppSortableTable.vue'
@@ -221,7 +221,7 @@ function euros(value: number): string {
       </button>
     </nav>
 
-    <AppFab icon="plus" ariaLabel="Créer un client" :to="mdAndUp ? undefined : '/customers/add'" @click="addOpen = true" />
+    <ActionFab label="Créer un client" :to="mdAndUp ? undefined : '/customers/add'" @click="addOpen = true" />
 
     <v-dialog v-model="addOpen">
       <CustomerAddView v-if="addOpen" dialog @saved="onCustomerSaved" @cancel="addOpen = false" />

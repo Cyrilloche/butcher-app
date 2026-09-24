@@ -4,10 +4,10 @@
 |---|---|
 | **Projet** | Mini-ERP Charcuterie (repo : `butcher-app`) |
 | **Document** | Modèle de données détaillé (V1) |
-| **Version** | 0.13 |
-| **Date** | 14 septembre 2026 |
+| **Version** | 0.14 |
+| **Date** | 23 septembre 2026 |
 | **Statut** | Implémenté (backend, cœur métier V1 complet ; comptes nominatifs, journal et rapports sur `feat/backoffice`) |
-| **Documents liés** | PRD v0.11, Journal ADR (11 décisions, ADR-011 accepté), `docs/etat-des-lieux.md`, `specs/005-backoffice/data-model.md` |
+| **Documents liés** | PRD v0.12, Journal ADR (12 décisions, ADR-012 accepté), `docs/etat-des-lieux.md`, `specs/005-backoffice/data-model.md` |
 
 ### Historique des révisions
 
@@ -24,6 +24,7 @@
 | 0.11 | 2026-09-12 | **Poids encore vendable exposé sur le contrat d'une unité** (§3.5), calculé à chaque lecture et **jamais stocké** — aucune migration. RG-05 révisée en conséquence (PRD v0.8) : l'interdiction porte sur la persistance, pas sur le calcul ni sur l'affichage. La règle est partagée avec le poids d'une sortie perso ou perte (§3.8) sous le nom `ComputeRemainingWeight`. |
 | 0.10 | 2026-09-11 | Aucune modification de schéma. `raw_material_ref` et `expiry_date` (§3.4) documentés comme **non exposés en V1** : RF-08/RF-09 reportées en V2 (PRD v0.7) au nom de la prise en main par des utilisateurs non techniques. Colonnes et API conservées, réouverture sans coût. |
 | 0.12 | 2026-09-13 | **Comptes nominatifs avec rôle** (ADR-011, RF-26 révisée) : `app_user` gagne `display_name`, `role` (`admin` / `user`), `is_active`, `last_login_at` et `updated_at` (§3.1). La migration `AddAccountRoles` reprend les comptes existants en administrateurs actifs. **`created_by` est désormais renseigné** (RF-27) par `AppDbContext.SaveChanges`, sans changement de schéma. Libellés des rôles ajoutés à la correspondance (§4.2). |
+| 0.14 | 2026-09-23 | **Assistant vocal** (RF-34 à RF-36, ADR-012, `specs/006-assistant-vocal`) : `app_user` gagne `assistant_enabled` (§3.1), nouvelle table `voice_request` (§3.11), journal des demandes à l'assistant, distinct du journal des gestes. Migration `AddVoiceRequests`. Issues et modes de saisie ajoutés à la correspondance (§4.2). |
 | 0.13 | 2026-09-14 | **Journal des gestes** (RF-32, `specs/005-backoffice` US4) : nouvelle table `audit_entry` (§3.10), append-only, écrite par `AppDbContext.SaveChanges` dans la transaction de l'opération, une entrée par geste et non par ligne modifiée. Migration `AddAuditEntries`. **Rapports de ventes** (RF-33, US5) : aucune table, lectures agrégées des montants enregistrés, jours et mois de Paris (§3.10, note finale). Natures d'opération et types d'objet ajoutés à la correspondance (§4.2). |
 | 0.7 | 2026-09-04 | RG-05 précisée (pas remplacée) : garde-fou serveur empêchant la somme des `sold_weight` d'une unité entamée de dépasser son `weight` pesé, à la création comme à la modification d'un mouvement de vente. Calcul à la volée, aucune colonne « poids restant » ajoutée — conforme à l'intention initiale de RG-05. |
 
@@ -76,6 +77,7 @@ Compte **nominatif** d'une personne (RF-26 révisée, ADR-011). Colonnes d'authe
 | `role` | varchar(20) | non nul, `admin` \| `user` | Rôle du compte, stocké en `snake_case` |
 | `is_active` | boolean | non nul | Faux : connexion, rafraîchissement et requêtes refusés |
 | `last_login_at` | timestamptz | nullable | Dernière connexion réussie |
+| `assistant_enabled` | boolean | non nul, défaut `false` | L'assistant vocal est proposé à ce compte (RF-36) |
 | `created_at` | timestamptz | non nul | Date de création |
 | `updated_at` | timestamptz | nullable | Dernière modification |
 
@@ -85,6 +87,7 @@ Compte **nominatif** d'une personne (RF-26 révisée, ADR-011). Colonnes d'authe
 - **Mot de passe** : 20 caractères au minimum pour un utilisateur, 32 pour un administrateur, avec majuscule, minuscule, chiffre et caractère spécial. Promouvoir un utilisateur exige un nouveau mot de passe conforme au rôle cible.
 - **Aucune valeur par défaut en base** pour `role`, `is_active` et `display_name` : l'application les écrit toujours explicitement. Le compte seedé sur une base vierge est administrateur ; `create-user` crée un utilisateur.
 - **Droits relus en base** à chaque requête, jamais déduits du seul jeton : une rétrogradation ou une désactivation prend effet immédiatement.
+- **Assistant vocal** : faux pour un nouveau compte et pour les comptes existants à la migration (seule colonne de la table avec une valeur par défaut en base, nécessaire à la reprise). Activé par l'administrateur ; relu en base à chaque demande à l'assistant.
 
 ### 3.2 ~~`unit_of_measure`~~ — supprimée (2026-09-04)
 
@@ -298,6 +301,35 @@ il se consulte par l'administrateur seul (`GET /api/audit-entries`, écran Journ
 > prix. Jours et mois sont ceux de Paris, pas de l'UTC du serveur. Par produit, une unité vendue en
 > plusieurs tranches compte **une** unité et autant de lignes que de tranches.
 
+### 3.11 `voice_request` *(nouveau en v0.14)*
+
+Journal des **demandes à l'assistant vocal** (RF-36). Distinct d'`audit_entry` : une demande ne change
+aucune donnée (l'assistant lit le stock et prépare des brouillons), et ses champs servent à mesurer
+l'usage, le délai et les ratés. **Jamais l'audio.** Consulté par l'administrateur seul (écran Rapports).
+
+| Attribut | Type | Contraintes | Rôle |
+|---|---|---|---|
+| `id` | bigint | PK, identité | Sert aussi à demander la voix de la réponse |
+| `account_id` | uuid | FK → `app_user`, `RESTRICT`, non nul | Auteur de la demande |
+| `occurred_at` | timestamptz | non nul | Réception de la demande |
+| `input_mode` | varchar(10) | non nul, `snake_case` | `voice` (dictée), `text` (écrite) |
+| `heard_text` | text | nullable | Phrase entendue ou écrite ; `null` si la transcription a échoué ou si la limite était atteinte. **Peut contenir un nom de client** |
+| `outcome` | varchar(20) | non nul, `snake_case` | `stock_answer`, `sale_draft`, `not_understood`, `error`, `rate_limited` |
+| `reply_speech` | text | nullable | Phrase de réponse, telle que dite ; `null` en erreur ou limite atteinte |
+| `duration_ms` | integer | non nul, ≥ 0 | Durée de traitement par le serveur |
+
+**Règles** :
+- **Écrite par `AssistantService` seul**, une ligne par demande quelle qu'en soit l'issue, erreur et
+  limite atteinte comprises.
+- **Limite par compte** : les demandes de l'heure glissante se comptent dans cette table ; au-delà,
+  la demande est journalisée `rate_limited` et refusée sans appel extérieur.
+- **Voix de la réponse** : seule la `reply_speech` d'une demande du même compte, de moins de dix
+  minutes, peut être lue par le service de synthèse. Aucun texte libre n'y est envoyé.
+- **Immuable**, sans durée de conservation, comme `audit_entry`.
+- **Données transmises à l'extérieur** (ADR-012) : l'audio part à la transcription, noms de clients
+  compris ; la compréhension reçoit la phrase sans aucun nom de client ; la synthèse reçoit la
+  phrase de réponse, qui n'en contient jamais.
+
 ---
 
 ## 4. Numéro de lot & correspondance des libellés
@@ -371,6 +403,13 @@ Les valeurs techniques sont en anglais ; l'interface les affiche en français. C
 | Journal — objet compte | `account` | Compte |
 | Journal — sans auteur, connexion | `account_id` = `null`, `login_failed` | Personne (adresse inconnue) |
 | Journal — sans auteur, autre geste | `account_id` = `null` | Hors application |
+| Assistant — issue | `stock_answer` | Stock |
+| Assistant — issue | `sale_draft` | Vente |
+| Assistant — issue | `not_understood` | Pas compris |
+| Assistant — issue | `error` | Erreur |
+| Assistant — issue | `rate_limited` | Limite atteinte |
+| Assistant — saisie | `voice` | Dictée |
+| Assistant — saisie | `text` | Écrite |
 
 ---
 
@@ -421,6 +460,7 @@ Le champ `status` est une **dénormalisation assumée** : l'état pourrait, pour
 | `stock_movement` | `date` | Vues chronologiques, rapports |
 | `audit_entry` | `occurred_at` (décroissant) | Journal du plus récent au plus ancien |
 | `audit_entry` | `(account_id, occurred_at)` | Journal filtré par auteur |
+| `voice_request` | `(account_id, occurred_at)` | Limite par compte sur l'heure glissante, usage par compte et par période |
 
 ---
 
@@ -457,6 +497,7 @@ Table app_user {
   role varchar(20) [not null, note: 'admin | user']
   is_active boolean [not null]
   last_login_at timestamptz
+  assistant_enabled boolean [not null, default: false]
   created_at timestamptz [default: `now()`]
   updated_at timestamptz
   Note: 'Authentication handled by ASP.NET Core Identity'
@@ -478,6 +519,23 @@ Table audit_entry {
   }
 
   Note: 'Append-only; one entry per gesture, written by SaveChanges in the same transaction (v0.13)'
+}
+
+Table voice_request {
+  id bigint [pk, increment]
+  account_id uuid [not null, ref: > app_user.id]
+  occurred_at timestamptz [not null]
+  input_mode varchar(10) [not null, note: 'voice | text']
+  heard_text text [note: 'null when transcription failed or rate limited']
+  outcome varchar(20) [not null, note: 'stock_answer | sale_draft | not_understood | error | rate_limited']
+  reply_speech text [note: 'null on error or rate limited']
+  duration_ms integer [not null]
+
+  Indexes {
+    (account_id, occurred_at)
+  }
+
+  Note: 'Voice assistant requests, never the audio; written by AssistantService (v0.14)'
 }
 
 Table product {

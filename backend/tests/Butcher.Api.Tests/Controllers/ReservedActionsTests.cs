@@ -50,6 +50,20 @@ public class ReservedActionsTests
         Assert.All(AdministrationControllers, controller => Assert.True(IsAdminOnly(controller)));
     }
 
+    /// <summary>
+    /// L'assistant vocal n'est ouvert qu'aux comptes pour lesquels l'administrateur l'a activé (RF-36,
+    /// FR-022) : posée sur le contrôleur entier, la politique couvre toute action ajoutée plus tard.
+    /// </summary>
+    [Fact]
+    public void AssistantController_RequiresTheAssistantAsAWhole()
+    {
+        Assert.Contains(typeof(AssistantController).GetCustomAttributes<AuthorizeAttribute>(inherit: true),
+            a => a.Policy == AuthorizationPolicies.AssistantEnabled);
+        Assert.DoesNotContain(typeof(AssistantController)
+            .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
+            .SelectMany(action => action.GetCustomAttributes<AllowAnonymousAttribute>()), _ => true);
+    }
+
     private static bool IsAdminOnly(MemberInfo member) =>
         member.GetCustomAttributes<AuthorizeAttribute>(inherit: true)
             .Any(a => a.Policy == AuthorizationPolicies.AdminOnly);

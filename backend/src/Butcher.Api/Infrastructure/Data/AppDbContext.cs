@@ -35,6 +35,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentAccoun
 
     public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
 
+    public DbSet<VoiceRequest> VoiceRequests => Set<VoiceRequest>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

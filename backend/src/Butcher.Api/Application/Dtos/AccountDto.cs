@@ -15,6 +15,9 @@ public class AccountDto
 
     public required bool IsActive { get; set; }
 
+    /// <summary>L'assistant vocal est activé pour ce compte (RF-36).</summary>
+    public required bool AssistantEnabled { get; set; }
+
     public DateTimeOffset? LastLoginAt { get; set; }
 
     public required DateTimeOffset CreatedAt { get; set; }

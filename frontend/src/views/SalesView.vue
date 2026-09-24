@@ -2,7 +2,7 @@
 import { computed, defineAsyncComponent, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
-import AppFab from '@/components/base/AppFab.vue'
+import ActionFab from '@/components/domain/ActionFab.vue'
 import AppBrandHeader from '@/components/base/AppBrandHeader.vue'
 import AppSortableTable from '@/components/base/AppSortableTable.vue'
 import CustomerPicker from '@/components/domain/CustomerPicker.vue'
@@ -208,7 +208,7 @@ const groups = computed<MonthGroup[]>(() => {
       </section>
     </div>
 
-    <AppFab icon="plus" ariaLabel="Nouvelle vente" :to="mdAndUp ? undefined : '/sales/add'" @click="addOpen = true" />
+    <ActionFab label="Nouvelle vente" :to="mdAndUp ? undefined : '/sales/add'" @click="addOpen = true" />
 
     <v-dialog v-model="addOpen">
       <SaleAddView v-if="addOpen" dialog @saved="addOpen = false; reload()" @cancel="addOpen = false" />

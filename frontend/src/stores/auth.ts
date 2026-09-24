@@ -21,6 +21,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => accessToken.value !== null)
   const isAdmin = computed(() => account.value?.role === 'admin')
+  /** L'administrateur a activé l'assistant vocal pour ce compte ; le serveur refuse sinon (RF-36). */
+  const assistantEnabled = computed(() => account.value?.assistantEnabled === true)
 
   let readyPromise: Promise<void> | null = null
 
@@ -89,6 +91,7 @@ export const useAuthStore = defineStore('auth', () => {
     account,
     isAuthenticated,
     isAdmin,
+    assistantEnabled,
     login,
     logout,
     refresh,

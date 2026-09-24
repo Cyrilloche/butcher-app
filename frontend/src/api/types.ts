@@ -27,6 +27,8 @@ export interface MeDto {
   email: string
   displayName: string
   role: AccountRole
+  /** L'assistant vocal est activé pour ce compte : le « + » propose « Dicter » (RF-36). */
+  assistantEnabled: boolean
 }
 
 export interface ChangePasswordRequest {
@@ -43,6 +45,8 @@ export interface AccountDto {
   displayName: string
   role: AccountRole
   isActive: boolean
+  /** L'assistant vocal est activé pour ce compte (RF-36). */
+  assistantEnabled: boolean
   lastLoginAt: string | null
   createdAt: string
 }
@@ -59,6 +63,8 @@ export interface UpdateAccountRequest {
   role: AccountRole
   /** Obligatoire pour promouvoir un utilisateur administrateur (32 caractères au moins). */
   newPassword?: string
+  /** Active ou désactive l'assistant vocal ; absent, la valeur ne change pas. */
+  assistantEnabled?: boolean
 }
 
 export interface ResetPasswordRequest {
@@ -413,4 +419,92 @@ export interface ValidationProblemDetailsDto {
   status: number
   title: string
   errors: Record<string, string[]>
+}
+
+// --- Assistant vocal (RF-34, RF-35 ; specs/006-assistant-vocal) --------
+
+export type AssistantReplyKind = 'stock_answer' | 'sale_draft' | 'not_understood'
+
+export interface BatchStockDto {
+  productionDate: string
+  salePrice: number
+  count: number
+  /** Kilogrammes encore vendables ; null à la pièce. */
+  remainingKg: number | null
+}
+
+export interface OpenedUnitStockDto {
+  unitNumber: string
+  productionDate: string
+  remainingKg: number | null
+}
+
+export interface ProductStockDto {
+  code: string
+  name: string
+  saleMode: SaleMode
+  wholeCount: number
+  openedCount: number
+  remainingKg: number | null
+  oldestDate: string | null
+  batches: BatchStockDto[]
+  opened: OpenedUnitStockDto[]
+}
+
+/** Ligne proposée par l'assistant : l'unité choisie par le serveur, sans montant (le formulaire le calcule). */
+export interface DraftLineDto {
+  stockUnitId: number
+  isFullSale: boolean
+  /** Kilogrammes d'une tranche ; null pour une unité entière ou un poids à saisir. */
+  soldWeight: number | null
+}
+
+export interface SaleDraftDto {
+  customerId: number | null
+  paid: boolean
+  lines: DraftLineDto[]
+  warnings: string[]
+}
+
+export interface AssistantReplyDto {
+  /** Identifiant de la demande journalisée : sert à demander la voix de la réponse (FR-020). */
+  requestId: number
+  kind: AssistantReplyKind
+  /** Phrase à dire à voix haute. */
+  speech: string
+  /** Ce que l'assistant a entendu. */
+  heard: string
+  stock: ProductStockDto[] | null
+  draft: SaleDraftDto | null
+}
+
+// --- Usage de l'assistant vocal (RF-36, FR-025), réservé à l'administrateur ----------------
+
+export type VoiceRequestOutcome = 'stock_answer' | 'sale_draft' | 'not_understood' | 'error' | 'rate_limited'
+export type VoiceInputMode = 'voice' | 'text'
+
+export interface AssistantUsageDto {
+  accountId: string
+  accountName: string
+  /** Lundi de la semaine, jour de Paris (`YYYY-MM-DD`). */
+  weekStart: string
+  requests: number
+  stockAnswers: number
+  saleDrafts: number
+  notUnderstood: number
+  errors: number
+  rateLimited: number
+  /** Durée médiane de traitement par le serveur ; null si aucune demande n'a été traitée. */
+  medianDurationMs: number | null
+}
+
+export interface AssistantRequestDto {
+  id: number
+  occurredAt: string
+  accountName: string
+  inputMode: VoiceInputMode
+  heardText: string | null
+  outcome: VoiceRequestOutcome
+  replySpeech: string | null
+  durationMs: number
 }

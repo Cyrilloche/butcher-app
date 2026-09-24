@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import AccountMenu from '@/components/domain/AccountMenu.vue'
+import AssistantPanel from '@/components/domain/AssistantPanel.vue'
 import { accountRoleLabels } from '@/composables/useAccounts'
 import { useAuthStore } from '@/stores/auth'
 
@@ -104,6 +105,9 @@ const initial = computed(() => (auth.account?.displayName.trim().charAt(0) ?? '?
   <v-main>
     <RouterView />
   </v-main>
+
+  <!-- Assistant vocal (RF-34 à RF-36) : lancé depuis le « + » d'un compte qui l'a (FR-001). -->
+  <AssistantPanel v-if="showNavigation" />
 
   <v-bottom-navigation v-if="showNavigation && !mdAndUp" grow color="primary">
     <v-btn to="/" value="stock">
