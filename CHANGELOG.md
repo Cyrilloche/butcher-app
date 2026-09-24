@@ -3,6 +3,54 @@
 Généré à partir des messages de commit ([Conventional Commits](https://www.conventionalcommits.org/fr/)).
 Ne pas éditer à la main : régénérer avec `make changelog`.
 
+## frontend-v0.8.0 — 24/09/2026
+
+### Nouveautés
+
+- **backend** : Reconnaissance des clients dans une phrase dictée (spike assistant vocal, étape 2) (0ecdf44)
+- **backend** : Chaîne de l'assistant vocal sur du texte (spike assistant vocal, étape 3) (e74d587)
+- **frontend** : Bouton micro de l'assistant vocal (spike assistant vocal, étape 4) (4944efc)
+- L'assistant répond avec la voix de Mistral (Voxtral TTS) (64ff661)
+- **backend** : Assistant vocal activé compte par compte, table voice_request (5b78998)
+- **backend** : Chaque demande à l'assistant est journalisée, la phrase dite vient du serveur (d27a5e4)
+- **frontend** : Contrat de l'assistant, activation lue sur le compte connecté (2b16f43)
+- La voix de Mistral ne lit que la réponse d'une demande du compte (6418af4)
+- **backend** : Limite de demandes à l'assistant par compte (56566ef)
+- **backend** : Rapports d'usage de l'assistant vocal (de99d11)
+- **frontend** : Assistant activé compte par compte, usage dans les Rapports (5720e8d)
+- L'assistant vocal prêt pour la production (80e74f8)
+
+### Corrections
+
+- **backend** : L'assistant dit une phrase de stock construite par le serveur (834ee7b)
+- **frontend** : Une nouvelle vente est « À payer » par défaut (6f29836)
+- **backend** : La réponse de stock n'accorde plus le nom du produit (87f60d3)
+- **backend** : L'assistant accepte l'audio envoyé par Chrome (c29e213)
+- **frontend** : L'assistant se lance depuis le « + » et s'arrête quand on se tait (1e30339)
+
+### Documentation
+
+- Cadrage de l'assistant vocal (R&D) et jeu de phrases de test (150fbf6)
+- Assistant vocal — réponse de stock en deux niveaux, R&D en local (1c8c667)
+- Plan du spike de l'assistant vocal (b64b933)
+- Seuils de réussite du spike de l'assistant vocal arrêtés (6be942a)
+- Fonctionnement de l'assistant vocal, de l'appui sur le bouton à la vente enregistrée (d2d9f22)
+- Retours des essais de l'assistant vocal sur téléphone (17c81d8)
+- Bilan du spike de l'assistant vocal et ADR-012 proposé (9f43ac7)
+- Go vers la spec de l'assistant vocal, compte Mistral en paiement à l'usage (86da775)
+- ADR-012 au sommaire du journal des décisions (a22cca1)
+- ADR-012 accepté (4f073d0)
+- Spec 006, assistant vocal (aee342e)
+- Plan de la spec 006, assistant vocal (267cad4)
+- Tâches de la spec 006, assistant vocal (0d0f50f)
+- RF-34 à RF-36 et voice_request dans les documents de référence (bc245c2)
+- L'assistant vocal dans CLAUDE.md et l'explication du fonctionnement (3c79ee6)
+
+### Tests
+
+- **backend** : La question de stock dictée, avec un LLM simulé (1bad67e)
+- La vente dictée et le client, jamais un autre que celui cité (a3e5551)
+
 ## frontend-v0.7.0 — 17/09/2026
 
 ### Nouveautés
